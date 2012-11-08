@@ -1,0 +1,266 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=IE8">
+    <title>Vidyano</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link href="reset.css" type="text/css" rel="stylesheet" />
+    <link href="jquery-ui-1.8.23.custom.css" type="text/css" rel="stylesheet" />
+    <link href="codemirror.css" type="text/css" rel="stylesheet" />
+    <link href="simple-hint.css" type="text/css" rel="stylesheet" />
+    <link href="Vidyano.css" type="text/css" rel="stylesheet" />
+    <script src="Scripts/jquery-1.8.1.min.js" type="text/javascript"></script>
+    <script src="Scripts/jquery-ui-1.8.23.custom.min.js" type="text/javascript"></script>
+    <script src="Scripts/jquery.base64.min.js" type="text/javascript"></script>
+    <script src="Scripts/jquery.ba-resize.min.js" type="text/javascript"></script>
+    <script src="Scripts/jquery.rule.js" type="text/javascript"></script>
+    <script src="Scripts/json2.js" type="text/javascript"></script>
+    <script src="Scripts/signals.min.js" type="text/javascript"></script>
+    <script src="Scripts/crossroads.min.js" type="text/javascript"></script>
+    <script src="Scripts/hasher.min.js" type="text/javascript"></script>
+    <script src="Scripts/underscore-min.js" type="text/javascript"></script>
+    <script src="Scripts/detectmobilebrowser.js" type="text/javascript"></script>
+    <script src="Scripts/spin.min.js" type="text/javascript"></script>
+    <script src="Scripts/prefixfree.min.js" type="text/javascript"></script>
+    <script src="Scripts/shortcut.js" type="text/javascript"></script>
+    <script src="Scripts/CodeMirror/codemirror.js" type="text/javascript"></script>
+    <script src="Scripts/CodeMirror/javascript.js" type="text/javascript"></script>
+    <script src="Scripts/CodeMirror/css.js" type="text/javascript"></script>
+    <script src="Scripts/CodeMirror/xml.js" type="text/javascript"></script>
+    <script src="Scripts/CodeMirror/htmlmixed.js" type="text/javascript"></script>
+    <script src="Scripts/CodeMirror/htmlembedded.js" type="text/javascript"></script>
+    <script src="Scripts/CodeMirror/simple-hint.js" type="text/javascript"></script>
+    <script src="Scripts/CodeMirror/xml-hint.js" type="text/javascript"></script>
+    <script src="Scripts/CodeMirror/javascript-hint.js" type="text/javascript"></script>
+    <script src="Scripts/CodeMirror/foldcode.js" type="text/javascript"></script>
+    <script src="Scripts/CodeMirror/formatting.js" type="text/javascript"></script>
+    <script src="Scripts/CodeMirror/closetag.js" type="text/javascript"></script>
+    <script src="Scripts/html2canvas.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/CultureInfo.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/ClientCultures.debug.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Common.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/jQuery.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/ExpressionParser.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/SelectReferenceDialogActions.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/PersistentObjectAttribute.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/PersistentObject.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/ProgramUnit.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/ProgramUnitItem.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/ProgramUnitItemGroup.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/ProgramUnitItemWithFilter.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Query.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/QueryColumn.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/QueryResultItem.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/QueryResultItemValue.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Resource.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/ActionBase.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Pages.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/ServiceGateway.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Application.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/AutoSizePanel.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/Controls.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/EditableSelect.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/Filter.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/QueryViewer.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/QueryList.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/QueryGrid.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/QueryPaging.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/Search.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/DatePicker.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/TimePicker.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/OffsetPicker.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/SubMenu.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/WeekScheduler.js" type="text/javascript"></script>
+
+    <script type="text/html" id="home_template">
+        <header>
+            <table style="width: 100%; table-layout: auto">
+                <tr>
+                    <td>
+                        <div class="programUnits" style="overflow: hidden" />
+                        <div class="programUnitItems" />
+                    </td>
+                    <td style="width: 1px; white-space: nowrap; overflow: hidden; vertical-align: top">
+                        <div id="applicationSignIn" data-vidyano-visibility-states="SignedIn">
+                            <input id="globalSearch" type="text" />
+                            <div id="signInOut" tabindex="-1"></div>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </header>
+
+        <div id="content"></div>
+    </script>
+    <script type="text/html" id="home_mobile_template">
+        <header id="applicationSignIn" data-vidyano-visibility-states="SignedIn">
+            <button id="home" tabindex="-1"></button>
+            <button id="signInOut" tabindex="-1"></button>
+            <input id="globalSearch" type="text" />
+        </header>
+
+        <ul class="programUnits"></ul>
+        <div id="content"></div>
+    </script>
+    <script type="text/html" id="signin_template">
+        <div id="signInBox">
+            <div id="signInBoxApplicationTitle"></div>
+            <div id="signInBoxItemsContainer">
+                <label class="signInLabel">Username</label>
+                <input id="userName" type="text" />
+                <label class="signInLabel">Password</label>
+                <input id="userPass" type="password" />
+                <div class="signInBottom">
+                    <button id="signIn" class="signInButton">Sign In</button>
+                    <div class="staySignedInContainer">
+                        <input id="staySignedIn" type="checkbox" />
+                        <label for="staySignedIn">Stay signed in</label>
+                    </div>
+                    <div id="signInSpinner">&nbsp;</div>
+                </div>
+                <div id="signInNotification" />
+            </div>
+            <div class="poweredByVidyano">Powered by Vidyano™</div>
+        </div>
+    </script>
+    <script type="text/html" id="signin_mobile_template">
+        <div id="signInBox">
+            <label class="signInLabel">
+                Username
+                <input id="userName" type="text" />
+            </label>
+            <label class="signInLabel">
+                Password
+                <input id="userPass" type="password" />
+            </label>
+            <button id="signIn" class="signInButton">
+                Sign In</button>
+            <div class="staySignedInContainer">
+                <input id="staySignedIn" type="checkbox" />
+                <label for="staySignedIn">
+                    Stay signed in</label>
+            </div>
+            <div id="signInSpinner">
+                &nbsp;
+            </div>
+            <div id="signInNotification" />
+            <div class="clearFloat"></div>
+        </div>
+    </script>
+    <script type="text/html" id="persistentObject_template">
+        <div class="resultPanel persistentObject normal">
+            <div class="resultHeader">
+                <div class="resultTitle"></div>
+                <div class="paging"></div>
+                <div class="search"></div>
+            </div>
+            <div class="persistentObjectNavigationContainer">
+                <div class="persistentObjectNavigation persistentObjectAttributes"></div><!--
+                --><div class="persistentObjectNavigation persistentObjectQueries"><div class="specialControls"><div class="paging"></div><div class="search"></div></div></div>
+            </div>
+            <div class="resultContentContainer">
+                <div class="resultContent"></div>
+            </div>
+            <div class="resultActionsContainer">
+                <nav class="actionsToolbar resultActions"></nav>
+            </div>
+        </div>
+    </script>
+    <script type="text/html" id="persistentObject_masterDetailTemplate">
+        <div class="resultPanel persistentObject masterDetail">
+            <div class="resultHeader">
+                <div class="resultTitle"></div>
+            </div>
+            <div class="persistentObjectNavigationContainer">
+                <div class="persistentObjectNavigation persistentObjectAttributes"></div><!--
+                --><div class="persistentObjectNavigation persistentObjectQueries"><div class="specialControls"><div class="paging"></div><div class="search"></div></div></div>
+            </div>
+            <div class="resultContentContainer"><!--
+                --><div class="splitter"></div><!--
+                --><div class="resultContent persistentObjectAttributes"></div><!--
+                --><div class="resultContent persistentObjectQueries"></div>
+            </div>
+            <div class="resultActionsContainer">
+                <nav class="actionsToolbar resultActions persistentObjectAttributes"></nav><!--
+                --><nav class="actionsToolbar resultActions persistentObjectQueries"></nav>
+            </div>
+        </div>
+    </script>
+    <script type="text/html" id="persistentObject_mobile_template">
+        <div class="resultPanel persistentObject">
+            <div class="resultHeader">
+                <div class="resultTitle"></div>
+            </div>
+            <div class="persistentObjectNavigationContainer">
+                <select class="persistentObjectNavigation"></select>
+            </div>
+            <div class="resultContentContainer">
+                <div class="search"></div>
+                <div class="resultContent"></div>
+            </div>
+            <div class="resultActionsContainer">
+                <nav class="actionsToolbar resultActions"></nav>
+            </div>
+        </div>
+    </script>
+    <script type="text/html" id="query_template">
+        <div class="resultPanel query">
+            <div class="resultHeader">
+                <div class="resultTitle"></div>
+                <div class="specialControls">
+                    <div class="paging"></div>
+                    <div class="search"></div>
+                </div>
+            </div>
+            <div class="resultContentContainer">
+                <div class="resultContent"></div>
+            </div>
+            <div class="resultActionsContainer">
+                <nav class="actionsToolbar resultActions"></nav>
+            </div>
+        </div>
+    </script>
+    <script type="text/html" id="query_mobile_template">
+        <div class="resultPanel query">
+            <div class="resultHeader">
+                <div class="resultTitle"></div>
+                <div class="search"></div>
+            </div>
+            <div class="resultContentContainer">
+                <div class="queryFilter"></div>
+                <div class="resultContent"></div>
+            </div>
+            <div class="resultActionsContainer">
+                <nav class="actionsToolbar resultActions"></nav>
+            </div>
+        </div>
+    </script>
+    <script type="text/html" id="browseReferenceQuery_template">
+        <div id="browseReferenceResult">
+            <div id="browseReferenceObjectTitle">
+            </div>
+            <div id="browseReferenceError">
+            </div>
+            <div id="browseReferenceQuery">
+            </div>
+        </div>
+    </script>
+    <script type="text/html" id="browseReferenceQuery_mobile_template">
+        <div id="browseReferenceResult">
+            <div id="browseReferenceObjectTitle" class="resultTitle"></div>
+            <div id="browseReferenceSearch" class="search"></div>
+            <div id="browseReferenceError"></div>
+            <div id="browseReferenceQuery"></div>
+            <div class="clearFloat"></div>
+            <div id="browseReferenceActions" class="actionsToolbar"></div>
+        </div>
+    </script>
+</head>
+<body>
+    <!--[if lt IE 9]><p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to experience this site.</p><![endif]-->
+    <div id="rootContainer"></div>
+</body>
+</html>

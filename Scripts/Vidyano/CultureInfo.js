@@ -1,0 +1,2 @@
+CultureInfo = { cultures: { }, currentCulture: null, invariantCulture: null };
+CultureInfo.add = function (name, numberFormat, dateFormat) { CultureInfo.cultures[name] = { name: name, numberFormat: numberFormat, dateFormat: dateFormat }; };
