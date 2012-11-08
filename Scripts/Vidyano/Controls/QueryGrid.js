@@ -417,14 +417,14 @@
                                     document.onselectstart = undefined;
                                 };
 
-                                var move = $.throttle(25, function (eMove) {
+                                var move = _.throttle(function (eMove) {
                                     var diff = eMove.screenX - x;
                                     draggedElement.css("left", (left + diff) + "px");
 
                                     cr.width = originalWidth + diff;
                                     cr.outerWidth = draggedElement.parent().outerWidth(true);
                                     cr.rule.css("width", cr.width + "px");
-                                });
+                                }, 25);
 
                                 $(document).bind("mouseup", up);
                                 $(document).bind("mousemove", move);

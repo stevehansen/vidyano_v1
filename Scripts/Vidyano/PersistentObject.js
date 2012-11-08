@@ -3,6 +3,7 @@
 /// <reference path="Common.js" />
 /// <reference path="PersistentObjectAttribute.js" />
 /// <reference path="Query.js" />
+/// <reference path="~/Scripts/underscore-min.js" />
 /// <reference path="~/Scripts/jquery-1.8.1.min.js" />
 
 function PersistentObject(po) {
@@ -422,10 +423,10 @@ PersistentObject.prototype.open = function (target) {
                                 splitter.css({ left: percentage + "%", right: "auto", width: width });
                             });
 
-                            var throttleMove = $.throttle(25, function (eMove) {
+                            var throttleMove = _.throttle(function (eMove) {
                                 eMove = $.fixFireFoxOffset(eMove);
                                 applyPercentages(eMove);
-                            });
+                            }, 25);
                             splitter.bind("mousemove", throttleMove);
                         });
                     }

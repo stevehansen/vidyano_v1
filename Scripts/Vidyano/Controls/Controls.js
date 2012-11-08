@@ -851,7 +851,7 @@
                             options.onGutterClick = methods.braceFoldFunc;
                             options.lineNumbers = true;
                             options.onBlur = function () { onTextAreaChanged(currentTemplate, true); };
-                            options.onChange = $.throttle(250, function () { onTextAreaChanged(false); });
+                            options.onChange = _.throttle(function () { onTextAreaChanged(false); }, 250);
                             editor = CodeMirror.fromTextArea(textArea[0], options);
                         } else {
                             options.readOnly = "nocursor";
@@ -896,7 +896,7 @@
                             optionsWeb.onGutterClick = methods.braceFoldFunc;
                             optionsWeb.lineNumbers = true;
                             optionsWeb.onBlur = function () { textAreaChanged(true); };
-                            optionsWeb.onChange = $.throttle(250, function () { textAreaChanged(false); });
+                            optionsWeb.onChange = _.throttle(function () { textAreaChanged(false); }, 250);
                             editorWeb = CodeMirror.fromTextArea(textAreaWeb[0], optionsWeb);
                         } else {
                             optionsWeb.readOnly = "nocursor";
@@ -1064,7 +1064,7 @@
                             options.onGutterClick = methods.braceFoldFunc;
                             options.lineNumbers = true;
                             options.onBlur = function () { attribute.setValue(editor.getValue()); };
-                            options.onChange = $.throttle(250, function () { attribute.onChanged({ value: editor.getValue() }, false); });
+                            options.onChange = _.throttle(function () { attribute.onChanged({ value: editor.getValue() }, false); }, 250);
                         }
                         else
                             options.readOnly = "nocursor";

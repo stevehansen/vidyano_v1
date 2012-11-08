@@ -664,8 +664,8 @@ var Vidyano = (function (window, $) {
 
         this.trackPageView = function () {
             /// <summary>Tracks the current page navigation with Google Analytics if enabled.</summary>
-
-            if (typeof (_gaq) != "undefined" && !isNullOrWhiteSpace(this.analyticsKey)) {
+            
+            if (!this.isCore && typeof (_gaq) != "undefined" && !isNullOrWhiteSpace(this.analyticsKey)) {
                 var hash = hasher.getHash();
                 if (hash.length == 0 || hash.startsWith('PersistentObjectFromAction.'))
                     return; // NOTE: Actions are tracked when invoked
@@ -686,7 +686,7 @@ var Vidyano = (function (window, $) {
         this.trackEvent = function (action, option, owner) {
             /// <summary>Tracks the custom action with Google Analytics if enabled.</summary>
 
-            if (typeof (_gaq) != "undefined" && !isNullOrWhiteSpace(this.analyticsKey)) {
+            if (!this.isCore && typeof (_gaq) != "undefined" && !isNullOrWhiteSpace(this.analyticsKey)) {
                 var page = 'Unknown';
                 var type = 'Unknown';
                 var currentPage = this.currentPage;
