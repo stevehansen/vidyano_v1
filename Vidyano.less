@@ -1699,11 +1699,11 @@ ul.programUnitItemsOverflow {
         visibility: hidden;
     }
 
-    .queryGrid .dataSelector tr:not(.noData) {
+    .queryGrid .dataSelector tr.hasData {
          .background-image-style(@grid-row-background-image, 21px 21px, 10px center);
     }
 
-    .queryGrid .dataSelector tr:not(.noData).selected {
+    .queryGrid .dataSelector tr.hasData.selected {
          .background-image-style(@grid-row-selected-background-image, 21px 21px, 10px center);
     }
 

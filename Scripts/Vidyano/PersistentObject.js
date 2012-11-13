@@ -210,10 +210,15 @@ PersistentObject.prototype.refreshFromResult = function (result) {
                 syncAttrValue(attr, serviceAttribute, "isRequired");
                 syncAttrValue(attr, serviceAttribute, "isReadOnly");
                 syncAttrValue(attr, serviceAttribute, "visibility", true);
-                syncAttrValue(attr, serviceAttribute, "value");
                 syncAttrValue(attr, serviceAttribute, "objectId");
                 syncAttrValue(attr, serviceAttribute, "validationError");
                 syncAttrValue(attr, serviceAttribute, "rules");
+
+                if ((!attr.isReadOnly && attr._refreshValue !== undefined ? attr._refreshValue : attr.value) != serviceAttribute.value) {
+                    attr.value = serviceAttribute.value;
+                    changedAttrs.push(attr);
+                }
+                attr._refreshValue = undefined;
 
                 attr.triggersRefresh = serviceAttribute.triggersRefresh;
                 attr.isValueChanged = serviceAttribute.isValueChanged;
@@ -222,13 +227,13 @@ PersistentObject.prototype.refreshFromResult = function (result) {
                     attr.bulkEditCheckbox.attr('checked', attr.isValueChanged);
             }
         });
-
         this._sortedAttributes = this.attributes.where(function (item) { return item.isVisible(); });
 
         if (this.isNew) {
             this.objectId = result.objectId;
             this.isNew = result.isNew;
         }
+        this.securityToken = result.securityToken;
 
         if (result.breadcrumb != null && this.breadcrumb != result.breadcrumb) {
             this.breadcrumb = result.breadcrumb;
@@ -237,12 +242,8 @@ PersistentObject.prototype.refreshFromResult = function (result) {
                 this.target.find(".resultTitle").text(this.breadcrumb);
         }
 
-        if (!isNullOrWhiteSpace(result.notification))
-            this.showNotification(result.notification, result.notificationType);
-
-        this.securityToken = result.securityToken;
-        if (this.attributes.where(function (attr) { return attr.isValueChanged; }).length > 0)
-            this.isDirty(true);
+        this.showNotification(result.notification, result.notificationType);
+        this.isDirty(this.attributes.where(function (attr) { return attr.isValueChanged; }).length > 0);
 
         if (result.queriesToRefresh != null && this.queries != null) {
             var self = this;

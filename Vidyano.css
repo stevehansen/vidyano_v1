@@ -1428,13 +1428,13 @@ ul.programUnitItemsOverflow {
 .queryGrid .dataSelector tr.noData .contentHolder {
   visibility: hidden;
 }
-.queryGrid .dataSelector tr:not(.noData) {
+.queryGrid .dataSelector tr.hasData {
   background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABUAAAAVCAYAAACpF6WWAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My41LjEwMPRyoQAAAGFJREFUOE/tzMEJACEQQ1H7L2casRRLmDWwXkxgB+LeFB7Cx9gy8zgZXTK6ZHTJ6JLRRSEi+pQFfd8uFDConPcd7YHC/XRe3+d+iov2QOGvTwcGBWPfLjK6ZHTJ6JLRk+0B+6J6EJ7KRbwAAAAASUVORK5CYII=);
   background-size: 21px 21px;
   background-repeat: no-repeat;
   background-position: 10px center;
 }
-.queryGrid .dataSelector tr:not(.noData).selected {
+.queryGrid .dataSelector tr.hasData.selected {
   background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABUAAAAVCAYAAACpF6WWAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My41LjEwMPRyoQAAAQZJREFUOE/tkTGKg1AQhmUh5Ax7ki1TpPAOqaxsTCOCIGhhoQfYyrXezkY8gK1ljiCIjYUERCy0mMyMCiFsokk2kMIPfnjje//HkycsvC2fmHW//B++MN+YLU9/EUXRAQMzcsDjG8wvZkfdq1BhDoZhAB7/weiYD+peZUrati14ngeiKJJ037cmuCWt6xpc1wVZlkGSJJKu+tYEo1RRFAjDELqu47koCjBNk4W2bUMQBCSdxyiN45gFjuNAkiSgqirPJK6qih9rqExz/vu+77NojK7rUJYl7z0sbZoGLMtioaZpkOf5sPOElMiyjIVpmg5fep6SEnTjS+6VHqkwI8ehsvByBOEE3uqYJ3A98XsAAAAASUVORK5CYII=);
   background-size: 21px 21px;
   background-repeat: no-repeat;

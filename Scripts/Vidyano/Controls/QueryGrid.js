@@ -335,9 +335,11 @@
                     }
                     remainderTable.append(remainderRow);
 
-                    rows[r].selector = $("<tr>").addClass("noData idx_" + r).append($("<td>").append($("<div>").addClass("contentHolder")));
+                    var contentHolder = $("<div>").addClass("contentHolder");
+                    rows[r].selector = $("<tr>").addClass("noData idx_" + r).append($("<td>").append(contentHolder));
                     if (ie8)
-                        rows[r].selector.height(options.rowHeight);
+                        contentHolder.height(options.rowHeight);
+
                     dataSelector.append(rows[r].selector);
                 }
 
@@ -495,10 +497,12 @@
                         if (idx == null) {
                             rows[r].contentDivs[col.name][0].innerHTML = "";
                             rows[r].selector.addClass("noData");
+                            rows[r].selector.removeClass("hasData");
                         }
                         else {
                             rows[r].contentDivs[col.name][0].innerHTML = col.render(query.items[idx].values);
                             rows[r].selector.removeClass("noData");
+                            rows[r].selector.addClass("hasData");
                         }
                     });
                 }
@@ -542,6 +546,7 @@
                     if (rows[r].idx == null && typeof query.items[idx] != "undefined") {
                         rows[r].idx = idx;
                         rows[r].selector.removeClass("noData");
+                        rows[r].selector.addClass("hasData");
 
                         methods.getColumnsWithDivs().run(function (col) {
                             rows[r].contentDivs[col.name][0].innerHTML = col.render(query.items[idx].values);

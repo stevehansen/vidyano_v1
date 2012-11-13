@@ -78,6 +78,11 @@ ProgramUnit.prototype._addItem = function () {
     app.gateway.getQuery("5a4ed5c7-b843-4a1b-88f7-14bd1747458b", null, function (query) {
         var select = new SelectReferenceDialogActions(query, 1, function (selectedItems) {
             app.gateway.executeAction("Query.AddQueriesToProgramUnit", null, query, selectedItems, { Id: self.id }, function (result) {
+                if (result.notification != null) {
+                    app.showException(result.notification);
+                    return;
+                }
+
                 self._processItems(JSON.parse(result.getAttributeValue("Items")));
                 self._openItems();
             });

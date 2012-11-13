@@ -20,6 +20,7 @@
     if (attribute.offset == null) attribute.offset = 0;
 
     attribute._backup = {};
+    attribute._refreshValue = undefined;
 
     if (attribute.lookup != null)
         PersistentObjectAttributeWithReference(attribute);
@@ -92,15 +93,13 @@ function PersistentObjectAttributeWithReference(attribute) {
             return;
 
         var self = this;
+        this.parent.attributes.where(function (a) { return a.id != self.id; }).run(function (a) { a._refreshValue = a.value; });
         app.gateway.executeAction("PersistentObject.SelectReference", this.parent, this.lookup, selectedItems, [{ PersistentObjectAttributeId: this.id }],
             function (result) {
                 self.parent.refreshFromResult(result);
 
                 if (typeof (onChanged) == "function")
                     onChanged();
-
-                if (self.triggersRefresh)
-                    self.triggerRefresh();
             },
             function (error) {
                 self.parent.showNotification(error, "Error");
@@ -155,12 +154,13 @@ function PersistentObjectAttributeWithReference(attribute) {
 }
 
 PersistentObjectAttribute.prototype.backupBeforeEdit = function () {
-    this._backup = copyProperties(this, ["value", "isReadOnly", "options", "objectId", "validationError"], true);
+    this._backup = copyProperties(this, ["value", "isReadOnly", "isValueChanged", "options", "objectId", "validationError"], true);
 };
 
 PersistentObjectAttribute.prototype.binaryFileName = function () {
     /// <summary>Returns the binary filename or an empty string when no filename is present.</summary>
     /// <returns type="String">Returns the filename for the binary file.</returns>
+
     if (!isNullOrWhiteSpace(this.value)) {
         var index = this.value.lastIndexOf('|');
         if (index >= 0)
@@ -333,8 +333,6 @@ PersistentObjectAttribute.prototype.onChanged = function (obj, lostFocus) {
 PersistentObjectAttribute.prototype.restoreEditBackup = function () {
     for (var name in this._backup)
         this[name] = this._backup[name];
-
-    this.isValueChanged = false;
 };
 
 PersistentObjectAttribute.prototype.selectInPlaceOptions = function () {
@@ -368,6 +366,7 @@ PersistentObjectAttribute.prototype.triggerRefresh = function () {
 
     this.queueTriggersRefresh = false;
     var self = this;
+    this.parent.attributes.where(function(a) { return a.id != self.id; }).run(function(a) { a._refreshValue = a.value; });
     app.gateway.executeAction("PersistentObject.Refresh", this.parent, null, null, parameters, function (result) {
         self.parent.refreshFromResult(result);
     });

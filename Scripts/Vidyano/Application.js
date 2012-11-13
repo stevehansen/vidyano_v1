@@ -72,14 +72,16 @@ var Vidyano = (function (window, $) {
                 return true;
 
             var currentPage = app.currentPage;
-            var action = currentPage != null && currentPage.actions[name] || currentPage.actions[alternativeName];
-            if (action == null && currentPage.isMasterDetail && currentPage.isMasterDetail() && currentPage.queries && currentPage.queries.selectedItem)
-                action = currentPage.queries.selectedItem().actions[name];
+            if (currentPage != null && currentPage.actions != null) {
+                var action = currentPage.actions[name] || currentPage.actions[alternativeName];
+                if (action == null && currentPage.isMasterDetail && currentPage.isMasterDetail() && currentPage.queries && currentPage.queries.selectedItem)
+                    action = currentPage.queries.selectedItem().actions[name];
 
-            if (action != null) {
-                if (action.canExecute()) {
-                    action.execute("-1");
-                    return false;
+                if (action != null) {
+                    if (action.canExecute()) {
+                        action.execute("-1");
+                        return false;
+                    }
                 }
             }
 
