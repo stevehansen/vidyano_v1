@@ -269,7 +269,7 @@ copyProperties = function (obj, propertyNames, includeNullValues) {
     var result = {};
     propertyNames.run(function (p) {
         var value = obj[p];
-        if (value != null || includeNullValues)
+        if (includeNullValues || (value != null && value !== false && value !== 0 && (!$.isArray(value) || value.length > 0)))
             result[p] = value;
     });
     return result;

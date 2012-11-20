@@ -11,27 +11,42 @@
 function ServiceGateway(serviceUri) {
     this.serviceUri = serviceUri;
 
-    this.executeQuery = function (parent, query, filter, asLookup, onCompleted, onError) {
+    this._createData = function() {
+        var data = {
+            userName: app.userName,
+            authToken: app.getAuthToken(),
+        };
+
+        if (app.session != null)
+            data.session = app.session.toServiceObject();
+        
+        if (app.settings.applicationSpecificPersistentObjects != null)
+            data.applicationSpecificPersistentObjects = app.settings.applicationSpecificPersistentObjects;
+
+        if ($.browser.mobile)
+            data.isMobile = true;
+        
+        return data;
+    };
+
+    this.executeQuery = function (parent, query, filterName, asLookup, onCompleted, onError) {
         /// <summary>Executes the specified query on the service.</summary>
         /// <param name="parent" type="PersistentObject">The optional parent that should be used for the query.</param>
         /// <param name="query" type="Query">The query that should be executed.</param>
-        /// <param name="filter" type="String">The optional filter name that should be executed.</param>
+        /// <param name="filterName" type="String">The optional filter name that should be executed.</param>
         /// <param name="asLookup" type="Boolean">The optional argument specifing that the query should be executed as lookup (for AddReference action).</param>
         /// <param name="onCompleted" type="Function">The optional function that should be called when the operation completed.</param>
         /// <param name="onError" type="Function">The optional function that should be called when the operation failed.</param>
 
-        var data =
-        {
-            userName: app.userName,
-            authToken: app.getAuthToken(),
-            session: app.session != null ? app.session.toServiceObject() : null,
-            isMobile: $.browser.mobile,
+        var data = this._createData();
+        data.query = query.toServiceObject();
+        if (parent != null)
+            data.parent = parent.toServiceObject();
+        if (filterName != null)
+            data.filterName = filterName;
+        if (asLookup)
+            data.asLookup = true;
 
-            parent: parent != null ? parent.toServiceObject() : null,
-            query: query.toServiceObject(),
-            filterName: filter,
-            asLookup: asLookup
-        };
         app.spin(true, "executeQuery", data);
 
         $.postJSON(this.serviceUri + "ExecuteQuery", data, function (result) {
@@ -71,19 +86,17 @@ function ServiceGateway(serviceUri) {
         /// <param name="onCompleted" type="Function">The optional function that should be called when the operation completed.</param>
         /// <param name="onError" type="Function">The optional function that should be called when the operation failed.</param>
 
-        var data =
-        {
-            userName: app.userName,
-            authToken: app.getAuthToken(),
-            session: app.session != null ? app.session.toServiceObject() : null,
-            isMobile: $.browser.mobile,
+        var data = this._createData();
+        data.action = action;
+        if (parent != null)
+            data.parent = parent.toServiceObject();
+        if (query != null)
+            data.query = query.toServiceObject();
+        if (selectedItems != null)
+            data.selectedItems = selectedItems.select(function(si) { return si.toServiceObject(); });
+        if (parameters != null)
+            data.parameters = parameters;
 
-            action: action,
-            parent: parent != null ? parent.toServiceObject() : null,
-            query: query != null ? query.toServiceObject() : null,
-            selectedItems: selectedItems != null ? selectedItems.select(function (si) { return si.toServiceObject(); }) : null,
-            parameters: parameters
-        };
         app.spin(true, "executeAction", data);
 
         var handleResult = function (result) {
@@ -188,20 +201,15 @@ function ServiceGateway(serviceUri) {
     this.getQuery = function (id, filterName, onCompleted, onError) {
         /// <summary>Requests the specified query from the service.</summary>
         /// <param name="id" type="String">The id or name of the query that should be requested.</param>
-        /// <param name="filterName" type="String">The optional filter name that should be used when gettting the query.</param>
+        /// <param name="filterName" type="String">The optional filter name that should be used when getting the query.</param>
         /// <param name="onCompleted" type="Function">The optional function that should be called when the operation completed.</param>
         /// <param name="onError" type="Function">The optional function that should be called when the operation failed.</param>
 
-        var data =
-        {
-            userName: app.userName,
-            authToken: app.getAuthToken(),
-            session: app.session != null ? app.session.toServiceObject() : null,
-            isMobile: $.browser.mobile,
+        var data = this._createData();
+        data.id = id;
+        if (filterName != null)
+            data.filterName = filterName;
 
-            id: id,
-            filterName: filterName
-        };
         app.spin(true, "getQuery", data);
 
         $.postJSON(this.serviceUri + "GetQuery", data, function (result) {
@@ -235,17 +243,12 @@ function ServiceGateway(serviceUri) {
         /// <param name="onCompleted" type="Function">The optional function that should be called when the operation completed.</param>
         /// <param name="onError" type="Function">The optional function that should be called when the operation failed.</param>
 
-        var data =
-        {
-            userName: app.userName,
-            authToken: app.getAuthToken(),
-            session: app.session != null ? app.session.toServiceObject() : null,
-            isMobile: $.browser.mobile,
+        var data = this._createData();
+        data.persistentObjectTypeId = persistentObjectTypeId;
+        data.objectId = objectId;
+        if (parent != null)
+            data.parent = parent.toServiceObject();
 
-            parent: parent != null ? parent.toServiceObject() : null,
-            persistentObjectTypeId: persistentObjectTypeId,
-            objectId: objectId
-        };
         app.spin(true, "getPersistentObject", data);
 
         $.postJSON(this.serviceUri + "GetPersistentObject", data, function (result) {
@@ -278,11 +281,13 @@ function ServiceGateway(serviceUri) {
             isMobile: $.browser.mobile,
             userName: app.userName || userName
         };
-        app.spin(true, "getApplication", data);
+        
+        if (app.settings.applicationSpecificPersistentObjects != null)
+            data.applicationSpecificPersistentObjects = app.settings.applicationSpecificPersistentObjects;
 
         var token = app.getAuthToken();
-        if (!isNullOrWhiteSpace(token))
-            data.authToken = app.getAuthToken();
+        if (!isNullOrEmpty(token))
+            data.authToken = token;
         else
             data.password = userPass;
 
@@ -291,6 +296,8 @@ function ServiceGateway(serviceUri) {
             if (typeof (onError) == "function")
                 onError(message);
         };
+
+        app.spin(true, "getApplication", data);
 
         $.postJSON(this.serviceUri + "GetApplication", data, function (result) {
             app.lastError = result.exception;
@@ -458,21 +465,19 @@ function ServiceGateway(serviceUri) {
     };
 
     this.getStream = function (obj, action, parent, query, selectedItems, parameters) {
-        var data =
-        {
-            userName: app.userName,
-            authToken: app.getAuthToken(),
-            session: app.session != null ? app.session.toServiceObject() : null,
-            isMobile: $.browser.mobile,
-
-            id: obj != null ? obj.objectId : null,
-            action: action,
-            parent: parent != null ? parent.toServiceObject() : null,
-            query: query != null ? query.toServiceObject() : null,
-            selectedItems: selectedItems != null ? selectedItems.select(function (si) { return si.toServiceObject(); }) : null,
-            parameters: parameters
-        };
-
+        var data = this._createData();
+        data.action = action;
+        if (obj != null)
+            data.id = obj.objectId;
+        if (parent != null)
+            data.parent = parent.toServiceObject();
+        if (query != null)
+            data.query = query.toServiceObject();
+        if (selectedItems != null)
+            data.selectedItems = selectedItems.select(function(si) { return si.toServiceObject(); });
+        if (parameters != null)
+            data.parameters = parameters;
+        
         var name = "iframe-vidyano-download";
         var iframe = $("iframe[name='" + name + "']");
         if (iframe.length == 0) {

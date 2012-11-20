@@ -54,7 +54,12 @@ function Query(query, parent, asLookup) {
     query.queriedPages = [];
     /// <field name="items" type="Array" elementType="QueryResultItem">Contains the items for this instance.</field>
     query.items = [].toSelector();
-    query.items.onSelectedItemsChanged(function (selectedItems) { query.updateActions(selectedItems); });
+    query.items.onSelectedItemsChanged(function (selectedItems) {
+        query.updateActions(selectedItems);
+
+        if (query.target != null && query.target.length > 0)
+            query.target.trigger("selectedItemsChanged", [query]);
+    });
 
     /// <field name="columns" type="Array" elementType="QueryColumn">Contains the columns for this instance.</field>
     query.updateColumns(query.columns);
@@ -267,23 +272,29 @@ Query.prototype.postRender = function () {
 
 Query.prototype.search = function (onCompleted, onError, skipSpin) {
     /// <summary>Executes a search on the Query.</summary>
-    /// <param name="onCompleted" type="Function">The function that will be called when the search action has completed the service request.</param>
-    /// <param name="onError" type="Function">The function that will be called when the action has generated an error.</param>
+    /// <param name="onCompleted" type="Function">The optional function that will be called when the search action has completed the service request.</param>
+    /// <param name="onError" type="Function">The optional function that will be called when the action has generated an error.</param>
     /// <param name="skipSpin" type="Boolean">Defines if the User Interface should display a spinner. When the value is true, the User Interface will not display a spinner.</param>
 
     if (this.canSearch) {
-        if (this.container != null && this.container.dataContext() == this) {
-            if (skipSpin != true)
-                this.spinnerTarget.spin(app.settings.defaultSpinnerOptions);
+        if (this.container != null && this.spinnerTarget != null && skipSpin != true && this.container.dataContext() == this) {
+            this.spinnerTarget.spin(app.settings.defaultSpinnerOptions);
 
             var oldOnCompleted = onCompleted;
+            var oldOnError = onError;
+            
             var q = this;
             onCompleted = function (result) {
-                if (skipSpin != true)
-                    q.spinnerTarget.spin(false);
+                q.spinnerTarget.spin(false);
 
                 if (oldOnCompleted != null)
                     oldOnCompleted(result);
+            };
+            onError = function(e) {
+                q.spinnerTarget.spin(false);
+
+                if (oldOnError != null)
+                    oldOnError(e);
             };
         }
 
@@ -291,6 +302,19 @@ Query.prototype.search = function (onCompleted, onError, skipSpin) {
 
         app.gateway.executeQuery(this.parent, this, this.filterDisplayName, this.isReference, onCompleted, onError);
     }
+};
+
+Query.prototype.selectAll = function () {
+    /// <summary>Selects all the items in the Query, will also load all items as a side-effect. WARNING: Do not call on big queries as it will query all items.</summary>
+
+    var self = this;
+    this.getItems(0, this.totalItems, function () { self.updateSelectedItems(self.items); });
+};
+
+Query.prototype.selectNone = function () {
+    /// <summary>Selects no items in the Query.</summary>
+
+    this.items.selectedItems([]);
 };
 
 Query.prototype.setResult = function (result) {
@@ -323,7 +347,12 @@ Query.prototype.setResult = function (result) {
 
     this.items = newItems.toSelector();
     this.updateActions(this.items.selectedItems());
-    this.items.onSelectedItemsChanged(function (selectedItems) { q.updateActions(selectedItems); });
+    this.items.onSelectedItemsChanged(function (selectedItems) {
+        q.updateActions(selectedItems);
+
+        if (q.target != null && q.target.length > 0)
+            q.target.trigger("selectedItemsChanged", [q]);
+    });
 
     if (this.hasItems()) {
         if (this.pageSize == 0)
@@ -337,23 +366,20 @@ Query.prototype.setResult = function (result) {
     this.filterChanged = false;
     this.hasSearched = true;
 
-    this.notification = result.notification;
-    this.notificationType = result.notificationType || "Error";
-
-    this.showNotification(this.notification, this.notificationType);
+    this.showNotification(result.notification, result.notificationType);
     this.updateTitle();
 
-    if (this.target != null && this.target.length > 0) {
+    if (this.target != null && this.target.length > 0)
         this.target.trigger("itemsChanged", [this]);
-    }
 };
 
 Query.prototype.showNotification = function (notification, type) {
     /// <summary>Shows the specified notification on the Query.</summary>
     /// <param name="notification">The notification to show.</param>
-    /// <param name="type">The type of notification to show.</param>
+    /// <param name="type">The optional type of notification to show, defaults to "Error".</param>
+
     this.notification = notification;
-    this.notificationType = type;
+    this.notificationType = type || "Error";
 
     if (this.container != null) {
         var notificationTarget = this.container.find(".queryNotification");

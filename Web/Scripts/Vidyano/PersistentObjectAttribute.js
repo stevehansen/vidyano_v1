@@ -12,7 +12,7 @@
     attribute.persistentObject = parent;
     /// <field name="isReadOnly" type="Boolean">Determines if the Persistent Object Attribute can be edited or not.</field>
     if (attribute.isReadOnly == null) attribute.isReadOnly = false;
-    /// <field name="isRequired" type="Boolean">Determines if the Persistent Object Attribute is a required.</field>
+    /// <field name="isRequired" type="Boolean">Determines if the Persistent Object Attribute is required.</field>
     if (attribute.isRequired == null) attribute.isRequired = false;
     if (attribute.isValueChanged == null) attribute.isValueChanged = false;
     if (attribute.options == null) attribute.options = [];
@@ -39,6 +39,7 @@ function PersistentObjectAttributeWithReference(attribute) {
     attribute.hasValue = function () {
         /// <summary>Provides the ability to check if a Persistent Object Attribute with Reference has a Value.</summary>
         /// <returns type="Boolean">Returns true if the refrence has a value; otherwise false.</returns>
+
         return this.objectId != null;
     };
 
@@ -171,40 +172,39 @@ PersistentObjectAttribute.prototype.binaryFileName = function () {
 };
 
 PersistentObjectAttribute.prototype.createElement = function (columnSpan, tabColumnCount) {
-    /// <summary>creates a JQuery object that represents the Persistent Object Attribute.</summary>
+    /// <summary>Creates a jQuery object that represents the Persistent Object Attribute.</summary>
     /// <param name="columnSpan" type="Number">the columnSpan that the JQuery object should use.</param>
     /// <param name="tabColumnCount" type="Number">the total number of columns that is available on the tab this element will be placed.</param>
+    /// <returns type="jQuery" />
 
     var div = $.createElement('div').addClass('persistenObjectAttributeSectionColumn').css("width", (1 / tabColumnCount) * columnSpan * 100 + '%');
     var label = $.createElement('label').addClass("persistentObjectAttributeLabel").attr("data-vidyano-attribute", this.name);
-    var control;
-    if (this.parent.isInBulkEditMode()) {
-        var currentPoa = this;
-        var outerDiv = $.createElement('div', this);
-        this.bulkEditCheckbox = $.createInput("checkbox").addClass("persistentObjectAttributeBulkEditCheckbox")
-            .on("change", function () {
-                currentPoa.isValueChanged = currentPoa.bulkEditCheckbox[0].checked;
-            });
-        if (this.isReadOnly)
-            this.bulkEditCheckbox.attr("disabled", "disabled");
-
-        if (this.isValueChanged) {
-            this.bulkEditCheckbox[0].checked = true;
-        }
-        var attributeControl = $.createElement('div').addClass("persistentObjectAttributeControl").attr("data-vidyano-attribute", this.name);
-        outerDiv.append(this.bulkEditCheckbox, attributeControl);
-        control = outerDiv;
-
-    }
-    else
-        control = $.createElement('div').addClass("persistentObjectAttributeControl").attr("data-vidyano-attribute", this.name);
+    var control = this._createControl();
 
     div.append(label, control);
+    
+    var options = {};
+    var hasOptions = false;
+    var foreground = this.getTypeHint("Foreground", null);
+    if (!isNullOrEmpty(foreground)) {
+        options.color = foreground;
+        hasOptions = true;
+    }
+
+    var fontWeight = this.getTypeHint("FontWeight", null);
+    if (!isNullOrEmpty(fontWeight)) {
+        options['font-weight'] = foreground.toLowerCase();
+        hasOptions = true;
+    }
+
+    if (hasOptions)
+        control.css(options);
+
     return div;
 };
 
 PersistentObjectAttribute.prototype.displayValue = function () {
-    /// <summary>returns the formatted value that can be used to display the value on the user interface.</summary>
+    /// <summary>Returns the formatted value that can be used to display the value on the user interface.</summary>
     /// <returns type="String">Returns the formatted display value.</returns>
 
     var format = this.getTypeHint("DisplayFormat", "{0}");
@@ -231,7 +231,7 @@ PersistentObjectAttribute.prototype.displayValue = function () {
                 value = value.substr(2);
             if (value.endsWith(':00'))
                 value = value.substr(0, value.length - 3);
-        } 
+        }
     }
 
     if (format == "{0}") {
@@ -252,25 +252,38 @@ PersistentObjectAttribute.prototype.displayValue = function () {
     return text;
 };
 
-PersistentObjectAttribute.prototype.getTypeHint = function (name, defaultValue) {
+PersistentObjectAttribute.prototype.getTypeHint = function (name, defaultValue, typeHints) {
     /// <summary>Get the specified type hint or return the defaultValue if not found.</summary>
     /// <param name="name" type="String">The name of the type hint, casing doesn't matter.</param>
     /// <param name="defaultValue">The optional default value that should be used when the type hint wasn't found.</param>
+    /// <param name="typeHints">The optional typeHints for the specific instance.</param>
     /// <returns type="String" />
 
-    var typeHint = this.typeHints[name];
-    if (typeof (typeHint) == "undefined") {
-        // NOTE: Look again case-insensitive
-        var lowerName = name.toLowerCase();
-        for (var prop in this.typeHints) {
-            if (lowerName == prop.toLowerCase()) {
-                typeHint = this.typeHints[prop];
-                break;
+    if (typeHints != null) {
+        if (this.typeHints != null)
+            typeHints = $.extend({}, typeHints, this.typeHints);
+    }
+    else
+        typeHints = this.typeHints;
+
+    if (typeHints != null) {
+        var typeHint = typeHints[name];
+        if (typeHint == null) {
+            // NOTE: Look again case-insensitive
+            var lowerName = name.toLowerCase();
+            for (var prop in typeHints) {
+                if (lowerName == prop.toLowerCase()) {
+                    typeHint = typeHints[prop];
+                    break;
+                }
             }
         }
+
+        if (typeHint != null)
+            return typeHint;
     }
 
-    return typeHint == null ? defaultValue : typeHint;
+    return defaultValue;
 };
 
 PersistentObjectAttribute.prototype.isVisible = function () {
@@ -366,7 +379,7 @@ PersistentObjectAttribute.prototype.triggerRefresh = function () {
 
     this.queueTriggersRefresh = false;
     var self = this;
-    this.parent.attributes.where(function(a) { return a.id != self.id; }).run(function(a) { a._refreshValue = a.value; });
+    this.parent.attributes.where(function (a) { return a.id != self.id; }).run(function (a) { a._refreshValue = a.value; });
     app.gateway.executeAction("PersistentObject.Refresh", this.parent, null, null, parameters, function (result) {
         self.parent.refreshFromResult(result);
     });
@@ -378,7 +391,7 @@ PersistentObjectAttribute.prototype.updateControlElement = function (element, up
 
     element.dataContext(this);
     element.append(this._getTemplate());
-    
+
     if (!isNullOrWhiteSpace(this.validationError)) {
         var validationErrorDiv = $.createElement("div").text(this.validationError);
         validationErrorDiv.addClass("persistentObjectAttributeValidationErrorMessage");
@@ -408,6 +421,30 @@ PersistentObjectAttribute.prototype.updateLabelElement = function (element, upda
         element.removeClass("persistentObjectAttributeRequiredLabel");
 
     element.addClass("persistentObjectAttributeLabel");
+};
+
+PersistentObjectAttribute.prototype._createControl = function () {
+    var control = $.createElement('div').addClass("persistentObjectAttributeControl").attr("data-vidyano-attribute", this.name);
+    
+    if (this.parent.isInBulkEditMode()) {
+        var currentPoa = this;
+        var outerDiv = $.createElement('div', this);
+        this.bulkEditCheckbox = $.createInput("checkbox").addClass("persistentObjectAttributeBulkEditCheckbox")
+            .on("change", function () {
+                currentPoa.isValueChanged = currentPoa.bulkEditCheckbox[0].checked;
+            });
+        
+        if (this.isReadOnly)
+            this.bulkEditCheckbox.attr("disabled", "disabled");
+
+        if (this.isValueChanged)
+            this.bulkEditCheckbox[0].checked = true;
+
+        outerDiv.append(this.bulkEditCheckbox, control);
+        return outerDiv;
+    }
+
+    return control;
 };
 
 PersistentObjectAttribute.prototype._getTemplate = function () {

@@ -2,7 +2,7 @@
     /// <summary>Describes a Column inside a Query.</summary>
 
     changePrototype(column, QueryColumn);
-    
+
     /// <field name="id" type="String">The unique identifier of this column.</field>
     /// <field name="name" type="String">The name of this column, matches the name of the attribute that this column represents.</field>
     /// <field name="label" type="String">The translated label of this column.</field>
@@ -23,7 +23,7 @@
     if (column.isPinned == null) column.isPinned = false;
     /// <field name="typeHints" type="Object">The Type Hints that are defined for this column.</field>
     if (column.typeHints == null) column.typeHints = {};
-    
+
     /// <field name="includes" type="Array" elementType="String">The conditions that should be matched for the Data filter.</field>
     if (column.includes == null) column.includes = [];
     /// <field name="excludes" type="Array" elementType="String">The conditions that shouldn't be matched for the Data filter.</field>
@@ -61,35 +61,35 @@ QueryColumn.prototype.getTypeHint = PersistentObjectAttribute.prototype.getTypeH
 QueryColumn.prototype.render = function (values) {
     /// <summary>Generates the innerHTML for the cell when displayed in a Query.</summary>
     /// <returns type="String">Returns the HTML content used for rendering the cell.</returns>
-    
+
     var name = this.name;
     var itemValue = values.firstOrDefault(function (v) { return v.key == name; });
     var value = itemValue != null ? itemValue.value : "";
-    
+    var typeHints = itemValue != null ? itemValue.typeHints : {};
+
     var template = app.templates[this.templateKey];
-    if (template != null && typeof (template.data) == "function")
-    {
+    if (template != null && typeof (template.data) == "function") {
         var rendered = template.data({ column: this, value: ServiceGateway.fromServiceString(value, this.type) });
         if (!isNullOrEmpty(rendered))
             return rendered;
     }
-    
+
     if (this.type == "Image") {
         if (!isNullOrWhiteSpace(value)) {
-            var width = this.getTypeHint("Width", 24);
-            var height = this.getTypeHint("Height", 24);
+            var width = this.getTypeHint("Width", "24", typeHints);
+            var height = this.getTypeHint("Height", "24", typeHints);
 
             return "<img src=\"" + value.asDataUri() + "\" width=\"" + width + "\" height=\"" + height + "\" />";
         }
         return '';
     } else {
-        var format = this.getTypeHint("DisplayFormat", "{0}");
+        var format = this.getTypeHint("DisplayFormat", "{0}", typeHints);
 
         value = ServiceGateway.fromServiceString(value, this.type);
         if (value != null && (this.type == "Boolean" || this.type == "NullableBoolean"))
-            value = app.getTranslatedMessage(value ? this.getTypeHint("TrueKey", "True") : this.getTypeHint("FalseKey", "False"));
+            value = app.getTranslatedMessage(value ? this.getTypeHint("TrueKey", "True", typeHints) : this.getTypeHint("FalseKey", "False", typeHints));
         else if (this.type == "YesNo")
-            value = app.getTranslatedMessage(value ? this.getTypeHint("TrueKey", "Yes") : this.getTypeHint("FalseKey", "No"));
+            value = app.getTranslatedMessage(value ? this.getTypeHint("TrueKey", "Yes", typeHints) : this.getTypeHint("FalseKey", "No", typeHints));
 
         if (format == "{0}") {
             if (this.type == "Date" || this.type == "NullableDate") {
@@ -105,19 +105,19 @@ QueryColumn.prototype.render = function (values) {
 
     var options = {};
     var hasOptions = false;
-    var foreground = this.getTypeHint("Foreground");
+    var foreground = this.getTypeHint("Foreground", null, typeHints);
     if (!isNullOrEmpty(foreground)) {
         options.color = foreground;
         hasOptions = true;
     }
 
-    var fontWeight = this.getTypeHint("FontWeight");
+    var fontWeight = this.getTypeHint("FontWeight", null, typeHints);
     if (!isNullOrEmpty(fontWeight)) {
         options['font-weight'] = foreground.toLowerCase();
         hasOptions = true;
     }
 
-    var horizontalContentAlignment = this.getTypeHint("HorizontalContentAlignment");
+    var horizontalContentAlignment = this.getTypeHint("HorizontalContentAlignment", null, typeHints);
     if (ServiceGateway.isNumericType(this.type)) {
         if (isNullOrEmpty(horizontalContentAlignment))
             horizontalContentAlignment = "Right";
@@ -131,12 +131,19 @@ QueryColumn.prototype.render = function (values) {
     }
 
     var content = $("<div>");
-    content.text(value); // NOTE: Leave span like this for HTML escaping
+    content.text(value); // NOTE: Leave div like this for HTML escaping
 
-    if (hasOptions) {
+    var extraClass = this.getTypeHint("ExtraClass", null, typeHints);
+    var hasExtraClass = !isNullOrEmpty(extraClass);
+    if (hasOptions || hasExtraClass) {
         var div = $("<div>");
         div.append(content);
-        content.css(options);
+        
+        if (hasOptions)
+            content.css(options);
+
+        if (hasExtraClass)
+            content.addClass(extraClass);
 
         return div.html();
     }

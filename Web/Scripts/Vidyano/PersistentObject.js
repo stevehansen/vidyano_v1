@@ -317,6 +317,7 @@ PersistentObject.prototype.open = function (target) {
     var objTitle = this.target.find(".resultTitle");
     objTitle.text(this.breadcrumb);
 
+    var self = this;
     if (!$.browser.mobile) {
         var persistenObjectNavigationAttributes = this.target.find(".persistentObjectNavigation.persistentObjectAttributes");
         var persistenObjectNavigationQueries = this.target.find(".persistentObjectNavigation.persistentObjectQueries");
@@ -369,7 +370,6 @@ PersistentObject.prototype.open = function (target) {
             }
         }
 
-        var self = this;
         if (this.isMasterDetail()) {
             var splitter = this.target.find(".splitter");
             if (splitter.length > 0) {
@@ -446,7 +446,7 @@ PersistentObject.prototype.open = function (target) {
                 self.tabs.selectedItem(dataContext);
         });
 
-        if ((this.queries !== undefined && this.queries.length > 0) || this.tabs.length > 1) {
+        if ((this.queries != null && this.queries.length > 0) || this.tabs.length > 1) {
             // show attribute tabs
             if (this.tabs.length > 0) {
                 this.tabs.run(function (tab) {
@@ -456,10 +456,10 @@ PersistentObject.prototype.open = function (target) {
             }
 
             // show queries
-            if (this.queries.length > 0) {
+            if (this.queries != null && this.queries.length > 0) {
                 var queryTarget = selector;
                 if (this.tabs.length > 0) {
-                    queryTarget = $.createElement("optGroup").attr("label", "Related");
+                    queryTarget = $.createElement("optGroup").attr("label", app.getTranslatedMessage("Related"));
                     selector.append(queryTarget);
                 }
 

@@ -157,7 +157,8 @@ var Vidyano = (function (window, $) {
             defaultSpinnerOptions: { lines: 8, length: 0, width: 5, radius: 8, color: '#0c5d7d', speed: 1, trail: 70, shadow: false, hwaccel: true },
             useDefaultCredentials: false,
             defaultUserName: "Guest",
-            defaultPassword: "Guest"
+            defaultPassword: "Guest",
+            applicationSpecificPersistentObjects: null
         };
 
         this.userId = null;
@@ -270,7 +271,7 @@ var Vidyano = (function (window, $) {
                 var trialMessage = $("<span>").text(app.getTranslatedMessage("InTrial"));
                 var trialNotification = $("<div class='trialNotification'>").append(trialMessage);
                 if (this.hasManagement)
-                    trialMessage.append("&nbsp;(<a href='#!/PersistentObject.842cbc87-e2e3-40f1-a3aa-1c869ad27414'>" + Actions.actionDefinitions.ActivateLicense.displayName + "</a>)");
+                    trialMessage.append("&nbsp;(<a href='#!/PersistentObject.842cbc87-e2e3-40f1-a3aa-1c869ad27414'>" + Actions.actionDefinitions["ActivateLicense"].displayName + "</a>)");
                 var closeTrialNotiticationBox = $("<div class='trialNotificationCloseBox'>").text("x");
 
                 trialNotification.append(closeTrialNotiticationBox);
@@ -296,6 +297,9 @@ var Vidyano = (function (window, $) {
                 app.currentExceptionHandler(e);
             };
             if (app.persistentObject == null) {
+                if ($.browser.mobile)
+                    $("#rootContainer").addClass("mobile");
+                
                 app.returnUrl(hasher.getHash());
                 if ($.cookie("userName") != null && app.getAuthToken() != null) {
                     app.gateway.getApplication($.cookie("userName"), null, function () {
@@ -744,6 +748,9 @@ var Vidyano = (function (window, $) {
             /// <param name="start" type="Boolean">Will start the spinner if true; otherwise stops the spinner if false</param>
             /// <param name="method" type="String" optional="true">The gateway method that was invoked.</param>
             /// <param name="data" optional="true">The data that was used to invoke the gateway method.</param>
+
+            if (this.isCore)
+                return;
 
             if (method != "executeQuery") {
                 if (start)

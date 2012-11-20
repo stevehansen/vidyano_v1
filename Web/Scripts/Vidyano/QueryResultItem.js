@@ -7,6 +7,7 @@
     this.query = query;
     /// <field name="values" type="Array" elementType="QueryResultItemValue">The values for this query result item, columns that had their default value are not included.</field>
     this.values = item.values.select(function (val) { return new QueryResultItemValue(val, query); });
+    this.typeHints = item.typeHints;
 }
 
 QueryResultItem.prototype.getValue = function (key) {
@@ -23,6 +24,8 @@ QueryResultItem.prototype.getFullValue = function (key) {
     /// <returns type="QueryResultItemValue">Returns the QueryResultItemValue for the specified key, or null if no instance was found.</returns>
     return this.values.firstOrDefault(function (v) { return v.key == key; });
 };
+
+QueryResultItem.prototype.getTypeHint = PersistentObjectAttribute.prototype.getTypeHint;
 
 QueryResultItem.prototype.toServiceObject = function () {
     /// <summary>Clones this instance.</summary>

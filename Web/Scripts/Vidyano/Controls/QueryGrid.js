@@ -53,11 +53,14 @@
 
                 if (container.length == 0 || container.dataContext() != query) {
                     rootContainer.unbind("itemsChanged");
+                    rootContainer.unbind("selectedItemsChanged");
                     return;
                 }
 
                 rootContainer.unbind("itemsChanged");
                 rootContainer.bind("itemsChanged", methods.refresh);
+                rootContainer.unbind("selectedItemsChanged");
+                rootContainer.bind("selectedItemsChanged", methods.updateSelectedRowRules);
 
                 if (columnCount != methods.getColumns().length)
                     methods.create();
@@ -75,13 +78,15 @@
 
                 rootContainer.unbind("itemsChanged");
                 rootContainer.bind("itemsChanged", methods.refresh);
+                rootContainer.unbind("selectedItemsChanged");
+                rootContainer.bind("selectedItemsChanged", methods.updateSelectedRowRules);
 
                 methods.loadSettingsFromLocalStorage();
 
                 unPinnedColumns = methods.getColumns().where(function (c) { return c.isPinned != true; });
                 pinnedColumns = methods.getColumns().where(function (c) { return c.isPinned == true; });
 
-                data = { id: ".queryGrid" + $.queryGridData.length, rules: [], columnRules: null };
+                data = { id: ".queryGrid" + $.queryGridData.length, rules: [], columnRules: null, extraClasses: [] };
                 data.rules.push(methods.addCssRule(data.id + " .contentHolder { height: " + options.rowHeight + "px; line-height: " + options.rowHeight + "px; white-space: nowrap; overflow: hidden; }"));
 
                 if (container != null)
@@ -308,7 +313,7 @@
                 };
 
                 for (var r = 0; r < rowCount; r++) {
-                    rows[r] = { idx: null, contentDivs: {} };
+                    rows[r] = { idx: null, contentDivs: {}, tr: [], pinnedRow: null, row: null, remainderRow: null, selector: null };
 
                     if (unPinnedColumns.length > 0) {
                         var pinnedRow = rows[r].pinnedRow = $("<tr>").addClass("idx_" + r);
@@ -318,6 +323,7 @@
                         }
                         addColumns(pinnedColumns, pinnedRow);
                         pinnedDataTable.append(pinnedRow);
+                        rows[r].tr.push(pinnedRow);
                     }
 
                     var row = rows[r].row = $("<tr>").addClass("idx_" + r);
@@ -327,6 +333,7 @@
                     }
                     addColumns(unPinnedColumns, row);
                     dataTable.append(row);
+                    rows[r].tr.push(row);
 
                     var remainderRow = rows[r].remainderRow = $("<tr>").addClass("idx_" + r).append($("<td>").append($("<div>").addClass("contentHolder")));
                     if (ie8) {
@@ -334,13 +341,15 @@
                         remainderRow.width(viewportWidth);
                     }
                     remainderTable.append(remainderRow);
+                    rows[r].tr.push(remainderRow);
 
                     var contentHolder = $("<div>").addClass("contentHolder");
-                    rows[r].selector = $("<tr>").addClass("noData idx_" + r).append($("<td>").append(contentHolder));
+                    var selectorRow = rows[r].selector = $("<tr>").addClass("noData idx_" + r).append($("<td>").append(contentHolder));
                     if (ie8)
                         contentHolder.height(options.rowHeight);
 
-                    dataSelector.append(rows[r].selector);
+                    dataSelector.append(selectorRow);
+                    rows[r].tr.push(selectorRow);
                 }
 
                 methods.syncData(viewport.scrollTop());
@@ -383,7 +392,7 @@
                             return;
                         }
 
-                        if (String.isNullOrEmpty(col.width)) {
+                        if (isNullOrEmpty(col.width)) {
                             // CREATE DRAGGERS ///////////////////////////////////////////
                             var dragger = $("<div>").css({
                                 position: "absolute",
@@ -493,6 +502,17 @@
                     var idx = query.items[start + r] != null && data.columnRules != null ? start + r : null;
                     rows[r].idx = idx;
 
+                    if (data.extraClasses.length > 0)
+                        rows[r].tr.run(function (tr) { tr.removeClass(data.extraClasses.join(" ")); });
+
+                    if (idx != null) {
+                        var extraClass = query.items[start + r].getTypeHint("ExtraClass");
+                        if (!isNullOrEmpty(extraClass)) {
+                            data.extraClasses = data.extraClasses.concat(extraClass.split(" ")).distinct();
+                            rows[r].tr.run(function (tr) { tr.addClass(extraClass); });
+                        }
+                    }
+
                     methods.getColumnsWithDivs().run(function (col) {
                         if (idx == null) {
                             rows[r].contentDivs[col.name][0].innerHTML = "";
@@ -533,6 +553,7 @@
             onDataReceived: function () {
                 if (container.length == 0 || container.dataContext() != query) {
                     rootContainer.unbind("itemsChanged");
+                    rootContainer.unbind("selectedItemsChanged");
                     return;
                 }
 
@@ -543,13 +564,22 @@
 
                 for (var r = 0; r < rowCount; r++) {
                     var idx = start + r;
-                    if (rows[r].idx == null && typeof query.items[idx] != "undefined") {
+                    var item = query.items[idx];
+                    if (rows[r].idx == null && item != null) {
                         rows[r].idx = idx;
                         rows[r].selector.removeClass("noData");
                         rows[r].selector.addClass("hasData");
+                        if (data.extraClasses.length > 0)
+                            rows[r].tr.run(function (tr) { tr.removeClass(data.extraClasses.join(" ")); });
+
+                        var extraClass = item.getTypeHint("ExtraClass");
+                        if (!isNullOrEmpty(extraClass)) {
+                            data.extraClasses = data.extraClasses.concat(extraClass.split(" ")).distinct();
+                            rows[r].tr.run(function (tr) { tr.addClass(extraClass); });
+                        }
 
                         methods.getColumnsWithDivs().run(function (col) {
-                            rows[r].contentDivs[col.name][0].innerHTML = col.render(query.items[idx].values);
+                            rows[r].contentDivs[col.name][0].innerHTML = col.render(item.values);
                         });
                     }
                 }
@@ -585,18 +615,12 @@
                         var selectedItems = query.items.selectedItems() || [];
                         selectedItems = selectedItems.slice();
 
-                        if (!selectedItems.contains(item)) {
+                        if (!selectedItems.contains(item))
                             selectedItems.push(item);
-                            query.updateSelectedItems(selectedItems);
-
-                            methods.updateSelectedRowRules();
-                        }
-                        else {
+                        else
                             selectedItems.remove(item);
-                            query.updateSelectedItems(selectedItems);
 
-                            methods.updateSelectedRowRules();
-                        }
+                        query.updateSelectedItems(selectedItems);
                     }
                 }
 
@@ -642,7 +666,7 @@
                         rows[index].row.addClass("hover");
                         rows[index].remainderRow.addClass("hover");
 
-                        if(!app.isTablet)
+                        if (!app.isTablet)
                             viewport.attr("href", "#!/" + app.getUrlForPersistentObject({ id: q.persistentObject.id, objectId: query.items[start + currentRowHoverIdx].id }));
 
                         if (rows[index].pinnedRow != null) rows[index].pinnedRow.addClass("hover");
@@ -663,7 +687,7 @@
                     row.selector.removeClass("hover");
                 });
 
-                if(!app.isTablet)
+                if (!app.isTablet)
                     viewport.removeAttr("href");
 
                 viewport.css("cursor", "default");
@@ -699,10 +723,10 @@
                 });
                 footer.append(cancel);
 
-                var save = $("<div>").text(app.getTranslatedMessage("Save")).css({ float: "right" });
+                var save = $("<div>").text(app.getTranslatedMessage("Save")).css({ 'float': "right" });
                 footer.append(save);
 
-                var reset = $("<div>").text(app.getTranslatedMessage("Reset")).css({ float: "left" });
+                var reset = $("<div>").text(app.getTranslatedMessage("Reset")).css({ 'float': "left" });
                 footer.append(reset);
                 reset.bind("click", function () {
                     methods.resetSettingsInLocalStorage();
@@ -833,7 +857,7 @@
                 });
 
                 var row = $("<tr>");
-                if (col.isPinned && !nextCol.isPinned)
+                if (col.isPinned && nextCol != null && !nextCol.isPinned)
                     row.addClass("lastPinnedRow");
 
                 row.append($("<td>").append(moveUp));
@@ -859,7 +883,6 @@
 
                 localStorage.setItem("QueryGridSettings", JSON.stringify(settings));
             },
-
 
             loadSettingsFromLocalStorage: function () {
                 var settings = localStorage.getItem("QueryGridSettings");
