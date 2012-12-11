@@ -135,6 +135,7 @@ var Vidyano = (function (window, $) {
         this.title = document.title;
         this.userName = null;
         this.allowExperimentalFeatures = true;
+        this.uniqueId = null;
         this.bootTime = new Date();
         /// <field name="session" type="PersistentObject">Provides access to the session that is always sent to the service and updated after each request, is null if no session is configured.</field>
         this.session = null;

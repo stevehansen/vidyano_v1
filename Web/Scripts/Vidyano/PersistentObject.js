@@ -386,7 +386,7 @@ PersistentObject.prototype.open = function (target) {
 
                         var leftPctg = masterDetailSettings[this.id];
                         if (leftPctg == null)
-                            leftPctg = 100 / resultPanel.innerWidth() * contentPoAttributes.outerWidth();
+                            leftPctg = Math.floor(100 / resultPanel.innerWidth() * contentPoAttributes.outerWidth());
                         else {
                             this.target.find(".persistentObjectAttributes").css("width", leftPctg + "%");
                             this.target.find(".persistentObjectQueries").css("width", 100 - leftPctg + "%");
@@ -396,7 +396,7 @@ PersistentObject.prototype.open = function (target) {
                         var splitterWidth = splitter.width();
 
                         var applyPercentages = function (e) {
-                            var pctg = 100 / resultPanel.innerWidth() * (e.offsetX - splitterWidth / 2);
+                            var pctg = Math.floor(100 / resultPanel.innerWidth() * (e.offsetX - splitterWidth / 2));
                             pctg = Math.max(10, pctg);
                             pctg = Math.min(90, pctg);
                             self.target.find(".persistentObjectAttributes").css("width", pctg + "%");
@@ -836,7 +836,7 @@ PersistentObject.prototype._updateAttributes = function (attrs, requiresRerender
             });
         }
 
-        this._postPersistentObjectRender(container);
+        this._postPersistentObjectRender(container, false);
     }
 
     return targetFocus;
@@ -968,7 +968,7 @@ PersistentObject.prototype._showAttributes = function () {
     }
 
     this._attributeRender(this.target);
-    this._postPersistentObjectRender(this.target);
+    this._postPersistentObjectRender(this.target, true);
 };
 
 PersistentObject.prototype._attributeRender = function (container) {
@@ -985,6 +985,19 @@ PersistentObject.prototype._attributeRender = function (container) {
     this._postAttributeRender(container);
 };
 
+PersistentObject.prototype._focusFirstAttribute = function(container) {
+    if (this.inEdit) {
+        var elementToFocus = container.find(":focusable").filter(':first');
+        if (elementToFocus.length > 0) {
+            var element = elementToFocus[0];
+            if (element.type == 'text' || element.tagName == 'TEXTAREA')
+                element.selectionStart = elementToFocus.val().length;
+
+            element.focus();
+        }
+    }
+};
+
 PersistentObject.prototype._postAttributeRender = function (container) {
     if (app.isCore)
         return; // NOTE: No rendering on core
@@ -998,7 +1011,7 @@ PersistentObject.prototype._postAttributeRender = function (container) {
         container.find('.persistentObjectAttribute_Edit_DateTimeOffset').vidyanoDateTimeOffset();
         container.find('.persistentObjectAttribute_Edit_YesNo').vidyanoTriState();
         container.find('.persistentObjectAttribute_Edit_String').vidyanoString();
-        container.find('.persistentObjectAttribute_Edit_UserRightResource').vidyanoString();
+        container.find('.persistentObjectAttribute_Edit_UserRightResource').vidyanoUserRightResource();
         container.find('.persistentObjectAttribute_Edit_Numeric').vidyanoNumeric();
         container.find('.persistentObjectAttribute_Edit_TranslatedString').vidyanoTranslatedString();
         container.find('.persistentObjectAttribute_Edit_FlagsEnum').vidyanoFlagsEnum();
@@ -1013,26 +1026,16 @@ PersistentObject.prototype._postAttributeRender = function (container) {
     app.postPersistentObjectAttributeRender(container, this);
 };
 
-PersistentObject.prototype._postPersistentObjectRender = function (container) {
+PersistentObject.prototype._postPersistentObjectRender = function (container, focusFirstElement) {
     if (app.isCore)
         return; // NOTE: No rendering on core
 
     container.find('.persistentObject_Edit_Template').vidyanoEditTemplate();
-
-    if (this.inEdit) {
-        var elementToFocus = container.find(":focusable").filter(':first');
-        if (elementToFocus.length > 0) {
-            var element = elementToFocus.get(0);
-            if (element.type == 'text' || element.tagName == 'TEXTAREA') {
-                element.selectionStart = elementToFocus.val().length;
-            }
-
-            element.focus();
-        }
-    }
-
     container.find('#weekScheduledPlaceHolder').weekScheduler();
     container.find('#browseCertificate').vidyanoBrowseCertificate();
+
+    if(focusFirstElement)
+        this._focusFirstAttribute(container);
 
     var code = app.code[this.id];
     if (code != null) {

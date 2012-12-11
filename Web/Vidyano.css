@@ -22,7 +22,8 @@ footer {
 input {
   font-family: "Segoe UI";
 }
-input[type="text"] {
+input[type="text"],
+select {
   height: 22px;
 }
 input[type="text"]:focus,

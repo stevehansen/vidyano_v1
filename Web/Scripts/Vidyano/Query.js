@@ -25,10 +25,10 @@ function Query(query, parent, asLookup) {
     /// <field name="canRead" type="Boolean">Indicates whether items on this Query can be opened (i.e.: if the current user has Read rights).</field>
     if (query.canRead == null) query.canRead = false;
     if (query.offset == null) query.offset = 0;
-    query.totalPages = 0;
-    query.currentPage = 0;
+    query.totalPages = -1;
+    query.currentPage = -1;
     /// <field name="totalItems" type="Number">The total number of items for this Query.</field>
-    query.totalItems = 0;
+    query.totalItems = -1;
     query.pageRange = "0";
     query.filterDisplayName = null;
     query.filterChanged = false;
@@ -69,7 +69,7 @@ function Query(query, parent, asLookup) {
 
     /// <field name="filter" type="QueryFilter">The filter used for this Query.</field>
     query.filter = new QueryFilter(query);
-    if (!asLookup)
+    if (!asLookup && query.actionNames != null && query.actionNames.contains("Filter"))
         query.filter.openDefaultFilter();
 
     if (!query.isSystem) {
@@ -109,8 +109,16 @@ Query.prototype.getItems = function (start, length, onComplete, onError) {
     /// <param name="length" type="Number">The number of items to get</param>
     /// <param name="onComplete" type="Function">The function to call when the requested items are fetched from the service.</param>
     /// <param name="onError" type="Function">The function to call when an error occured.</param>
+    
+    if (this.totalItems >= 0) {
+        if (start > this.totalItems)
+            start = this.totalItems;
 
-    if (this.pageSize == 0) {
+        if (start + length > this.totalItems)
+            length = this.totalItems - start;
+    }
+
+    if (this.pageSize == 0 || length == 0) {
         onComplete(start, length);
         return;
     }

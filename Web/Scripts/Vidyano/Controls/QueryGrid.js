@@ -45,6 +45,7 @@
         var currentRowHoverIdx = -1;
         var remainderRule;
         var columnCount;
+        var lastSelectedIndex;
 
         var methods = {
             refresh: function (e, q) {
@@ -603,27 +604,40 @@
                     return;
 
                 if (currentRowHoverIdx >= 0) {
-                    var item = query.items[start + currentRowHoverIdx];
-                    if (item == null)
+                    var selectedItems = (query.items.selectedItems() || []).slice();
+                    var index = start + currentRowHoverIdx;
+                    var selectedItem = query.items[index];
+
+                    if (isNull(selectedItem))
                         return;
 
                     e = $.fixFireFoxOffset(e);
 
                     if (options.hideSelector || e.offsetX - $(".viewport").scrollLeft() > dataSelector.width())
-                        query.onItemClicked(item);
+                        query.onItemClicked(selectedItem);
                     else {
-                        var selectedItems = query.items.selectedItems() || [];
-                        selectedItems = selectedItems.slice();
+                        if (e.shiftKey && !isNull(lastSelectedIndex)) {
+                            for (var i = Math.min(index, lastSelectedIndex) ; i <= Math.max(index, lastSelectedIndex) ; i++) {
+                                var item = query.items[i];
 
-                        if (!selectedItems.contains(item))
-                            selectedItems.push(item);
-                        else
-                            selectedItems.remove(item);
+                                if (item == null || selectedItems.contains(item))
+                                    continue;
+
+                                selectedItems.push(item);
+                            }
+                        } else {
+                            if (!selectedItems.contains(selectedItem))
+                                selectedItems.push(selectedItem);
+                            else {
+                                selectedItems.remove(selectedItem);
+                                index = null;
+                            }
+                        }
 
                         query.updateSelectedItems(selectedItems);
+                        lastSelectedIndex = index;
                     }
                 }
-
                 e.preventDefault();
                 e.stopPropagation();
             },

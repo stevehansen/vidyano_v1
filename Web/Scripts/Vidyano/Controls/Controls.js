@@ -12,7 +12,7 @@
                     }
                     else {
                         attribute.setValue(selectedDate);
-                        
+
                         if (selectedDate == null)
                             clearButton.hide();
                         else
@@ -314,7 +314,7 @@
                     });
 
                     options[0] = JSON.stringify(contents);
-                    
+
                     attribute.isValueChanged = true;
                     attribute.parent.isDirty(true);
                 }
@@ -550,7 +550,11 @@
             var attribute = root.dataContext();
             var headerDiv;
             var optionsDiv;
-            var values = attribute.value.split(", ");
+            var values;
+            if (attribute.value == null)
+                values = [];
+            else
+                values = attribute.value.split(", ");
             sourceSelect.hide();
             functions.createSelectWrapper();
             $(document).off("click.flaggedComboBox", eventFunctions.onDocumentClick);
@@ -774,7 +778,6 @@
             var po = dataContext.parent;
             var clearButton = root.find('.clearButton');
             var editButton = root.find('.editButton');
-            var fileInputDiv = root.find('.persistentObjectAttributefileInputWrapper');
             var fileInput = root.find('.persistentObjectAttributefileInput');
             var imageDiv = root.find('.persistentObjectAttributeValueImageContainer');
 
@@ -1078,6 +1081,222 @@
         });
     };
 
+    $.fn.vidyanoUserRightResource = function () {
+        $(this).each(function () {
+            var root = $(this);
+            var attribute = root.dataContext();
+
+            var input = root.find("input").hide();
+            var selectContainer = root.find(".selectContainer");
+            var toggleButton = root.find(".toggleButton").button();
+            toggleButton.on("click", function() {
+                if (input.is(":visible")) {
+                    input.hide();
+                    selectContainer.show();
+                }
+                else {
+                    input.show();
+                    selectContainer.hide();
+                }
+            });
+
+            var actionsSelect = selectContainer.find(".actionsSelect");
+            var schemasSelect = selectContainer.find(".schemasSelect");
+            var persistentObjectsSelect = selectContainer.find(".persistentObjectsSelect");
+            var attributesSelect = selectContainer.find(".attributesSelect");
+
+            var actions = attribute.options[0].split(';');
+            var schemasInfo = {};
+            attribute.options[1].split(';').select(function (si) { return si.split('='); }).run(function (si) { schemasInfo[si[0]] = si[1].split('|'); });
+            var attributes = attribute.options[2].split(';');
+            var selectedAction = null, selectedSchema = null, selectedPersistentObject = null, selectedAttribute = null;
+            
+            actionsSelect.on("change", function (e) {
+                var newAction = e.target.value;
+                if (newAction != selectedAction) {
+                    selectedAction = newAction;
+                    updateAttributesVisibility();
+                    updateValue();
+                }
+            });
+            actions.run(function (option) {
+                actionsSelect.append("<option" + (selectedAction == option ? ' selected="selected"' : "") + ">" + option + "</option>");
+            });
+
+            schemasSelect.on("change", function (e) {
+                var newSchema = e.target.value;
+                if (newSchema != selectedSchema) {
+                    selectedSchema = newSchema;
+                    selectedPersistentObject = "";
+                    selectedAttribute = "";
+                    updateValue();
+                    updatePersistentObjects();
+                }
+            });
+            schemasSelect.append("<option" + (isNullOrEmpty(selectedSchema) ? ' selected="selected"' : "") + "></option>");
+            for (var schema in schemasInfo) {
+                if (schemasInfo.hasOwnProperty(schema))
+                    schemasSelect.append("<option" + (selectedSchema == schema ? ' selected="selected"' : "") + ">" + schema + "</option>");
+            }
+
+            persistentObjectsSelect.on("change", function(e) {
+                var newPersistentObject = e.target.value;
+                if (newPersistentObject != selectedPersistentObject) {
+                    selectedPersistentObject = newPersistentObject;
+                    attributes = null;
+                    selectedAttribute = "";
+                    updateValue();
+                    updateAttributes();
+                }
+            });
+
+            attributesSelect.on("change", function(e) {
+                var newAttribute = e.target.value;
+                if (newAttribute != selectedAttribute) {
+                    selectedAttribute = newAttribute;
+                    updateValue();
+                }
+            });
+
+            function updatePersistentObjects() {
+                persistentObjectsSelect.empty();
+                
+                if (isNullOrEmpty(selectedSchema)) {
+                    persistentObjectsSelect.val("");
+                    persistentObjectsSelect.attr("disabled", "disabled");
+                    attributes = null;
+                }
+                else {
+                    persistentObjectsSelect.append("<option" + (isNullOrEmpty(selectedPersistentObject) ? ' selected="selected"' : "") + "></option>");
+                    schemasInfo[selectedSchema].run(function (po) { persistentObjectsSelect.append("<option" + (selectedPersistentObject == po ? ' selected="selected"' : "") + ">" + po + "</option>"); });
+                    persistentObjectsSelect.val(selectedPersistentObject);
+                    persistentObjectsSelect.removeAttr("disabled");
+                }
+                    
+                updateAttributes();
+            }
+            
+            function addAttributesOptions() {
+                attributesSelect.append("<option" + (isNullOrEmpty(selectedAttribute) ? ' selected="selected"' : "") + "></option>");
+                attributes.run(function (attr) { attributesSelect.append("<option" + (selectedAttribute == attr ? ' selected="selected"' : "") + ">" + attr + "</option>"); });
+                attributesSelect.val(selectedAttribute);
+                attributesSelect.removeAttr("disabled");
+            }
+
+            function updateAttributes() {
+                attributesSelect.empty();
+                attributesSelect.attr("disabled", "disabled");
+                
+                if (!isNullOrEmpty(selectedPersistentObject)) {
+                    if (attributes == null || attributes.length == 0) {
+                        app.gateway.executeAction("PersistentObject.Refresh", attribute.parent, null, null, null, function (result) {
+                            if (isNullOrEmpty(result.notification)) {
+                                attributes = result.getAttribute("Resource").options[2].split(';');
+                                addAttributesOptions();
+                            }
+                            else
+                                attribute.parent.showNotification(result.notification, result.notificationType);
+                        }, function (e) {
+                            attribute.parent.showNotification(e, "Error");
+                        });
+                    }
+                    else
+                        addAttributesOptions();
+                }
+                else
+                    attributesSelect.val("");
+            }
+
+            function updateAttributesVisibility() {
+                if (actionsWithAttributes.contains(selectedAction)) {
+                    actionsSelect.css({ width: "24.5%" });
+                    schemasSelect.css({ width: "24.5%" });
+                    persistentObjectsSelect.css({ width: "24.5%" });
+                    attributesSelect.css({ width: "24%" });
+                    attributesSelect.show();
+                } else {
+                    attributesSelect.hide();
+                    actionsSelect.css({ width: "33%" });
+                    schemasSelect.css({ width: "33%" });
+                    persistentObjectsSelect.css({ width: "32.5%" });
+                    attributesSelect.css({ width: "0" });
+                }
+            }
+
+            function readValue(value) {
+                var parts = value.split('/');
+
+                selectedAction = parts[0];
+
+                if (parts.length >= 2) {
+                    selectedSchema = parts[1];
+                    selectedPersistentObject = "";
+
+                    var dotIndex = selectedSchema.indexOf(".");
+                    if (dotIndex >= 0) {
+                        selectedPersistentObject = selectedSchema.substr(dotIndex + 1);
+                        selectedSchema = selectedSchema.substr(0, dotIndex);
+                    }
+
+                    selectedAttribute = parts.length == 3 ? parts[2] : "";
+                }
+                else {
+                    selectedSchema = "";
+                    selectedPersistentObject = "";
+                    selectedAttribute = "";
+                }
+
+                updatePersistentObjects();
+                updateAttributesVisibility();
+
+                actionsSelect.val(selectedAction);
+                schemasSelect.val(selectedSchema);
+            }
+
+            function updateValue() {
+                var value = selectedAction;
+                if (!isNullOrEmpty(selectedSchema)) {
+                    value += "/" + selectedSchema;
+                    if (!isNullOrEmpty(selectedPersistentObject)) {
+                        value += "." + selectedPersistentObject;
+                        if (!isNullOrEmpty(selectedAttribute) && actionsWithAttributes.contains(selectedAction))
+                            value += "/" + selectedAttribute;
+                    }
+                }
+
+                attribute.setValue(value);
+                input.val(value);
+            }
+
+            readValue(attribute.value);
+
+            input.on("keyup", function (e) {
+                var keyCode = e.keyCode || e.which;
+                if (keyCode == 16 || keyCode == 17 || keyCode == 40 || keyCode == 39 || keyCode == 38 || keyCode == 37)
+                    return;
+
+                attribute.onChanged(this, false);
+                readValue(attribute.value);
+            });
+            input.on("blur", function () {
+                attribute.onChanged(this, true);
+                readValue(attribute.value);
+            });
+        });
+    };
+
+    var actionsWithAttributes = [
+        "QueryReadEditNew",
+        "QueryReadEdit",
+        "QueryRead",
+        "Query",
+        "Read",
+        "ReadEdit",
+        "ReadEditNew",
+        "New",
+        "Edit",
+        "EditNew"
+    ];
     var methods = {
         toCharCase: function (value, casing) {
             if (value != null) {

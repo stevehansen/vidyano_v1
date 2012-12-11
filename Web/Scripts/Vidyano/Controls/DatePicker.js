@@ -12,6 +12,7 @@
         var eventFunctions = {
             onDateSelect: function () {
                 functions.triggerOnDateSelected(root.datepicker("getDate"));
+                root.change();
             }
         };
 

@@ -25,6 +25,9 @@ function ServiceGateway(serviceUri) {
 
         if ($.browser.mobile)
             data.isMobile = true;
+
+        if (app.uniqueId != null)
+            data.uniqueId = app.uniqueId;
         
         return data;
     };
@@ -277,20 +280,12 @@ function ServiceGateway(serviceUri) {
     };
 
     this.getApplication = function (userName, userPass, onCompleted, onError) {
-        var data = {
-            isMobile: $.browser.mobile,
-            userName: app.userName || userName
-        };
-        
-        if (app.settings.applicationSpecificPersistentObjects != null)
-            data.applicationSpecificPersistentObjects = app.settings.applicationSpecificPersistentObjects;
-
-        var token = app.getAuthToken();
-        if (!isNullOrEmpty(token))
-            data.authToken = token;
-        else
+        var data = this._createData();
+        if (data.userName == null)
+            data.userName = userName;
+        if (data.authToken == null)
             data.password = userPass;
-
+        
         var showError = function (message) {
             app.spin(false);
             if (typeof (onError) == "function")
@@ -534,6 +529,22 @@ ServiceGateway.fromServiceString = function (value, typeName) {
             }
 
             return dateTime;
+        }
+
+        var now = new Date();
+        if (typeName == "Date") {
+            now.setHours(0, 0, 0, 0);
+            return now;
+        }
+        else if (typeName == "DateTime")
+            return now;
+        else if (typeName == "DateTimeOffset") {
+            now.netType("DateTimeOffset");
+            var zone = now.getTimezoneOffset() * -1;
+            var zoneHour = zone / 60;
+            var zoneMinutes = zone % 60;
+            now.netOffset(String.format("{0}{1:D2}:{2:D2}", zone < 0 ? "-" : "+", zoneHour, zoneMinutes)); // +00:00
+            return now;
         }
 
         return null;

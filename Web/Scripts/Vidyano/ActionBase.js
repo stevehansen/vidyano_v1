@@ -10,8 +10,6 @@
 /// <reference path="Controls/QueryGrid.js" />
 /// <reference path="SelectReferenceDialogActions.js" />
 
-// Contains the code used for default and custom actions.
-
 function ActionDefinition(item) {
     /// <summary>Creates a new instance of ActionDefinition.</summary>
     /// <param name="item" type="QueryResultItem">The query result item containing the information about the action.</param>
@@ -34,8 +32,8 @@ function ActionBase(definition) {
     /// <summary>Creates a new instance of ActionBase.</summary>
     /// <param name="definition" type="ActionDefinition">The definition that is used to base this Action on.</param>
     
-    var _canExecute = definition.selectionRule(0);
-    var _isVisible = true;
+    this._canExecute = definition.selectionRule(0);
+    this._isVisible = true;
 
     this.id = definition.id;
     this.name = definition.name;
@@ -45,55 +43,35 @@ function ActionBase(definition) {
     this.refreshQueryOnCompleted = definition.refreshQueryOnCompleted;
     this.icon = definition.icon;
     this.options = definition.options;
+    this.parameters = {};
     this.dependentActions = [];
 
     this.target = null;
     this.parent = null;
     this.query = null;
-
-    this.canExecute = function (value) {
-        if (typeof (value) == "undefined")
-            return _canExecute;
-
-        if (_canExecute != value) {
-            _canExecute = value;
-
-            var element = $("#Action_" + this.name);
-            if (element.length > 0 && element.dataContext() == this)
-                element.css({ opacity: value ? 1 : 0.5 });
-        }
-
-        return this;
-    };
-
-    this.isVisible = function (value) {
-        if (typeof (value) == "undefined")
-            return _isVisible;
-
-        if (_isVisible != value) {
-            _isVisible = value;
-
-            var element = $("#Action_" + this.name);
-            if (element.length > 0 && element.dataContext() == this) {
-                if (value)
-                    element.show();
-                else
-                    element.hide();
-            }
-        }
-
-        return this;
-    };
 }
 
-ActionBase.prototype.onInitialize = function () {};
+ActionBase.prototype.canExecute = function (value) {
+    if (typeof (value) == "undefined")
+        return this._canExecute;
 
-ActionBase.prototype.execute = function (option, continueWith) {
+    if (this._canExecute != value) {
+        this._canExecute = value;
+
+        var element = $("#Action_" + this.name);
+        if (element.length > 0 && element.dataContext() == this)
+            element.css({ opacity: value ? 1 : 0.5 });
+    }
+
+    return this;
+};
+
+ActionBase.prototype.execute = function (option, continueWith, parameters) {
     if (this.canExecute()) {
         app.trackEvent(this.name, option, this.query || this.parent);
 
         try {
-            this.onExecute(option, continueWith);
+            this.onExecute(option, continueWith, parameters);
         } catch (e) {
             if (typeof (e.message) != 'undefined')
                 this.showNotification(e.message, "Error");
@@ -103,36 +81,51 @@ ActionBase.prototype.execute = function (option, continueWith) {
     }
 };
 
-ActionBase.prototype.onExecute = function (option, continueWith) {
-    var parameters = { MenuOption: option };
-    if (this.query != null && this.query.filterDisplayName != null)
-        parameters["QueryFilterName"] = this.query.filterDisplayName;
-    if (this.options != null && this.options.length > 0 && option >= 0)
-        parameters["MenuLabel"] = this.options[option];
+ActionBase.prototype.isVisible = function (value) {
+    if (typeof (value) == "undefined")
+        return this._isVisible;
 
-    var $this = this;
+    if (this._isVisible != value) {
+        this._isVisible = value;
+
+        var element = $("#Action_" + this.name);
+        if (element.length > 0 && element.dataContext() == this) {
+            if (value)
+                element.show();
+            else
+                element.hide();
+        }
+    }
+
+    return this;
+};
+
+ActionBase.prototype.onExecute = function (option, continueWith, parameters) {
+    parameters = this._getParameters(parameters, option);
+
+    var self = this;
     var selectedItems = this.query != null && this.query.items != null ? this.query.items.selectedItems() : null;
     var onCompleted = function (po) {
         if (po != null) {
             if (po.fullTypeName == "Vidyano.Notification") {
-                $this.showNotification(po.notification, po.notificationType);
+                self.showNotification(po.notification, po.notificationType);
             } else if (!isNullOrWhiteSpace(po.notification) && po.notificationType == "Error") {
-                $this.showNotification(po.notification, "Error");
+                self.showNotification(po.notification, "Error");
 
-                if ($this.parent != null && (po.fullTypeName == $this.parent.fullTypeName || po.isNew == $this.parent.isNew) && po.id == $this.parent.id && po.objectId == $this.parent.objectId)
-                    $this.parent.refreshFromResult(po);
+                if (self.parent != null && (po.fullTypeName == self.parent.fullTypeName || po.isNew == self.parent.isNew) && po.id == self.parent.id && po.objectId == self.parent.objectId)
+                    self.parent.refreshFromResult(po);
             } else if (po.fullTypeName == "Vidyano.RegisteredStream") {
                 app.gateway.getStream(po);
-            } else if ($this.parent == null || ((po.fullTypeName != $this.parent.fullTypeName && po.isNew != $this.parent.isNew) || po.id != $this.parent.id || po.objectId != $this.parent.objectId)) {
-                po.ownerQuery = $this.query;
+            } else if (self.parent == null || ((po.fullTypeName != self.parent.fullTypeName && po.isNew != self.parent.isNew) || po.id != self.parent.id || po.objectId != self.parent.objectId)) {
+                po.ownerQuery = self.query;
                 app.openPersistentObject(po, true);
             } else {
-                $this.parent.refreshFromResult(po);
-                $this.parent.showNotification(po.notification, po.notificationType);
+                self.parent.refreshFromResult(po);
+                self.parent.showNotification(po.notification, po.notificationType);
             }
         }
-        else if ($this.query != null && $this.refreshQueryOnCompleted)
-            $this.query.search();
+        else if (self.query != null && self.refreshQueryOnCompleted)
+            self.query.search();
 
         if (continueWith != null)
             continueWith();
@@ -140,18 +133,18 @@ ActionBase.prototype.onExecute = function (option, continueWith) {
 
     var onCompletedHook = null, onErrorHook = null, onExecuteHook = null;
     var onError = function (error) {
-        $this.showNotification(error, "Error");
+        self.showNotification(error, "Error");
     };
 
     var executeAction = function () {
-        app.gateway.executeAction($this.target + "." + $this.name, $this.parent, $this.query, selectedItems, parameters, function (po) {
+        app.gateway.executeAction(self.target + "." + self.name, self.parent, self.query, selectedItems, parameters, function (po) {
             if (onCompletedHook != null)
-                onCompletedHook(po, onCompleted, $this);
+                onCompletedHook(po, onCompleted, self);
             else
                 onCompleted(po);
         }, function (error) {
             if (onErrorHook != null)
-                onErrorHook(error, onError, $this);
+                onErrorHook(error, onError, self);
             else
                 onError(error);
         });
@@ -177,8 +170,8 @@ ActionBase.prototype.onExecute = function (option, continueWith) {
                 if (poExecuteHook != null) {
                     if (onExecuteHook != null) {
                         var genericExecuteHook = onExecuteHook;
-                        onExecuteHook = function (action, handler) {
-                            poExecuteHook(action, function () { genericExecuteHook(action, handler); });
+                        onExecuteHook = function (action, handler, params) {
+                            poExecuteHook(action, function () { genericExecuteHook(action, handler, params); });
                         };
                     }
                     else
@@ -210,11 +203,13 @@ ActionBase.prototype.onExecute = function (option, continueWith) {
         }
     }
 
-    if (onExecuteHook != null)
-        onExecuteHook(this, executeAction);
+    if (typeof (onExecuteHook) == "function")
+        onExecuteHook(this, executeAction, parameters);
     else
         executeAction();
 };
+
+ActionBase.prototype.onInitialize = function () {};
 
 ActionBase.prototype.render = function () {
     var content = $.createElement("li", this);
@@ -272,7 +267,23 @@ ActionBase.prototype.showNotification = function (notification, notificationType
         this.parent.showNotification(notification, notificationType);
 };
 
-var Actions = (function (window, isNullOrWhiteSpace) {
+ActionBase.prototype._getParameters = function (parameters, option) {
+    if (parameters == null)
+        parameters = {};
+    if (this.parameters != null)
+        parameters = $.extend({}, this.parameters, parameters);
+    if (this.query != null && this.query.filterDisplayName != null)
+        parameters["QueryFilterName"] = this.query.filterDisplayName;
+    if (this.options != null && this.options.length > 0 && option >= 0) {
+        parameters["MenuOption"] = option;
+        parameters["MenuLabel"] = this.options[option];
+    }
+    else if (option != null)
+        parameters["MenuOption"] = option;
+    return parameters;
+};
+
+var Actions = (function (window) {
     var actions = {
         actionDefinitions: {},
         actionTypes: {},
@@ -605,7 +616,7 @@ var Actions = (function (window, isNullOrWhiteSpace) {
         var result = new ActionBase(definition);
 
         result.onExecute = function (option) {
-            var parameters = { MenuOption: option };
+            var parameters = result._getParameters(option);
             var selectedItems = this.query != null && this.query.items != null ? this.query.items.selectedItems() : null;
             app.gateway.getStream(null, this.target + "." + this.name, this.parent, this.query, selectedItems, parameters);
         };
@@ -614,4 +625,4 @@ var Actions = (function (window, isNullOrWhiteSpace) {
     };
 
     return actions;
-})(window, isNullOrWhiteSpace);
+})(window);
