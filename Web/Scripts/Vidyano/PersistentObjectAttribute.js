@@ -133,8 +133,8 @@ function PersistentObjectAttributeWithReference(attribute) {
 
     attribute.navigateToReference = function () {
         /// <summary>Navigates the user interface to the value of the Persistent Object Attribute. Only usable on a Persistent Object Attribute with Reference.</summary>
-
-        app.gateway.getPersistentObject(this.parent, this.lookup.persistentObject.id, this.objectId, function (result) {
+        if(this.lookup.canRead)
+            app.gateway.getPersistentObject(this.parent, this.lookup.persistentObject.id, this.objectId, function (result) {
             app.openPersistentObject(result);
         });
     };

@@ -631,7 +631,7 @@ PersistentObject.prototype.showNotification = function (notification, type) {
     /// <param name="type" type="String" optional="true">The type of the notification.</param>
 
     this.notification = notification;
-    this.notificationType = type;
+    this.notificationType = type || "Error";
 
     if (this.target != null) {
         var attributesPanel = this.target.find(".resultContent" + (this.isMasterDetail() ? ".persistentObjectAttributes" : ""));

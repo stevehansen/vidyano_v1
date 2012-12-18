@@ -756,12 +756,12 @@
         $(this).each(function () {
             var events = {
                 clearImage: function () {
-                    $(this).dataContext().onChanged({ value: null }, true);
+                    attribute.onChanged({ value: null }, true);
                     imageDiv.empty();
                     clearButton.hide();
                 },
                 imageChanged: function () {
-                    $(this).dataContext().onChanged(this, true);
+                    attribute.onChanged(this, true);
                     var path = this.value;
                     var fileName = path.substring(path.lastIndexOf("\\") + 1, path.length);
 
@@ -769,33 +769,38 @@
                     imageDiv.append($.createElement("div").addClass("PersistentObjectAttributeValueImageFileNameText").append($.createElement("span").append(fileName)));
 
                     fileInput.isChanged = true;
-                    clearButton.show();
+                    
+                    if (!attribute.isRequired)
+                        clearButton.show();
                 }
             };
 
             var root = $(this);
-            var dataContext = root.dataContext();
-            var po = dataContext.parent;
+            var attribute = root.dataContext();
+            var po = attribute.parent;
             var clearButton = root.find('.clearButton');
             var editButton = root.find('.editButton');
             var fileInput = root.find('.persistentObjectAttributefileInput');
             var imageDiv = root.find('.persistentObjectAttributeValueImageContainer');
 
-            po.registerInput(dataContext, fileInput);
+            po.registerInput(attribute, fileInput);
 
             clearButton.button()
                 .on('click', events.clearImage);
             editButton.button();
             fileInput.on('change', events.imageChanged);
 
-            if (isNullOrWhiteSpace(dataContext.value)) {
+            if (isNullOrEmpty(attribute.value)) {
                 clearButton.hide();
             }
             else {
-                var width = dataContext.getTypeHint("Width");
-                var height = dataContext.getTypeHint("Height", "20px");
+                var width = attribute.getTypeHint("Width");
+                var height = attribute.getTypeHint("Height", "20px");
                 imageDiv.css({ height: height });
                 imageDiv.find("img").css({ width: width, height: height });
+                
+                if (attribute.isRequired)
+                    clearButton.hide();
             }
         });
     };
@@ -887,10 +892,20 @@
 
                             var textAreaChanged = function (lostFocus) {
                                 var value = editorWeb.getValue();
-                                if (value != null && value != currentTemplateWeb.data) {
-                                    currentTemplateWeb.data = value.replace(/\r\n|\r|\n/g, "\n");
-                                    var stringData = JSON.stringify(data);
-                                    dataAttribute.onChanged({ value: stringData }, lostFocus);
+                                if (value != null) {
+                                    value = value.replace(/\r\n|\r|\n/g, "\r\n");
+                                    if (value != currentTemplateWeb.data) {
+                                        currentTemplateWeb.data = value;
+                                        var stringData = JSON.stringify(data);
+                                        dataAttribute.onChanged({ value: stringData }, lostFocus);
+
+                                        try {
+                                            app.templateParser(value);
+                                            po.showNotification("Parsed template successfully", "OK");
+                                        } catch(e) {
+                                            po.showNotification("Parsing template failed: " + e, "Error");
+                                        } 
+                                    }
                                 }
                             };
 
@@ -899,7 +914,7 @@
                             optionsWeb.onGutterClick = methods.braceFoldFunc;
                             optionsWeb.lineNumbers = true;
                             optionsWeb.onBlur = function () { textAreaChanged(true); };
-                            optionsWeb.onChange = _.throttle(function () { textAreaChanged(false); }, 250);
+                            optionsWeb.onChange = _.throttle(function () { textAreaChanged(false); }, 1000);
                             editorWeb = CodeMirror.fromTextArea(textAreaWeb[0], optionsWeb);
                         } else {
                             optionsWeb.readOnly = "nocursor";
@@ -930,9 +945,7 @@
                     displayInputDiv.addClass("persistentObjectAttributeValuePartFill")
                             .append(displayInput);
                     browseButton.button()
-                            .addClass("persistentObjectAttributeValuePartRight")
-                            .addClass("persistentObjectAttributeButton")
-                            .addClass("browseReferenceButton");
+                            .addClass("persistentObjectAttributeValuePartRight persistentObjectAttributeButton browseReferenceButton");
                     div.addClass("persistentObjectAttributefileInputWrapper")
                             .append(fileInput);
                     root.empty();
@@ -942,8 +955,9 @@
                 positionFileInput: function () {
                     var width = browseButton.outerWidth();
                     var height = browseButton.outerHeight();
-                    var left = browseButton.position().left;
-                    var top = browseButton.position().top;
+                    var position = browseButton.position();
+                    var left = position.left;
+                    var top = position.top;
                     var div = root.find(".persistentObjectAttributefileInputWrapper");
 
                     div.css("top", top - 2)
@@ -958,9 +972,11 @@
             po.registerInput(attribute, fileInput);
             fileInput.on('change', function () {
                 var path = fileInput.val();
-                displayInput.val(path.substring(path.lastIndexOf("\\") + 1, path.length));
+                path = path.substring(path.lastIndexOf("\\") + 1, path.length);
+                displayInput.val(path);
 
-                attribute.onChanged(this, true);
+                fileInput.isChanged = true;
+                attribute.onChanged({ value: path }, true);
             });
             functions.createControl();
             functions.positionFileInput();
@@ -1014,9 +1030,11 @@
             po.registerInput(attribute, fileInput);
             fileInput.on('change', function () {
                 var path = fileInput.val();
-                displayInput.val(path.substring(path.lastIndexOf("\\") + 1, path.length));
+                path = path.substring(path.lastIndexOf("\\") + 1, path.length);
+                displayInput.val(path);
 
-                attribute.onChanged(this, true);
+                fileInput.isChanged = true;
+                attribute.onChanged({ value: path }, true);
             });
             functions.createControl();
             functions.positionFileInput();

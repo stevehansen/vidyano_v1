@@ -182,7 +182,7 @@ Query.prototype.hasVisibleActions = function () {
     /// <summary>Returns a value indicating if the Query should have any visible actions.</summary>
     /// <returns type="Boolean" />
 
-    return this.actions.where(function (a) { return a.name != "Filter" && a.name != "RefreshQuery"; }).length > 0;
+    return this.actions.where(function (a) { return a.name != "Filter" && a.name != "RefreshQuery" && a.isVisible(); }).length > 0;
 };
 
 Query.prototype.onItemClicked = function (selectedItem) {

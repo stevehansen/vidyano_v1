@@ -1344,10 +1344,11 @@ ul.programUnitItemsOverflow {
   line-height: 20px;
   margin-left: 2px;
 }
-.persistentObjectAttribute_Edit_Image .persistentObjectAttributefileInput {
+.persistentObjectAttributefileInput {
   cursor: pointer;
+  width: 24px;
 }
-.persistentObjectAttribute_Edit_Image .persistentObjectAttributefileInputWrapper {
+.persistentObjectAttributefileInputWrapper {
   position: absolute;
   -moz-opacity: 0;
   opacity: 0;

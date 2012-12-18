@@ -300,7 +300,7 @@ var Vidyano = (function (window, $) {
             if (app.persistentObject == null) {
                 if ($.browser.mobile)
                     $("#rootContainer").addClass("mobile");
-                
+
                 app.returnUrl(hasher.getHash());
                 if ($.cookie("userName") != null && app.getAuthToken() != null) {
                     app.gateway.getApplication($.cookie("userName"), null, function () {
@@ -468,9 +468,11 @@ var Vidyano = (function (window, $) {
                         p.selector.removeClass("selectedProgramUnit");
                 });
 
-                pu.open();
-                if (pu.selector != null)
-                    pu.selector.addClass("selectedProgramUnit");
+                if (pu != null) {
+                    pu.open();
+                    if (pu.selector != null)
+                        pu.selector.addClass("selectedProgramUnit");
+                }
             });
         };
 
@@ -509,7 +511,10 @@ var Vidyano = (function (window, $) {
                             resource.data = templateParser(resource.data);
                             templates[resource.key] = resource;
                         }
-                        catch (e) { }
+                        catch (e) {
+                            if (window.console != null && window.console.log != null)
+                                window.console.log("Failed parsing template " + resource.key + ": " + e);
+                        }
                     }
                 }
             });
@@ -671,7 +676,7 @@ var Vidyano = (function (window, $) {
 
         this.trackPageView = function () {
             /// <summary>Tracks the current page navigation with Google Analytics if enabled.</summary>
-            
+
             if (!this.isCore && typeof (_gaq) != "undefined" && !isNullOrWhiteSpace(this.analyticsKey)) {
                 var hash = hasher.getHash();
                 if (hash.length == 0 || hash.startsWith('PersistentObjectFromAction.'))

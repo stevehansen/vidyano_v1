@@ -129,10 +129,10 @@ function ServiceGateway(serviceUri) {
                             tm.startTask(function (t) {
                                 var reader = new window.FileReader();
                                 reader.onload = function (event) {
-                                    if (item.attribute.value != null) {
-                                        item.attribute.value = event.target.result.match(/,(.*)$/)[1];
-                                    }
-                                    item.attribute.isValueChanged = true;
+                                    var fileName = item.attribute.value;
+                                    item.attribute.value = event.target.result.match(/,(.*)$/)[1];
+                                    if (item.attribute.type == "BinaryFile")
+                                        item.attribute.value = fileName + "|" + item.attribute.value;
 
                                     tm.markDone(t);
                                 };

@@ -90,6 +90,15 @@ QueryColumn.prototype.render = function (values) {
             value = app.getTranslatedMessage(value ? this.getTypeHint("TrueKey", "True", typeHints) : this.getTypeHint("FalseKey", "False", typeHints));
         else if (this.type == "YesNo")
             value = app.getTranslatedMessage(value ? this.getTypeHint("TrueKey", "Yes", typeHints) : this.getTypeHint("FalseKey", "No", typeHints));
+        else if (this.type == "Time" || this.type == "NullableTime") {
+            if (value != null) {
+                value = value.trimEnd('0').trimEnd('.');
+                if (value.startsWith('0:'))
+                    value = value.substr(2);
+                if (value.endsWith(':00'))
+                    value = value.substr(0, value.length - 3);
+            }
+        }
 
         if (format == "{0}") {
             if (this.type == "Date" || this.type == "NullableDate") {
@@ -138,7 +147,7 @@ QueryColumn.prototype.render = function (values) {
     if (hasOptions || hasExtraClass) {
         var div = $("<div>");
         div.append(content);
-        
+
         if (hasOptions)
             content.css(options);
 
