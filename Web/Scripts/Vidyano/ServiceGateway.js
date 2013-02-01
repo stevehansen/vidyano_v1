@@ -23,6 +23,9 @@ function ServiceGateway(serviceUri) {
         if (app.settings.applicationSpecificPersistentObjects != null)
             data.applicationSpecificPersistentObjects = app.settings.applicationSpecificPersistentObjects;
 
+        if (app.settings.language != null)
+            data.requestedLanguage = app.settings.language;
+
         if ($.browser.mobile)
             data.isMobile = true;
 
@@ -30,6 +33,13 @@ function ServiceGateway(serviceUri) {
             data.uniqueId = app.uniqueId;
         
         return data;
+    };
+
+    this._createUri = function(method) {
+        var uri = this.serviceUri;
+        if (!isNullOrEmpty(uri) && !uri.endsWith('/'))
+            uri += '/';
+        return uri + method;
     };
 
     this.executeQuery = function (parent, query, filterName, asLookup, onCompleted, onError) {
@@ -52,7 +62,7 @@ function ServiceGateway(serviceUri) {
 
         app.spin(true, "executeQuery", data);
 
-        $.postJSON(this.serviceUri + "ExecuteQuery", data, function (result) {
+        $.postJSON(this._createUri("ExecuteQuery"), data, function (result) {
             app.spin(false);
 
             if (result.exception == null) {
@@ -157,7 +167,7 @@ function ServiceGateway(serviceUri) {
                 var iframe = $("<iframe src='javascript:false;' name='" + name + "'></iframe>").css({ position: 'absolute', top: '-1000px', left: '-1000px' });
 
                 var clonedForm = $("<form enctype='multipart/form-data' encoding='multipart/form-data' method='post'><input type='hidden' name='data'></input></form>"); //.hide();
-                clonedForm.attr({ action: this.serviceUri + "ExecuteAction", target: name });
+                clonedForm.attr({ action: this._createUri("ExecuteAction"), target: name });
                 clonedForm.find('input[name=data]').val(JSON.stringify(data));
                 inputs.where(function (item) { return item.input[0].value != ""; }).run(function (item) {
                     var input = $(item.input);
@@ -198,7 +208,7 @@ function ServiceGateway(serviceUri) {
             }
         }
 
-        $.postJSON(this.serviceUri + "ExecuteAction", data, handleResult);
+        $.postJSON(this._createUri("ExecuteAction"), data, handleResult);
     };
 
     this.getQuery = function (id, filterName, onCompleted, onError) {
@@ -215,7 +225,7 @@ function ServiceGateway(serviceUri) {
 
         app.spin(true, "getQuery", data);
 
-        $.postJSON(this.serviceUri + "GetQuery", data, function (result) {
+        $.postJSON(this._createUri("GetQuery"), data, function (result) {
             app.spin(false);
 
             if (result.exception == null) {
@@ -254,7 +264,7 @@ function ServiceGateway(serviceUri) {
 
         app.spin(true, "getPersistentObject", data);
 
-        $.postJSON(this.serviceUri + "GetPersistentObject", data, function (result) {
+        $.postJSON(this._createUri("GetPersistentObject"), data, function (result) {
             app.spin(false);
 
             if (result.exception == null) {
@@ -294,13 +304,18 @@ function ServiceGateway(serviceUri) {
 
         app.spin(true, "getApplication", data);
 
-        $.postJSON(this.serviceUri + "GetApplication", data, function (result) {
+        $.postJSON(this._createUri("GetApplication"), data, function (result) {
             app.lastError = result.exception;
             if (result.exception == null) {
-                app.userName = data.userName;
-                CultureInfo.currentCulture = CultureInfo.cultures[result.userLanguage] || CultureInfo.invariantCulture;
-
                 var po = new PersistentObject(result.application);
+                if (!isNullOrEmpty(po.notification)) {
+                    showError(po.notification);
+                    return;
+                }
+
+                app.userName = result.userName;
+                CultureInfo.currentCulture = CultureInfo.cultures[result.userCultureInfo] || CultureInfo.cultures[result.userLanguage] || CultureInfo.invariantCulture;
+
                 app.persistentObject = po;
 
                 app.userId = po.getAttributeValue("UserId");
@@ -447,11 +462,15 @@ function ServiceGateway(serviceUri) {
 
                 app.isTrial(result.isTrial);
 
+                window.onerror = function(ex) {
+                    console.log(ex);
+                };
+
                 try {
                     app.onInitialized();
                 }
                 catch (e) {
-                    showError(e);
+                    showError(e.message || e);
                 }
             } else {
                 showError(result.exception);
@@ -481,11 +500,23 @@ function ServiceGateway(serviceUri) {
         }
 
         var form = $("<form enctype='multipart/form-data' encoding='multipart/form-data' method='post'><input type='hidden' name='data'></input></form>"); //.hide();
-        form.attr({ action: this.serviceUri + "GetStream", target: name });
+        form.attr({ action: this._createUri("GetStream"), target: name });
         form.find('input[name=data]').val(JSON.stringify(data));
         $("body").append(form);
 
         form.submit().remove();
+    };
+
+    this.getLanguages = function(onCompleted, onError) {
+        $.support.cors = true; // Note: Allows cross domain requests
+        $.crossDomain = true;
+
+        $.ajax({
+            type: 'GET',
+            url: this._createUri("GetLanguages"),
+            success: onCompleted,
+            error: onError
+        });
     };
 }
 

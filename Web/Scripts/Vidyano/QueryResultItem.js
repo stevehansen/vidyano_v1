@@ -8,6 +8,8 @@
     /// <field name="values" type="Array" elementType="QueryResultItemValue">The values for this query result item, columns that had their default value are not included.</field>
     this.values = item.values.select(function (val) { return new QueryResultItemValue(val, query); });
     this.typeHints = item.typeHints;
+    /// <field name="breadcrumb" type="String">The breadcrumb for this query result item.</field>
+    this.breadcrumb = item.breadcrumb;
 }
 
 QueryResultItem.prototype.getValue = function (key) {
@@ -29,6 +31,6 @@ QueryResultItem.prototype.getTypeHint = PersistentObjectAttribute.prototype.getT
 
 QueryResultItem.prototype.toServiceObject = function () {
     /// <summary>Clones this instance.</summary>
-    /// <returns>Returns a clone of this Query Result Item.</returns>
+    /// <returns>Returns a clone of this Query Result Item that can be sent back to the server.</returns>
     return { id: this.id, values: this.values.select(function (val) { return val.toServiceObject(); }) };
 };

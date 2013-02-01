@@ -2,11 +2,18 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=IE8">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge,chrome=1">
     <title>Vidyano</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <script type="text/javascript">
+        window.onerror = function (errorMsg, url, lineNumber) {
+            if (confirm("An unhandled JavaScript error was detected when loading the application:\n\nMessage: " + errorMsg + "\nUrl: " + url + "\nLineNumber: " + lineNumber + "\n\nDo you want to disable all custom scripts?")) {
+                document.location = "?safemode";
+            }
+        };
+    </script>
     <link href="reset.css" type="text/css" rel="stylesheet" />
     <link href="jquery-ui-1.8.23.custom.css" type="text/css" rel="stylesheet" />
     <link href="codemirror.css" type="text/css" rel="stylesheet" />
@@ -73,7 +80,7 @@
     <script src="Scripts/Vidyano/Controls/OffsetPicker.js" type="text/javascript"></script>
     <script src="Scripts/Vidyano/Controls/SubMenu.js" type="text/javascript"></script>
     <script src="Scripts/Vidyano/Controls/WeekScheduler.js" type="text/javascript"></script>
-
+    
     <script type="text/html" id="home_template">
         <header>
             <table style="width: 100%; table-layout: auto">
@@ -91,7 +98,6 @@
                 </tr>
             </table>
         </header>
-
         <div id="content"></div>
     </script>
     <script type="text/html" id="home_mobile_template">
@@ -100,7 +106,6 @@
             <button id="signInOut" tabindex="-1"></button>
             <input id="globalSearch" type="text" />
         </header>
-
         <ul class="programUnits"></ul>
         <div id="content"></div>
     </script>
@@ -108,45 +113,21 @@
         <div id="signInBox">
             <div id="signInBoxApplicationTitle"></div>
             <div id="signInBoxItemsContainer">
-                <label class="signInLabel">Username</label>
+                <label for="userName" class="signInLabel">User name</label>
                 <input id="userName" type="text" />
-                <label class="signInLabel">Password</label>
+                <label for="userPass" class="signInLabel">Password</label>
                 <input id="userPass" type="password" />
                 <div class="signInBottom">
-                    <button id="signIn" class="signInButton">Sign In</button>
+                    <button id="signIn" class="signInButton">Sign in</button>
                     <div class="staySignedInContainer">
                         <input id="staySignedIn" type="checkbox" />
                         <label for="staySignedIn">Stay signed in</label>
                     </div>
                     <div id="signInSpinner">&nbsp;</div>
                 </div>
-                <div id="signInNotification" />
+                <div id="signInNotification"></div>
             </div>
             <div class="poweredByVidyano">Powered by Vidyano™</div>
-        </div>
-    </script>
-    <script type="text/html" id="signin_mobile_template">
-        <div id="signInBox">
-            <label class="signInLabel">
-                Username
-                <input id="userName" type="text" />
-            </label>
-            <label class="signInLabel">
-                Password
-                <input id="userPass" type="password" />
-            </label>
-            <button id="signIn" class="signInButton">
-                Sign In</button>
-            <div class="staySignedInContainer">
-                <input id="staySignedIn" type="checkbox" />
-                <label for="staySignedIn">
-                    Stay signed in</label>
-            </div>
-            <div id="signInSpinner">
-                &nbsp;
-            </div>
-            <div id="signInNotification" />
-            <div class="clearFloat"></div>
         </div>
     </script>
     <script type="text/html" id="persistentObject_template">

@@ -34,10 +34,20 @@
 
 ProgramUnit.prototype.createElement = function () {
     /// <summary>Creates the jQuery element used to display the Program Unit.</summary>
-    var span = $.createElement("span", this).text(this.title || "");
-
-    this._liElement = this.selector = $.createElement("li", this).addClass("programUnit").append(span);
+    var a = $.createElement("a");
     var self = this;
+
+    var href = "#!/";
+    href += app.getUrlForProgramUnit(this);
+
+    a.attr({ href: href, onclick: "return false;" }).text(this.title);
+
+    this._liElement = this.selector = $.createElement("li", this).addClass("programUnit").append(a);
+    
+    if (href == hasher.getHash())
+        li.addClass("programUnitItemSelected");
+
+
     this._liElement.click(function () {
         if (app.programUnits.selectedItem() != self)
             app.programUnits.selectedItem(self);

@@ -9,7 +9,7 @@
 
     /// <field name="parent" type="PersistentObject">Gets the owner Persistent object for this instance.</field>
     attribute.parent = parent;
-    attribute.persistentObject = parent;
+    attribute.persistentObject = parent; // Obsolete: might be removed in the future
     /// <field name="isReadOnly" type="Boolean">Determines if the Persistent Object Attribute can be edited or not.</field>
     if (attribute.isReadOnly == null) attribute.isReadOnly = false;
     /// <field name="isRequired" type="Boolean">Determines if the Persistent Object Attribute is required.</field>
@@ -29,6 +29,8 @@
 }
 
 function PersistentObjectAttributeWithReference(attribute) {
+    var isDialogOpen = false;
+
     attribute.lookup = new Query(attribute.lookup, attribute.parent, true);
     attribute.lookupPersistentObjectId = attribute.lookup.persistentObject.id;
     if (attribute.selectInPlace == null)
@@ -44,16 +46,18 @@ function PersistentObjectAttributeWithReference(attribute) {
     };
 
     attribute.browseReference = function (onCompleted, useCurrentItems) {
-        if (this.isReadOnly)
+        var attr = this;
+
+        if (attr.isReadOnly || isDialogOpen)
             return;
 
-        this.lookup.parent = this.parent;
+        attr.lookup.parent = attr.parent;
+        isDialogOpen = true;
 
-        var attr = this;
-        this._showDialog(this.lookup, function (selectedItems) { attr.changeReference(selectedItems, onCompleted); }, useCurrentItems);
+        attr._showDialog(attr.lookup, function (selectedItems) { attr.changeReference(selectedItems, onCompleted); }, useCurrentItems);
     };
 
-    attribute.onChanged = function (obj, lostFocus) {
+    attribute.onChanged = function (obj, lostFocus, onBrowseReferenceCompleted) {
         if (lostFocus && this.isEditable && (this.value || "") != obj.value) {
             var attr = this;
             var onCompleted = function () {
@@ -71,10 +75,10 @@ function PersistentObjectAttributeWithReference(attribute) {
                                     displayColumn.includes = null;
                             }
 
-                            attr.browseReference(null, !isZero);
+                            attr.browseReference(onBrowseReferenceCompleted, !isZero);
                         }
                         else
-                            attr.changeReference(attr.lookup.items, null);
+                            attr.changeReference(attr.lookup.items, onBrowseReferenceCompleted);
                     });
                 }
             };
@@ -89,6 +93,8 @@ function PersistentObjectAttributeWithReference(attribute) {
     attribute.changeReference = function (selectedItems, onChanged) {
         /// <summary>Changes the reference value of the Persistent Object Attribute.</summary>
         /// <param name="onChanged" type="Function">A function that will be called when the value has been changed.</param>
+
+        isDialogOpen = false
 
         if (this.isReadOnly)
             return;
@@ -127,16 +133,19 @@ function PersistentObjectAttributeWithReference(attribute) {
                 app.openPersistentObject(po);
             },
             function (error) {
-                self.lookup.showNotification(error, "Error");
+                if (self.selectInPlace)
+                    self.parent.showNotification(error, "Error");
+                else
+                    self.lookup.showNotification(error, "Error");
             });
     };
 
     attribute.navigateToReference = function () {
         /// <summary>Navigates the user interface to the value of the Persistent Object Attribute. Only usable on a Persistent Object Attribute with Reference.</summary>
-        if(this.lookup.canRead)
+        if (this.lookup.canRead)
             app.gateway.getPersistentObject(this.parent, this.lookup.persistentObject.id, this.objectId, function (result) {
-            app.openPersistentObject(result);
-        });
+                app.openPersistentObject(result);
+            });
     };
 
     attribute.canRemoveReference = function () {
@@ -147,7 +156,7 @@ function PersistentObjectAttributeWithReference(attribute) {
     };
 
     attribute._showDialog = function (query, onSelectValue, useCurrentItems) {
-        var action = new SelectReferenceDialogActions(query, 1, onSelectValue);
+        var action = new SelectReferenceDialogActions(query, 1, onSelectValue, function () { isDialogOpen = false; });
         action.showDialog(useCurrentItems);
     };
 
@@ -182,7 +191,7 @@ PersistentObjectAttribute.prototype.createElement = function (columnSpan, tabCol
     var control = this._createControl();
 
     div.append(label, control);
-    
+
     var options = {};
     var hasOptions = false;
     var foreground = this.getTypeHint("Foreground", null);
@@ -346,6 +355,8 @@ PersistentObjectAttribute.prototype.onChanged = function (obj, lostFocus) {
 PersistentObjectAttribute.prototype.restoreEditBackup = function () {
     for (var name in this._backup)
         this[name] = this._backup[name];
+    
+    this.backup = {};
 };
 
 PersistentObjectAttribute.prototype.selectInPlaceOptions = function () {
@@ -425,7 +436,7 @@ PersistentObjectAttribute.prototype.updateLabelElement = function (element, upda
 
 PersistentObjectAttribute.prototype._createControl = function () {
     var control = $.createElement('div').addClass("persistentObjectAttributeControl").attr("data-vidyano-attribute", this.name);
-    
+
     if (this.parent.isInBulkEditMode()) {
         var currentPoa = this;
         var outerDiv = $.createElement('div', this);
@@ -433,7 +444,7 @@ PersistentObjectAttribute.prototype._createControl = function () {
             .on("change", function () {
                 currentPoa.isValueChanged = currentPoa.bulkEditCheckbox[0].checked;
             });
-        
+
         if (this.isReadOnly)
             this.bulkEditCheckbox.attr("disabled", "disabled");
 
@@ -459,7 +470,7 @@ PersistentObjectAttribute.prototype._getTemplate = function () {
         try {
             renderedTemplate = template.data(this);
         } catch (e) {
-            renderedTemplate = "<span>Error occured while rendering template: " + e.message + "</span>";
+            renderedTemplate = "<span>Error occured while rendering template: " + (e.message || e) + "</span>";
         }
     }
 

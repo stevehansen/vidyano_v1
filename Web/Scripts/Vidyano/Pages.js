@@ -1,20 +1,48 @@
 ﻿function signInPage() {
     app.setAuthToken(null);
-    app.currentPath = 'SignIn';
+    app.currentPath = "SignIn";
 
+    $.setVisibilityForState("SignedIn", false);
+
+    var lastError = app.lastError;
+    app.dispose();
+
+    $("#rootContainer").html($("#signin_template").html());
+
+    var $userName = $("#userName");
+    var $userPass = $("#userPass");
+    var $staySignedIn = $("#staySignedIn");
+    var $signIn = $("#signIn").button();
+
+    app.gateway.getLanguages(function (languages) {
+        app.languages = languages;
+        
+        for (var lang in languages) {
+            var language = languages[lang];
+            if (language.isDefault) {
+                $signIn.find("span").text(language.messages["SignIn"]);
+                $("label[for=userName]").text(language.messages["UserName"]);
+                $("label[for=userPass]").text(language.messages["Password"]);
+                $("label[for=staySignedIn]").text(language.messages["StaySignedIn"]);
+                break;
+            }
+        }
+    });
+    
     var signIn = function () {
-        $("#signInSpinner").spin(app.settings.defaultSpinnerOptions);
+        var $signInSpinner = $("#signInSpinner");
+        $signInSpinner.spin(app.settings.defaultSpinnerOptions);
 
-        $("#userName").attr('disabled', 'disabled');
-        $("#userPass").attr('disabled', 'disabled');
-        $("#staySignedIn").attr('disabled', 'disabled');
+        $userName.attr("disabled", "disabled");
+        $userPass.attr("disabled", "disabled");
+        $staySignedIn.attr("disabled", "disabled");
 
-        $("#signIn").button("disable");
+        $signIn.button("disable");
 
-        var userName = $("#userName").attr("value");
-        app.staySignedIn = $("#staySignedIn").prop("checked");
+        var userName = $userName.attr("value");
+        app.staySignedIn = $staySignedIn.prop("checked");
 
-        app.gateway.getApplication(userName, $("#userPass").attr("value"), function () {
+        app.gateway.getApplication(userName, $userPass.attr("value"), function () {
             app.lastError = null;
 
             if (app.staySignedIn) {
@@ -29,7 +57,7 @@
             }
 
             $("#content").empty();
-            $("#signInSpinner").spin(false);
+            $signInSpinner.spin(false);
 
             $.setVisibilityForState("SignedIn", true);
 
@@ -44,14 +72,14 @@
             else if ($.browser.mobile)
                 app.navigate("");
         }, function (e) {
-            $("#signInSpinner").spin(false);
+            $signInSpinner.spin(false);
 
             $("#signInNotification").showNotification(e, "Error");
 
-            $("#userName").removeAttr('disabled');
-            $("#userPass").removeAttr('disabled');
-            $("#staySignedIn").removeAttr('disabled');
-            $("#signIn").button("enable");
+            $userName.removeAttr('disabled');
+            $userPass.removeAttr('disabled');
+            $staySignedIn.removeAttr('disabled');
+            $signIn.button("enable");
         });
     };
 
@@ -63,31 +91,24 @@
         }
     };
 
-    $.setVisibilityForState("SignedIn", false);
+    $userName.attr("value", $.cookie("userName"));
+    $staySignedIn.attr("checked", app.staySignedIn);
 
-    var lastError = app.lastError;
-    app.dispose();
-
-    $("#rootContainer").html($($.browser.mobile ? "#signin_mobile_template" : "#signin_template").html());
-    $("#userName").attr("value", $.cookie("userName"));
-    $("#staySignedIn").attr("checked", app.staySignedIn);
-
-    $("#signIn").click(signIn);
-    $("#signIn").button();
+    $signIn.click(signIn);
 
     var titleContainer = $("#signInBoxApplicationTitle");
-    if (titleContainer.length > 0 && !isNullOrWhiteSpace(document.title))
+    if (titleContainer.length > 0 && !isNullOrEmpty(document.title))
         titleContainer.text(document.title);
     else
         titleContainer.hide();
 
-    $("#userName").on("keypress", signInOnEnter);
-    $("#userPass").on("keypress", signInOnEnter);
+    $userName.on("keypress", signInOnEnter);
+    $userPass.on("keypress", signInOnEnter);
 
-    if ($("#userName").attr("value").length == 0)
-        $("#userName").focus();
+    if ($userName.attr("value").length == 0)
+        $userName.focus();
     else
-        $("#userPass").focus();
+        $userPass.focus();
     
     $("#signInNotification").showNotification(lastError, "Error");
 };

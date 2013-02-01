@@ -12,13 +12,13 @@
 /// <reference path="Controls/QueryViewer.js" />
 /// <reference path="ActionBase.js" />
 
-function SelectReferenceDialogActions(query, maxSelectedItems, onValueSelected) {
+function SelectReferenceDialogActions(query, maxSelectedItems, onValueSelected, onDialogClosed) {
     var selectReferenceDialogActions = this;
     var selectAction;
     var dialog;
     var pagingContainer;
     var lastFocusedItem;
-    
+
     this.maxSelectedItems = maxSelectedItems;
 
     selectAction = Actions.getAction("DialogOk", query);
@@ -40,7 +40,7 @@ function SelectReferenceDialogActions(query, maxSelectedItems, onValueSelected) 
         var mainContainer = $.createElement('div').addClass('dialog-content');
         mainContainer.append($($.browser.mobile ? "#browseReferenceQuery_mobile_template" : "#browseReferenceQuery_template").html());
 
-        if(!$.browser.mobile)
+        if (!$.browser.mobile)
             methods.initializeDialog(mainContainer, query);
         else
             methods.initializeDialogMobile(mainContainer, query);
@@ -56,6 +56,8 @@ function SelectReferenceDialogActions(query, maxSelectedItems, onValueSelected) 
         };
 
         if (!useCurrentItems) {
+            query.columns.forEach(function (column) { column.includes = []; });
+
             query.search(methods.onQuerySearchCompleted, function (e) {
                 query.parent.showNotification(e, "Error");
 
@@ -76,6 +78,10 @@ function SelectReferenceDialogActions(query, maxSelectedItems, onValueSelected) 
 
     this.closeDialog = function () {
         /// <summary>Closes the dialog and removes all dialog elements from the DOM. This will also restore the focus on the item that had the focus before the dialog opened.</summary>
+
+        if (typeof (onDialogClosed) == "function")
+            onDialogClosed();
+
         dialog.remove();
         $("#rootContainer").show();
 
@@ -120,6 +126,8 @@ function SelectReferenceDialogActions(query, maxSelectedItems, onValueSelected) 
                 height: $(window).height() * ($.browser.mobile ? 1.0 : 0.75),
                 modal: true,
                 close: function () {
+                    
+
                     dialog.remove();
                     container.remove();
                 },
@@ -128,7 +136,9 @@ function SelectReferenceDialogActions(query, maxSelectedItems, onValueSelected) 
                 buttons: [
                 {
                     text: app.getTranslatedMessage("Cancel"),
-                    click: function () { $(this).dialog("close"); }
+                    click: function () {
+                        $(this).dialog("close");
+                    }
                 }],
                 title: !isNullOrWhiteSpace(query.label) ? query.label : query.name
             });

@@ -24,12 +24,13 @@ function Query(query, parent, asLookup) {
     if (query.pageSize == null) query.pageSize = null;
     /// <field name="canRead" type="Boolean">Indicates whether items on this Query can be opened (i.e.: if the current user has Read rights).</field>
     if (query.canRead == null) query.canRead = false;
+    /// <field name="autoQuery" type="Boolean">Indicates whether the Query should be queried when opened.</field>
+    if (query.autoQuery == null) query.autoQuery = false;
     if (query.offset == null) query.offset = 0;
     query.totalPages = -1;
     query.currentPage = -1;
     /// <field name="totalItems" type="Number">The total number of items for this Query.</field>
     query.totalItems = -1;
-    query.pageRange = "0";
     query.filterDisplayName = null;
     query.filterChanged = false;
     /// <field name="canSearch" type="Boolean">Indicates whether the Search method can be used at the moment, is disabled during searches.</field>
@@ -79,7 +80,7 @@ function Query(query, parent, asLookup) {
                 onPo.receiveQuery(query);
             }
             catch (e) {
-                app.showException(e);
+                app.showException(e.message || e);
             }
         }
     }
@@ -103,12 +104,28 @@ Query.prototype.clone = function (isReference) {
     return clone;
 };
 
+Query.prototype.getColumn = function (name) {
+    /// <summary>Gets the column by name.</summary>
+    /// <param name="name">the name of the column.</param>
+
+    return this.columns.firstOrDefault(function (c) { return c.name == name; });
+};
+
 Query.prototype.getItems = function (start, length, onComplete, onError) {
     /// <summary>Gets the items from the Query within the specified range from the service.</summary>
     /// <param name="start" type="Number">The index of the first item to get.</param>
     /// <param name="length" type="Number">The number of items to get</param>
     /// <param name="onComplete" type="Function">The function to call when the requested items are fetched from the service.</param>
     /// <param name="onError" type="Function">The function to call when an error occured.</param>
+
+    var self = this;
+    if (!this.hasSearched) {
+        // NOTE: Don't know totalItems yet, call normal search first
+        this.search(function() {
+            self.getItems(start, length, onComplete, onError);
+        }, onError);
+        return;
+    }
     
     if (this.totalItems >= 0) {
         if (start > this.totalItems)
@@ -118,7 +135,7 @@ Query.prototype.getItems = function (start, length, onComplete, onError) {
             length = this.totalItems - start;
     }
 
-    if (this.pageSize == 0 || length == 0) {
+    if (this.pageSize <= 0 || length == 0) {
         onComplete(start, length);
         return;
     }
@@ -144,11 +161,10 @@ Query.prototype.getItems = function (start, length, onComplete, onError) {
     for (var p = startPage; p <= endPage; p++)
         this.queriedPages.push(p);
 
-    var q = this;
     clonedQuery.search(function (result) {
         for (var n = 0; n < clonedQuery.top && (clonedQuery.skip + n < clonedQuery.totalItems) ; n++) {
-            if (q.items[clonedQuery.skip + n] == null)
-                q.items[clonedQuery.skip + n] = new QueryResultItem(result.items[n], q);
+            if (self.items[clonedQuery.skip + n] == null)
+                self.items[clonedQuery.skip + n] = new QueryResultItem(result.items[n], self);
         }
 
         onComplete(start, length);
@@ -185,7 +201,7 @@ Query.prototype.hasVisibleActions = function () {
     return this.actions.where(function (a) { return a.name != "Filter" && a.name != "RefreshQuery" && a.isVisible(); }).length > 0;
 };
 
-Query.prototype.onItemClicked = function (selectedItem) {
+Query.prototype.onItemClicked = function (selectedItem, selectedColumn) {
     /// <summary>Is called when an item is clicked in a Query.</summary>
 
     if (!this.canRead)
@@ -330,8 +346,6 @@ Query.prototype.setResult = function (result) {
     /// <param name="result">The Query instance received from the service, used to update the values of the Query.</param>
 
     this.pageSize = result.pageSize || 0;
-    if (this.currentPage != 0 && this.currentPage != result.currentPage)
-        this.updateSelectedItems([]);
     this.currentPage = result.currentPage || 0;
 
     if (this.pageSize > 0) {
@@ -361,15 +375,6 @@ Query.prototype.setResult = function (result) {
         if (q.target != null && q.target.length > 0)
             q.target.trigger("selectedItemsChanged", [q]);
     });
-
-    if (this.hasItems()) {
-        if (this.pageSize == 0)
-            this.pageRange = "1-" + this.totalItems;
-        else
-            this.pageRange = (((this.currentPage - 1) * result.pageSize) + 1) + "-" + (this.currentPage * result.pageSize - (result.pageSize - result.items.length));
-    } else {
-        this.pageRange = "0";
-    }
 
     this.filterChanged = false;
     this.hasSearched = true;

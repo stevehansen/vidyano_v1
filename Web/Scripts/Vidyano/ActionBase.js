@@ -73,10 +73,7 @@ ActionBase.prototype.execute = function (option, continueWith, parameters) {
         try {
             this.onExecute(option, continueWith, parameters);
         } catch (e) {
-            if (typeof (e.message) != 'undefined')
-                this.showNotification(e.message, "Error");
-            else
-                this.showNotification(e, "Error");
+            this.showNotification(e.message || e, "Error");
         }
     }
 };

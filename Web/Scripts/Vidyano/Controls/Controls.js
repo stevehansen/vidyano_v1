@@ -97,7 +97,10 @@
             var selectedTime = dateTime != null ? dateTime.format("HH:mm") : null;
             var datePicker = $(".persistentObjectAttributeEditDateInput", root).vidyanoDatePicker(selectedDate, {
                 onDateSelected: function (value) {
-                    selectedDate = value.format("MM/dd/yyyy");
+                    if (value == null)
+                        selectedDate = null;
+                    else
+                        selectedDate = value.format("MM/dd/yyyy");
                     updateDateTime();
                 }
             });
@@ -156,7 +159,10 @@
             var selectedOffset = dateTime != null ? dateTime.netOffset() : null;
             var datePicker = $(".persistentObjectAttributeEditDateInput", root).vidyanoDatePicker(selectedDate, {
                 onDateSelected: function (value) {
-                    selectedDate = value.format("MM/dd/yyyy");
+                    if (value == null)
+                        selectedDate = null;
+                    else
+                        selectedDate = value.format("MM/dd/yyyy");
                     updateDateTime();
                 }
             });
@@ -678,53 +684,76 @@
         $(this).each(function () {
             var root = $(this);
             var attribute = root.dataContext();
-
-            var events = {
-                browseReferenceCompleted: function () {
-                    clearButton.show();
-                },
-                clearReferenceCompleted: function () {
-                    clearButton.hide();
-                },
-                addReference: function () {
-                    attribute.addNewReference();
-                },
-                browseReference: function () {
-                    attribute.browseReference(events.browseReferenceCompleted);
-                },
-                clearReference: function () {
-                    attribute.clearReference(events.clearReferenceCompleted);
-                }
-            };
-
             var clearButton = root.find('.clearButton');
             var addButton = root.find('.addReferenceButton');
             var browseButton = root.find('.browseReferenceButton');
 
-            var inputBox = root.find('input');
-            if (inputBox.length == 1) {
-                inputBox.val(attribute.value);
+            var functions = {
+                addReference: function () {
+                    attribute.addNewReference();
+                },
 
-                if (attribute.isEditable) {
-                    inputBox.removeAttr('readonly');
-                    inputBox.on("blur", function () {
-                        attribute.onChanged(this, true);
-                    });
-                }
-            }
-            else {
-                var selectBox = root.find('select');
-                if (selectBox.length == 1) {
+                browseReference: function () {
+                    var inputBox = root.find('input:first');
+                    var input = inputBox.val();
+
+                    if (!isNull(input) && input != "" && attribute.value != input) {
+                        attribute.onChanged(inputBox.get()[0], true, functions.onBrowseReferenceCompleted);
+                    } else {
+                        attribute.browseReference(functions.onBrowseReferenceCompleted, false);
+                    }
+                },
+
+                clearReference: function () {
+                    attribute.clearReference(functions.onClearReferenceCompleted);
+                },
+
+                initializeDefault: function () {
+                    var inputBox = root.find('input:first');
+
+                    inputBox.val(attribute.value);
+                    browseButton.on('click', functions.browseReference);
+
+                    if (attribute.isEditable) {
+                        inputBox.live("blur", functions.onRootLostFocus);
+                        inputBox.removeAttr('readonly');
+                    }
+                },
+
+                initializeSelectInPlace: function () {
+                    var selectBox = root.find('select:first');
+
                     selectBox.val(attribute.objectId);
-                    selectBox.on("change", function () {
+                    selectBox.on("change", function() {
                         var val = selectBox.val();
                         if (isNullOrEmpty(val))
-                            events.clearReference();
+                            functions.clearReference();
                         else
                             attribute.changeReference([{ id: val, toServiceObject: function () { return { id: val }; } }], null);
                     });
+                },
+
+                onBrowseReferenceCompleted: function () {
+                    clearButton.show();
+                },
+
+                onClearReferenceCompleted: function () {
+                    clearButton.hide();
+                },
+
+                onRootLostFocus: function (e) {
+                    var inputBox = root.find('input:first');
+                    var input = inputBox.val();
+
+                    if (!isNull(input) && input != "" && attribute.value != input)
+                        attribute.onChanged(inputBox.get()[0], true, functions.onBrowseReferenceCompleted);
                 }
-            }
+            };
+
+            if (attribute.selectInPlace)
+                functions.initializeSelectInPlace();
+            else
+                functions.initializeDefault();
 
             if (attribute.isReadOnly) {
                 clearButton.hide();
@@ -735,9 +764,8 @@
                 addButton.button();
                 browseButton.button();
 
-                addButton.on('click', events.addReference);
-                browseButton.on('click', events.browseReference);
-                clearButton.on('click', events.clearReference);
+                addButton.on('click', functions.addReference);
+                clearButton.on('click', functions.clearReference);
 
                 if (attribute.isRequired || attribute.objectId == null)
                     clearButton.hide();
@@ -769,7 +797,7 @@
                     imageDiv.append($.createElement("div").addClass("PersistentObjectAttributeValueImageFileNameText").append($.createElement("span").append(fileName)));
 
                     fileInput.isChanged = true;
-                    
+
                     if (!attribute.isRequired)
                         clearButton.show();
                 }
@@ -798,7 +826,7 @@
                 var height = attribute.getTypeHint("Height", "20px");
                 imageDiv.css({ height: height });
                 imageDiv.find("img").css({ width: width, height: height });
-                
+
                 if (attribute.isRequired)
                     clearButton.hide();
             }
@@ -902,9 +930,9 @@
                                         try {
                                             app.templateParser(value);
                                             po.showNotification("Parsed template successfully", "OK");
-                                        } catch(e) {
-                                            po.showNotification("Parsing template failed: " + e, "Error");
-                                        } 
+                                        } catch (e) {
+                                            po.showNotification("Parsing template failed: " + (e.message || e), "Error");
+                                        }
                                     }
                                 }
                             };
@@ -1106,8 +1134,9 @@
 
             var input = root.find("input").hide();
             var selectContainer = root.find(".selectContainer");
+            selectContainer.css({ overflow: 'hidden', 'white-space': 'nowrap' });
             var toggleButton = root.find(".toggleButton").button();
-            toggleButton.on("click", function() {
+            toggleButton.on("click", function () {
                 if (input.is(":visible")) {
                     input.hide();
                     selectContainer.show();
@@ -1128,7 +1157,7 @@
             attribute.options[1].split(';').select(function (si) { return si.split('='); }).run(function (si) { schemasInfo[si[0]] = si[1].split('|'); });
             var attributes = attribute.options[2].split(';');
             var selectedAction = null, selectedSchema = null, selectedPersistentObject = null, selectedAttribute = null;
-            
+
             actionsSelect.on("change", function (e) {
                 var newAction = e.target.value;
                 if (newAction != selectedAction) {
@@ -1157,7 +1186,7 @@
                     schemasSelect.append("<option" + (selectedSchema == schema ? ' selected="selected"' : "") + ">" + schema + "</option>");
             }
 
-            persistentObjectsSelect.on("change", function(e) {
+            persistentObjectsSelect.on("change", function (e) {
                 var newPersistentObject = e.target.value;
                 if (newPersistentObject != selectedPersistentObject) {
                     selectedPersistentObject = newPersistentObject;
@@ -1168,7 +1197,7 @@
                 }
             });
 
-            attributesSelect.on("change", function(e) {
+            attributesSelect.on("change", function (e) {
                 var newAttribute = e.target.value;
                 if (newAttribute != selectedAttribute) {
                     selectedAttribute = newAttribute;
@@ -1178,7 +1207,7 @@
 
             function updatePersistentObjects() {
                 persistentObjectsSelect.empty();
-                
+
                 if (isNullOrEmpty(selectedSchema)) {
                     persistentObjectsSelect.val("");
                     persistentObjectsSelect.attr("disabled", "disabled");
@@ -1190,10 +1219,10 @@
                     persistentObjectsSelect.val(selectedPersistentObject);
                     persistentObjectsSelect.removeAttr("disabled");
                 }
-                    
+
                 updateAttributes();
             }
-            
+
             function addAttributesOptions() {
                 attributesSelect.append("<option" + (isNullOrEmpty(selectedAttribute) ? ' selected="selected"' : "") + "></option>");
                 attributes.run(function (attr) { attributesSelect.append("<option" + (selectedAttribute == attr ? ' selected="selected"' : "") + ">" + attr + "</option>"); });
@@ -1204,7 +1233,7 @@
             function updateAttributes() {
                 attributesSelect.empty();
                 attributesSelect.attr("disabled", "disabled");
-                
+
                 if (!isNullOrEmpty(selectedPersistentObject)) {
                     if (attributes == null || attributes.length == 0) {
                         app.gateway.executeAction("PersistentObject.Refresh", attribute.parent, null, null, null, function (result) {
@@ -1234,10 +1263,11 @@
                     attributesSelect.show();
                 } else {
                     attributesSelect.hide();
-                    actionsSelect.css({ width: "33%" });
-                    schemasSelect.css({ width: "33%" });
+                    actionsSelect.css({ width: "32.5%" });
+                    schemasSelect.css({ width: "32.5%" });
                     persistentObjectsSelect.css({ width: "32.5%" });
                     attributesSelect.css({ width: "0" });
+                    attributesSelect.hide();
                 }
             }
 

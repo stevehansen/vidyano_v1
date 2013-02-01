@@ -347,26 +347,34 @@
     };
 
     $.messageBox = function (options, onCompleted) {
+        if (typeof(options) == "string")
+            options = { message: options };
+
         var d = $.createElement("div");
         d.text(options.message);
 
-        var createFunction = function (i) {
+        var createFunction = function (idx) {
             return function () {
                 d.remove();
-                onCompleted(i);
+                
+                if (onCompleted != null)
+                    onCompleted(idx);
             };
         };
 
         var dialogOptions = {};
-        for (var i = 0; i < options.buttons.length; i++) {
-            dialogOptions[options.buttons[i]] = createFunction(i);
+        if (options.buttons != null && options.buttons.length > 0) {
+            for (var i = 0; i < options.buttons.length; i++)
+                dialogOptions[options.buttons[i]] = createFunction(i);
         }
+        else
+            dialogOptions[app.getTranslatedMessage("Ok")] = createFunction(-1);
 
-        d.dialog({
-            title: options.title,
+        return d.dialog({
+            title: options.title || app.title,
             resizable: false,
             modal: true,
-            width: 400,
+            width: options.width || 400,
             buttons: dialogOptions
         });
     };

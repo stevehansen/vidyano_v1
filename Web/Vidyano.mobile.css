@@ -1,4 +1,4 @@
-/* LESS VARIABLES */
+﻿/* LESS VARIABLES */
 /******************/
 /* LESS FUNCTIONS */
 /******************/
@@ -77,18 +77,40 @@ a:hover {
 /* SIGNIN */
 /**********/
 #signInBox {
-  padding: 12px;
-  width: 90%;
-  margin-top: 100px;
+  min-width: 300px;
+  margin-left: -150px;
+  margin-top: -100px;
   background-color: WhiteSmoke;
-  border: 1px solid #E0E0E0;
+  border: 1px solid #3f3f3f;
+  position: absolute;
+  left: 50%;
+  top: 50%;
   line-height: 24px;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 300px;
+  -moz-box-shadow: 0 0 20px #CCC;
+  -webkit-box-shadow: 0 0 20px #CCC;
+  box-shadow: 0 0 20px #CCC;
+}
+#signInBoxApplicationTitle {
+  border-style: solid;
+  border-color: #3f3f3f;
+  border-width: 0 0 1px 0;
+  font-size: 13px;
+  font-weight: bold;
+  color: white;
+  padding: 2px 12px 0 6px;
+  text-transform: uppercase;
+  line-height: 24px;
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAMAAACeL25MAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAMAUExURTc3Nz8/P0ZGRgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEmDS+kAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My41Ljg3O4BdAAAAFUlEQVQYV2NgYGRkZGACESAEJJgYAQCqABHRYifnAAAAAElFTkSuQmCC);
+  background-position: 8px center;
+  border-left-style: solid;
+  border-left-width: 8px;
+  border-left-color: #126790;
+}
+#signInBoxItemsContainer {
   -moz-box-sizing: border-box;
   -webkit-box-sizing: border-box;
   box-sizing: border-box;
+  margin: 6px 12px 12px 12px;
 }
 #signInBox input[type="text"],
 input[type="password"] {
@@ -101,6 +123,7 @@ input[type="password"] {
   -moz-box-sizing: border-box;
   -webkit-box-sizing: border-box;
   box-sizing: border-box;
+  margin-bottom: 8px;
 }
 #signInBox input[type="checkbox"] {
   margin: 0 6px 0 0;
@@ -108,29 +131,39 @@ input[type="password"] {
 .signInLabel {
   font-weight: bold;
   display: block;
-  width: auto;
-  margin-bottom: 12px;
+  width: 290px;
+  line-height: 32px;
+}
+.signInBottom {
+  display: block;
+  position: relative;
+  margin-top: 16px;
+  margin-bottom: 6px;
 }
 .signInButton {
-  display: block;
-  float: left;
+  display: inline-block;
   margin-top: 6px;
 }
 .staySignedInContainer {
-  float: left;
-  margin-left: 12px;
-  padding-top: 12px;
+  display: inline-block;
+  vertical-align: middle;
   color: #888;
+  margin-left: 12px;
 }
 #signInSpinner {
-  float: right;
-  margin-top: 12px;
-  margin-right: 18px;
-  position: relative;
+  position: absolute;
+  top: 0;
+  right: 18px;
 }
 #signInNotification {
-  clear: both;
-  float: left;
+  margin-top: 12px;
+}
+.poweredByVidyano {
+  text-transform: uppercase;
+  font-size: 10px;
+  text-align: right;
+  padding-right: 6px;
+  color: silver;
 }
 /* HOME */
 /********/

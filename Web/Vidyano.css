@@ -1,4 +1,4 @@
-/***************************************************
+﻿/***************************************************
                 Less Variables
 ***************************************************/
 /***************************************************
@@ -392,13 +392,13 @@ header .overflowButton ul {
   cursor: pointer;
   display: inline-block;
 }
-.programUnits .list .programUnit span {
+.programUnits .list .programUnit a {
   text-transform: uppercase;
   font-size: 12px;
   color: #aaa;
   font-weight: 700;
 }
-.programUnits .list .selectedProgramUnit span {
+.programUnits .list .selectedProgramUnit a {
   color: #e7e7e7;
 }
 .programUnitsOverflow {
@@ -418,13 +418,13 @@ header .overflowButton ul {
   color: white !important;
   cursor: pointer !important;
 }
-.programUnitsOverflow .programUnit span {
+.programUnitsOverflow .programUnit a {
   font-size: 14px !important;
   color: #333 !important;
   padding: 8px !important;
   font-weight: normal !important;
 }
-.programUnitsOverflow .programUnit:hover span {
+.programUnitsOverflow .programUnit:hover a {
   color: white !important;
 }
 /***************************************************
@@ -1319,7 +1319,7 @@ ul.programUnitItemsOverflow {
   border-width: 1px;
   border-color: #aaacb2;
   height: inherit;
-  line-height: 1.333;
+  line-height: 22px;
   vertical-align: middle;
   padding-left: 4px;
 }

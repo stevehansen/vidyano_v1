@@ -365,9 +365,8 @@ PersistentObject.prototype.open = function (target) {
                     overflowOwner.overflow($("<li><span>...</span></li>"), "persistentObjectNavigationTabsOverflow");
                 }
             }
-            else {
+            else
                 persistenObjectNavigationQueries.hide();
-            }
         }
 
         if (this.isMasterDetail()) {
@@ -518,12 +517,17 @@ PersistentObject.prototype.save = function (onCompleted, onError) {
             var refreshWindow = false;
             if (self.id == app.userSettingsId) {
                 var languageAttr = self.getAttribute("Language");
-                if (languageAttr != null && languageAttr.isValueChanged)
+                if (languageAttr != null && languageAttr.isValueChanged) {
                     refreshWindow = true;
+                }
                 else {
                     var cultureInfoAttr = self.getAttribute("CultureInfo");
                     refreshWindow = cultureInfoAttr != null && cultureInfoAttr.isValueChanged;
                 }
+            }
+            else if (self.id == "2c8b3df6-4b8b-498a-9180-d99b36c5fe2f" && self.objectId == "a0ef6c49-c08d-417a-8b2d-8a515029a20c") {
+                // NOTE: Changed Default language
+                refreshWindow = true;
             }
             self.refreshFromResult(result);
 
@@ -784,8 +788,8 @@ PersistentObject.prototype._showQuery = function (query) {
 
     this.target.find(".resultPanel").removeClass("searchActive pagingActive");
 
-    if (!this.hasVisibleActions())
-        this.target.find(".resultPanel").addClass("noPersistentObjectActions");
+    if (!this.isMasterDetail() && query.hasVisibleActions())
+        this.target.find(".resultPanel").removeClass("noPersistentObjectActions");
 
     query.open(selectedTabContainer, this.target, this.target.find(".resultActionsContainer .resultActions" + (this.isMasterDetail() ? ".persistentObjectQueries" : "")));
 };

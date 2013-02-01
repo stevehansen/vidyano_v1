@@ -105,7 +105,7 @@ var Vidyano = (function (window, $) {
             return doAction("ShowHelp");
         });
         shortcut.add("f2", function () {
-            return doAction("Edit");
+            return doAction("BulkEdit", "Edit");
         });
         shortcut.add("f5", function () {
             return doAction("RefreshQuery");
@@ -159,8 +159,10 @@ var Vidyano = (function (window, $) {
             useDefaultCredentials: false,
             defaultUserName: "Guest",
             defaultPassword: "Guest",
-            applicationSpecificPersistentObjects: null
+            applicationSpecificPersistentObjects: null,
+            language: null
         };
+        this.languages = {};
 
         this.userId = null;
         this.feedbackId = null;
@@ -210,6 +212,7 @@ var Vidyano = (function (window, $) {
             this.currentPath = null;
             this.pageObjects = {};
             this.setAuthToken(null);
+            this.session = null;
             document.title = this.title;
 
             messages = {};
@@ -292,54 +295,53 @@ var Vidyano = (function (window, $) {
             //close all open dialogs
             $(".ui-dialog").remove();
             $(".dialog-content").remove();
+
+            var onCompleted = function (replace) {
+                if (!replace) {
+                    app.gateway.getLanguages(function(languages) {
+                        app.languages = languages;
+                    });
+                }
+
+                $("signOut").show();
+                if (f != null)
+                    f.apply(null, Array.prototype.slice.call(args));
+                else {
+                    if (replace)
+                        app.navigate(app.returnUrl(), true);
+                    else
+                        crossroads.parse(app.returnUrl());
+                }
+
+                app.returnUrl(null);
+            };
             var onError = function (e) {
                 app.lastError = e;
                 app.redirectToSignIn();
                 app.currentExceptionHandler(e);
             };
+
             if (app.persistentObject == null) {
                 if ($.browser.mobile)
                     $("#rootContainer").addClass("mobile");
 
                 app.returnUrl(hasher.getHash());
-                if ($.cookie("userName") != null && app.getAuthToken() != null) {
-                    app.gateway.getApplication($.cookie("userName"), null, function () {
-                        $("signOut").show();
-                        if (f != null)
-                            f.apply(null, Array.prototype.slice.call(args));
-                        else
-                            crossroads.parse(app.returnUrl());
 
-                        app.returnUrl(null);
-                    }, onError);
-                }
+                if ($.cookie("userName") != null && app.getAuthToken() != null)
+                    app.gateway.getApplication($.cookie("userName"), null, onCompleted, onError);
                 else if (app.settings.useDefaultCredentials) {
                     $.cookie("authToken", null);
                     app.staySignedIn = false;
                     $.cookie("staySignedIn", null);
                     $.cookie("userName", null);
 
-                    app.gateway.getApplication(app.settings.defaultUserName, app.settings.defaultPassword, function () {
-                        $("signOut").show();
-                        if (f != null)
-                            f.apply(null, Array.prototype.slice.call(args));
-                        else
-                            crossroads.parse(app.returnUrl());
-
-                        app.returnUrl(null);
-                    }, onError);
+                    app.gateway.getApplication(app.settings.defaultUserName, app.settings.defaultPassword, onCompleted, onError);
                 }
                 else
                     app.navigate("SignIn");
             }
-
-            else {
-                $("signOut").show();
-                if (f != null)
-                    f.apply(null, Array.prototype.slice.call(args));
-                else
-                    app.navigate(app.returnUrl(), true);
-            }
+            else
+                onCompleted(true);
         };
 
         if (this.isCore) {
@@ -513,7 +515,7 @@ var Vidyano = (function (window, $) {
                         }
                         catch (e) {
                             if (window.console != null && window.console.log != null)
-                                window.console.log("Failed parsing template " + resource.key + ": " + e);
+                                window.console.log("Failed parsing template " + resource.key + ": " + (e.message || e));
                         }
                     }
                 }
@@ -568,7 +570,7 @@ var Vidyano = (function (window, $) {
                 this.onSessionUpdated(this.session);
             }
             catch (e) {
-                this.showException(e);
+                this.showException(e.message || e);
             }
         };
 
