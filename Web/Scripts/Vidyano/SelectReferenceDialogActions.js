@@ -1,4 +1,4 @@
-﻿/// <reference path="/Scripts/jquery-1.8.1.min.js" />
+﻿/// <reference path="/Scripts/jquery-1.9.1.min.js" />
 /// <reference path="Common.js" />
 /// <reference path="ExpressionParser.js" />
 /// <reference path="Application.js" />
@@ -38,9 +38,9 @@ function SelectReferenceDialogActions(query, maxSelectedItems, onValueSelected, 
         query.maxSelectedItems = this.maxSelectedItems;
 
         var mainContainer = $.createElement('div').addClass('dialog-content');
-        mainContainer.append($($.browser.mobile ? "#browseReferenceQuery_mobile_template" : "#browseReferenceQuery_template").html());
+        mainContainer.append($($.mobile ? "#browseReferenceQuery_mobile_template" : "#browseReferenceQuery_template").html());
 
-        if (!$.browser.mobile)
+        if (!$.mobile)
             methods.initializeDialog(mainContainer, query);
         else
             methods.initializeDialogMobile(mainContainer, query);
@@ -121,9 +121,9 @@ function SelectReferenceDialogActions(query, maxSelectedItems, onValueSelected, 
 
         initializeDialog: function (container) {
             dialog = container.dialog({
-                draggable: !$.browser.mobile,
-                width: $(window).width() * ($.browser.mobile ? 1.0 : 0.75),
-                height: $(window).height() * ($.browser.mobile ? 1.0 : 0.75),
+                draggable: !$.mobile,
+                width: $(window).width() * ($.mobile ? 1.0 : 0.75),
+                height: $(window).height() * ($.mobile ? 1.0 : 0.75),
                 modal: true,
                 close: function () {
                     

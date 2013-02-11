@@ -30,14 +30,14 @@
 
             render();
         }
-        else if ($.browser.mobile || (!isNullOrWhiteSpace(query.itemTemplateKey) && app.templates[query.itemTemplateKey] != null && typeof (app.templates[query.itemTemplateKey].data) == "function")) {
+        else if ($.mobile || (!isNullOrWhiteSpace(query.itemTemplateKey) && app.templates[query.itemTemplateKey] != null && typeof (app.templates[query.itemTemplateKey].data) == "function")) {
             query.target = container.queryList(query, options);
         }
         else {
             container.queryGrid(query, options);
         }
 
-        if (!$.browser.mobile) {
+        if (!$.mobile) {
             var reCalculatetargetSize = function () {
                 query.target.outerHeight(query.target.parent().height() - (query.filterTarget.is(":visible") ? query.filterTarget.outerHeight(true) : 0) - (query.notificationTarget.is(":visible") ? query.notificationTarget.outerHeight(true) : 0));
             };

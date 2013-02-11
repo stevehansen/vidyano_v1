@@ -67,8 +67,9 @@ ProgramUnit.prototype.open = function () {
 
 ProgramUnit.prototype.openTemplate = function () {
     /// <summary>Renders the Program Unit with it's specified template inside the element with id "content". Renders nothing if the Program Unit does not have a template.</summary>
-    $("#content").empty();
-    $("#content").dataContext(this);
+    var $content = $("#content");
+    $content.empty();
+    $content.dataContext(this);
 
     if (!this.hasTemplate)
         return;
@@ -79,8 +80,8 @@ ProgramUnit.prototype.openTemplate = function () {
 
     var template = templateCreator.data(this);
 
-    if ($("#content").dataContext() == this)
-        $("#content").append(template);
+    if ($content.dataContext() == this)
+        $content.append(template);
 };
 
 ProgramUnit.prototype._addItem = function () {
@@ -105,7 +106,7 @@ ProgramUnit.prototype._openItems = function () {
     var puiContainer = $(".programUnitItems");
     puiContainer.empty();
 
-    if ($.browser.mobile) {
+    if ($.mobile) {
         puiContainer.remove();
 
         puiContainer = $("<div>").addClass("programUnitItems");
@@ -116,11 +117,11 @@ ProgramUnit.prototype._openItems = function () {
     var ul = $("<ul>").addClass("list");
     puiContainer.append(ul);
 
-    if (!$.browser.mobile)
-        puiContainer.overflow($("<li><span>...</span></li>"), "programUnitItemsOverflow", "addProgramUnitItem");
+    if (!$.mobile)
+        puiContainer.overflow($("<li><a>...</a></li>"), "programUnitItemsOverflow", "addProgramUnitItem");
 
     var self = this;
-    if (!$.browser.mobile && this.hasTemplate) {
+    if (!$.mobile && this.hasTemplate) {
         var spanContainer = $("<li>").on("click", function () { self._redirect(); }).addClass("programUnitTemplate");
         ul.append(spanContainer);
     }
@@ -129,7 +130,7 @@ ProgramUnit.prototype._openItems = function () {
         pui.createElement(ul);
     });
 
-    if (this._hasManagement && !$.browser.mobile && this.item.offset != 2147483647) {
+    if (this._hasManagement && !$.mobile && this.item.offset != 2147483647) {
         var addItem = $.createElement("li", this);
         addItem.addClass("addProgramUnitItem").on("click", function () { self._addItem(); });
         ul.append(addItem);

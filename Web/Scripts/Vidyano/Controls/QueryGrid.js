@@ -1,7 +1,7 @@
 ﻿(function ($, undefined) {
     "use strict";
 
-    var ie8 = $.browser.msie && +$.browser.version === 8;
+    var ie8 = !$.support.leadingWhitespace; // IE8 and lower
     $.queryGridData = [];
     $.queryGridHoverStyle = $.rule(".queryGrid tr.hover").text();
 
@@ -100,9 +100,8 @@
                 // Remove previously unique querygrid id's
                 var containerClass = container.attr('class') || "";
                 $.each(containerClass.split(/\s+/), function (index, item) {
-                    if (item.startsWith("queryGrid")) {
+                    if (item.startsWith("queryGrid"))
                         container.removeClass(item);
-                    }
                 });
                 // Cleanup all orphan styles
                 var dataObjects = $.queryGridData.slice(0);
@@ -152,41 +151,11 @@
                     position: "absolute",
                     top: headerHeight + "px",
                     left: "0px",
-                    bottom: "0px",
+                    bottom: "0px", //(query.hasTotalItem ? options.rowHeight : 0) + "px",
                     right: "0px",
                     width: "100%"
                 });
 
-                viewport.bind("mousemove", function (e) {
-                    var pinnedWidth = pinnedDataTableContainer.outerWidth(true);
-                    var clientX = e.clientX - dataSelector.outerWidth(true) - viewport.offset().left;
-                    var x = clientX + (clientX < pinnedWidth ? 0 : viewport.scrollLeft());
-
-                    var columns = [];
-                    if (clientX < pinnedWidth) {
-                        for (var i = 0; i < pinnedColumns.length; i++) {
-                            columns.push(pinnedColumns[i].name);
-                        }
-                    }
-
-                    for (var cr in data.columnRules) {
-                        if (!columns.contains(cr))
-                            columns.push(cr);
-                    }
-
-                    for (var i = 0; i < columns.length; i++) {
-                        var cr = columns[i];
-                        var width = Math.max(data.columnRules[cr].outerWidth, data.columnRules[cr].width)
-                        if (x > width)
-                            x -= width;
-                        else {
-                            selectedColumn = query.getColumn(cr);
-                            break;
-                        }
-                    }
-
-                    methods.hover(Math.floor((e.clientY - viewport.offset().top) / options.rowHeight));
-                });
                 viewport.bind("resize", function () {
                     methods.createDataRows();
 
@@ -222,12 +191,43 @@
                 });
                 viewport.append(scroller);
 
+                scroller.bind("mousemove", function (e) {
+                    var pinnedWidth = pinnedDataTableContainer.outerWidth(true);
+                    var clientX = e.clientX - dataSelector.outerWidth(true) - viewport.offset().left;
+                    var x = clientX + (clientX < pinnedWidth ? 0 : viewport.scrollLeft());
+
+                    var columns = [];
+                    if (clientX < pinnedWidth) {
+                        for (var i = 0; i < pinnedColumns.length; i++) {
+                            columns.push(pinnedColumns[i].name);
+                        }
+                    }
+
+                    for (var cr in data.columnRules) {
+                        if (!columns.contains(cr))
+                            columns.push(cr);
+                    }
+
+                    for (var i = 0; i < columns.length; i++) {
+                        var cr = columns[i];
+                        var width = Math.max(data.columnRules[cr].outerWidth, data.columnRules[cr].width)
+                        if (x > width)
+                            x -= width;
+                        else {
+                            selectedColumn = query.getColumn(cr);
+                            break;
+                        }
+                    }
+
+                    methods.hover(Math.floor((e.clientY - viewport.offset().top) / options.rowHeight));
+                });
+
                 var dataContainer = $("<div>").css({
                     overflow: "hidden",
                     position: "absolute",
                     top: headerHeight + "px",
                     left: "0px",
-                    bottom: "0px",
+                    bottom: "0px", //(query.hasTotalItem ? options.rowHeight : 0) + "px",
                     right: "0px",
                     "white-space": "nowrap"
                 });

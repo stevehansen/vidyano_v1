@@ -13,7 +13,7 @@
                 var content = $.createElement('div').addClass('queryViewerItemContent');
                 var antiFloatDiv = $.createElement('div').addClass('clearFloat');
 
-                if (!$.browser.mobile || (!isNullOrWhiteSpace(query.itemTemplateKey) && typeof (app.templates[query.itemTemplateKey].data) == "function")) {
+                if (!$.mobile || (!isNullOrWhiteSpace(query.itemTemplateKey) && typeof (app.templates[query.itemTemplateKey].data) == "function")) {
                     content.append(app.templates[query.itemTemplateKey].data(item));
 
                     query.columns.run(function (col) {
@@ -119,12 +119,12 @@
 
         var hasPagingActive = false;
         var render = function () {
-            if (!$.browser.mobile && query.pageSize > 0 && (hasPagingActive || query.totalItems >= query.pageSize)) {
+            if (!$.mobile && query.pageSize > 0 && (hasPagingActive || query.totalItems >= query.pageSize)) {
                 hasPagingActive = methods.addPaging();
             }
 
             queryViewerContainer.empty();
-            if ($.browser.mobile && query.items.length == 0) {
+            if ($.mobile && query.items.length == 0) {
                 root.append($("<p class='noResults'>").text(app.getTranslatedMessage("NoResultsFound")));
             }
             else {
@@ -135,7 +135,7 @@
                     methods.renderItem(item);
                 });
 
-                if ($.browser.mobile)
+                if ($.mobile)
                     methods.loadMore(queryViewerContainer);
             }
         };

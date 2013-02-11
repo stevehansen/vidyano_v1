@@ -625,6 +625,10 @@ ul.programUnitItemsOverflow {
 .resultPanel .resultHeader .resultTitle {
   font-size: 28px;
   line-height: 50px;
+  overflow: hidden;
+  -ms-text-overflow: ellipsis;
+  -o-text-overflow: ellipsis;
+  text-overflow: ellipsis;
   color: #0c5d7d;
 }
 .resultPanel .specialControls {
@@ -1824,6 +1828,7 @@ ul.programUnitItemsOverflow {
   font-size: 30px;
   font-weight: normal;
   line-height: 33px;
+  width: inherit;
 }
 #browseReferenceResult {
   height: 100%;

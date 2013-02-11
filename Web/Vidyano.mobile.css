@@ -262,7 +262,7 @@ input[type="password"] {
   cursor: pointer;
   line-height: 32px;
   font-size: 13px;
-  padding: 0px 6px;
+  padding: 0 6px;
 }
 .programUnit ul li a:link,
 .programUnit ul li a:visited,
@@ -279,11 +279,15 @@ input[type="password"] {
   overflow: hidden;
 }
 .resultPanel .resultHeader {
-  padding: 0px 12px;
+  padding: 0 12px;
 }
 .resultPanel .resultHeader .resultTitle {
   font-size: 18px;
   line-height: 30px;
+  overflow: hidden;
+  -ms-text-overflow: ellipsis;
+  -o-text-overflow: ellipsis;
+  text-overflow: ellipsis;
   color: #126790;
 }
 .resultPanel.searchActive .resultHeader .search {

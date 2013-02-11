@@ -204,21 +204,21 @@
             var attribute = root.dataContext();
             var allowDecimal = attribute.type == "NullableDecimal" || attribute.type == "Decimal" || attribute.type == "NullableSingle" || attribute.type == "Single" || attribute.type == "NullableDouble" || attribute.type == "Double";
             var isNullable = attribute.type.startsWith("Nullable");
-            var decimalSeperator = CultureInfo.currentCulture.numberFormat.numberDecimalSeparator;
+            var decimalSeparator = CultureInfo.currentCulture.numberFormat.numberDecimalSeparator;
 
             var eventFunctions = {
                 onNumericTextBoxKeyPress: function (e) {
                     var keyCode = e.keyCode || e.which;
                     // Ignore backspace, tab, delete, arrows
-                    if (keyCode == 8 || keyCode == 9 || keyCode == 46 || keyCode == 16 || keyCode == 17 || keyCode == 40 || keyCode == 39 || keyCode == 38 || keyCode == 37)
+                    if (keyCode == 8 || keyCode == 9 || keyCode == 16 || keyCode == 17 || keyCode == 40 || keyCode == 39 || keyCode == 38 || keyCode == 37)
                         return;
 
                     var carretIndex = numericTextBox[0].selectionStart;
                     var value = numericTextBox.val();
 
                     if (keyCode < 48 || keyCode > 57) {
-                        if ((keyCode == 44 || keyCode == 46 || keyCode == 110) && !value.contains(decimalSeperator) && allowDecimal) {
-                            numericTextBox.val(value.insert(decimalSeperator, carretIndex));
+                        if ((keyCode == 44 || keyCode == 46 || keyCode == 110) && !value.contains(decimalSeparator) && allowDecimal) {
+                            numericTextBox.val(value.insert(decimalSeparator, carretIndex));
                             functions.setCarretIndex(carretIndex + 1);
                         } else if (keyCode == 45 && !value.contains("-") && carretIndex == 0 && attribute.type != "Byte" && attribute.type != "NullableByte") {
                             numericTextBox.val(value.insert("-", carretIndex));
@@ -291,11 +291,11 @@
                 triggerDataContextChanged: function (triggerRefresh) {
                     var value = numericTextBox.val();
                     if (value != "-")
-                        attribute.onChanged({ value: isNullOrWhiteSpace(value) ? isNullable ? null : 0 : numericTextBox.val().replace(",", ".") }, triggerRefresh);
+                        attribute.onChanged({ value: isNullOrWhiteSpace(value) ? isNullable ? null : 0 : numericTextBox.val().replace(decimalSeparator, ".") }, triggerRefresh);
                 }
             };
 
-            numericTextBox.val(attribute.value)
+            numericTextBox.val(attribute.value != null ? attribute.value.replace(".", decimalSeparator) : "")
                 .on("keypress", eventFunctions.onNumericTextBoxKeyPress)
                 .on("keyup", eventFunctions.onNumericTextBoxKeyUp)
                 .on("change", eventFunctions.onNumericTextBoxValueChange);
@@ -386,7 +386,7 @@
                 onCheckDivClick: function (e) {
                     var checkBox = $("input", $(this));
 
-                    checkBox.attr("checked", !checkBox.attr("checked"));
+                    checkBox.prop("checked", !checkBox.prop("checked"));
                     functions.toggleChecked(checkBox);
 
                     e.stopPropagation();
@@ -423,13 +423,13 @@
                 getSelectedItemsFromEnumValue: function () {
                     if (_enumValue == 0) {
                         $("input", optionsDiv).each(function () {
-                            $(this).attr("checked", $(this).dataContext().val == 0);
+                            $(this).prop("checked", $(this).dataContext().val == 0);
                         });
                         return;
                     }
                     $("input", optionsDiv).each(function () {
                         var currentVal = $(this).dataContext().val;
-                        $(this).attr("checked", currentVal != 0 && (_enumValue & currentVal) == currentVal);
+                        $(this).prop("checked", currentVal != 0 && (_enumValue & currentVal) == currentVal);
                     });
                 },
 
@@ -517,7 +517,7 @@
                             .on("click", eventFunctions.onCheckDivClick);
                         optionsDiv.append(div);
                         if (values.contains(name)) {
-                            checkbox.attr("checked", true);
+                            checkbox.prop("checked", true);
                             checkbox.change();
                         }
 
@@ -529,7 +529,7 @@
                 deselectAll: function () {
                     $("input:checked", optionsDiv).each(function () {
                         if ($(this).dataContext().val != 0) {
-                            $(this).attr("checked", false);
+                            $(this).prop("checked", false);
                         }
                     });
                 },
@@ -542,7 +542,7 @@
                             return;
                         }
 
-                        if (checkBox.attr("checked"))
+                        if (checkBox.prop("checked"))
                             functions.enumValue(_enumValue |= ctx.val);
                         else
                             functions.enumValue(_enumValue & ~ctx.val);
@@ -621,11 +621,11 @@
             var value = ServiceGateway.fromServiceString(attribute.value, attribute.type);
 
             if (value == null)
-                $(inputs[1]).attr("checked", true);
+                $(inputs[1]).prop("checked", true);
             else if (value)
-                inputs.first().attr("checked", true);
+                inputs.first().prop("checked", true);
             else
-                inputs.last().attr("checked", true);
+                inputs.last().prop("checked", true);
 
             root.find(".persistentObjectAttributeRadioSet").buttonset().show();
 
@@ -715,7 +715,7 @@
                     browseButton.on('click', functions.browseReference);
 
                     if (attribute.isEditable) {
-                        inputBox.live("blur", functions.onRootLostFocus);
+                        inputBox.on("blur", functions.onRootLostFocus);
                         inputBox.removeAttr('readonly');
                     }
                 },

@@ -8,7 +8,7 @@
 /// <reference path="ServiceGateway.js" />
 /// <reference path="Controls/Filter.js" />
 /// <reference path="Controls/QueryViewer.js" />
-/// <reference path="~/Scripts/jquery-1.8.1.min.js" />
+/// <reference path="~/Scripts/jquery-1.9.1.min.js" />
 
 function Query(query, parent, asLookup) {
     /// <summary>Describes a Query that gives access to a collection of Persistent Objects.</summary>
@@ -61,6 +61,8 @@ function Query(query, parent, asLookup) {
         if (query.target != null && query.target.length > 0)
             query.target.trigger("selectedItemsChanged", [query]);
     });
+    query.totalItem = null;
+    query.hasTotalItem = false;
 
     /// <field name="columns" type="Array" elementType="QueryColumn">Contains the columns for this instance.</field>
     query.updateColumns(query.columns);
@@ -231,7 +233,7 @@ Query.prototype.open = function (container, persistentObjectContainer, persisten
         // Query has been opened as full page query view
 
         this.container = $("#content");
-        this.container.html($($.browser.mobile ? "#query_mobile_template" : "#query_template").html());
+        this.container.html($($.mobile ? "#query_mobile_template" : "#query_template").html());
 
         this.container.dataContext(this);
         var containerContent = this.container.find(".resultContent");
@@ -351,16 +353,14 @@ Query.prototype.setResult = function (result) {
     if (this.pageSize > 0) {
         this.totalPages = result.totalPages || 0;
 
-        if (this.totalPages < this.currentPage) {
+        if (this.totalPages < this.currentPage)
             this.currentPage = Math.max(this.totalPages, 1);
-        }
 
         this.totalItems = result.totalItems || 0;
         this.queriedPages.push(Math.floor((this.skip || 0) / this.pageSize));
     }
-    else {
+    else
         this.totalItems = result.items.length;
-    }
 
     var q = this;
     var newItems = result.items.select(function (item) { return new QueryResultItem(item, q); });
@@ -375,6 +375,9 @@ Query.prototype.setResult = function (result) {
         if (q.target != null && q.target.length > 0)
             q.target.trigger("selectedItemsChanged", [q]);
     });
+
+    this.totalItem = result.totalItem != null ? new QueryResultItem(result.totalItem, this) : null;
+    this.hasTotalItem = this.totalItem != null;
 
     this.filterChanged = false;
     this.hasSearched = true;

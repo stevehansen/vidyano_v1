@@ -33,8 +33,8 @@ function PersistentObjectAttributeWithReference(attribute) {
 
     attribute.lookup = new Query(attribute.lookup, attribute.parent, true);
     attribute.lookupPersistentObjectId = attribute.lookup.persistentObject.id;
-    if (attribute.selectInPlace == null)
-        attribute.selectInPlace = false;
+    if (attribute.selectInPlace == null) attribute.selectInPlace = false;
+    if (attribute.objectId == null) attribute.objectId = null;
 
     attribute.isEditable = attribute.getTypeHint('IsEditable', 'False') == 'True';
 
@@ -315,7 +315,7 @@ PersistentObjectAttribute.prototype.onChanged = function (obj, lostFocus) {
         this.isValueChanged = true;
 
         if (this.bulkEditCheckbox != null && this.parent.isInBulkEditMode())
-            this.bulkEditCheckbox.attr('checked', this.isValueChanged);
+            this.bulkEditCheckbox.prop("checked", this.isValueChanged);
         this.value = obj.value;
 
         this.parent.isDirty(true);
@@ -339,7 +339,7 @@ PersistentObjectAttribute.prototype.onChanged = function (obj, lostFocus) {
     this.isValueChanged = true;
 
     if (this.bulkEditCheckbox != null && this.parent.isInBulkEditMode())
-        this.bulkEditCheckbox.attr('checked', this.isValueChanged);
+        this.bulkEditCheckbox.prop("checked", this.isValueChanged);
 
     if (this.triggersRefresh) {
         if (lostFocus)

@@ -1,4 +1,4 @@
-﻿/// <reference path="/Scripts/jquery-1.8.1.min.js"/>
+﻿/// <reference path="/Scripts/jquery-1.9.1.min.js"/>
 /// <reference path="../Common.js" />
 /// <reference path="../Application.js"/>
 
@@ -88,9 +88,7 @@ QueryFilter.prototype.openPopup = function (menu) {
         menu.append(filterContainer);
 
         var openFilter = function () {
-            self._clearFilter(true);
-
-            self.closeFilter();
+            self.closeFilter(true);
             self._loadFilter(f);
             self.createFilter(self.query.filterTarget);
 
@@ -131,8 +129,8 @@ QueryFilter.prototype.openDefaultFilter = function () {
     }
 };
 
-QueryFilter.prototype.closeFilter = function () {
-    this._clearFilter();
+QueryFilter.prototype.closeFilter = function (skipRefresh) {
+    this._clearFilter(skipRefresh);
 
     if (this.query.filterTarget != null) {
         this.query.filterTarget.empty();
@@ -225,7 +223,7 @@ QueryFilter.prototype.createFilter = function (rootContainer) {
         autoOpenFilter.buttonset();
 
         var dialog = saveDiv.dialog({
-            draggable: !$.browser.mobile,
+            draggable: !$.mobile,
             width: 350,
             height: 190,
             modal: true,
@@ -603,7 +601,7 @@ QueryFilter.prototype._updatePicker = function () {
 
         var columnOption = $.createElement("option");
         columnOption.text(c.label);
-        columnOption.attr("value", c.name);
+        columnOption.val(c.name);
         select.append(columnOption);
     });
 };

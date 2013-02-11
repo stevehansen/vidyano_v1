@@ -1,4 +1,4 @@
-﻿/// <reference path="/Scripts/jquery-1.8.1.min.js" />
+﻿/// <reference path="/Scripts/jquery-1.9.1.min.js" />
 /// <reference path="Common.js" />
 /// <reference path="jQuery.js" />
 /// <reference path="ExpressionParser.js" />

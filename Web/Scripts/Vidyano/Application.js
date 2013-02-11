@@ -322,7 +322,7 @@ var Vidyano = (function (window, $) {
             };
 
             if (app.persistentObject == null) {
-                if ($.browser.mobile)
+                if ($.mobile)
                     $("#rootContainer").addClass("mobile");
 
                 app.returnUrl(hasher.getHash());
@@ -410,15 +410,18 @@ var Vidyano = (function (window, $) {
             document.title = isNullOrEmpty(title) ? this.title : this.title + " - " + title;
         };
 
-        this.getUrlForPersistentObject = function (po) {
+        this.getUrlForPersistentObject = function (po, objectId) {
             /// <summary>Gets a value that represents an url for the specified Persistent Object, using custom routes if possible.</summary>
             /// <param name="po" type="PersistentObject">The Persistent Object that should be used to generate an url for.</param>
+            /// <param name="objectId" type="String">The optional ObjectId that should be used to generate an url for, otherwise po.objectId will be tried.</param>
             /// <returns type="String" />
 
             var customRoute = this.customRoutes[po.id];
             var url = (customRoute != null ? customRoute.name : ("PersistentObject." + po.id));
-            if (!isNullOrEmpty(po.objectId))
-                url += "/" + po.objectId;
+            if (objectId == null)
+                objectId = po.objectId;
+            if (!isNullOrEmpty(objectId))
+                url += "/" + objectId;
 
             return url;
         };

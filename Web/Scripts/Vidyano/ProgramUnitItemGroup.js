@@ -18,7 +18,7 @@
         titleSpan.text(this.title);
         li.append(titleSpan);
 
-        if (!$.browser.mobile)
+        if (!$.mobile)
             li.subMenu(ul);
         else {
             ul.hide();

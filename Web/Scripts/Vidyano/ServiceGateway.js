@@ -26,7 +26,7 @@ function ServiceGateway(serviceUri) {
         if (app.settings.language != null)
             data.requestedLanguage = app.settings.language;
 
-        if ($.browser.mobile)
+        if ($.mobile)
             data.isMobile = true;
 
         if (app.uniqueId != null)
@@ -462,19 +462,20 @@ function ServiceGateway(serviceUri) {
 
                 app.isTrial(result.isTrial);
 
-                window.onerror = function(ex) {
-                    console.log(ex);
+                window.onerror = function (ex) {
+                    if (window.console && window.console.log)
+                        window.console.log(ex);
                 };
 
                 try {
                     app.onInitialized();
                 }
                 catch (e) {
-                    showError(e.message || e);
+                    showError("app.onInitialized failed:\n" + (e.message || e));
                 }
-            } else {
-                showError(result.exception);
             }
+            else
+                showError(result.exception);
         }, showError);
     };
 

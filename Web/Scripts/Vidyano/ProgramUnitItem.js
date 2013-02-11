@@ -63,7 +63,7 @@ ProgramUnitItem.prototype.createElement = function (container) {
         li.append(titleLink).addClass("programUnitItemsGroupHeader");
 
         var ul = this._generateFilterItems();
-        if ($.browser.mobile) {
+        if ($.mobile) {
             ul.hide();
             li.append(ul);
             li.bind("click", function (e) {
@@ -123,7 +123,7 @@ ProgramUnitItem._onProgramUnitItemClick = function (e) {
     var dataContext = $(this).dataContext();
     dataContext.item.open(dataContext.filter);
 
-    if ($.browser.mobile) {
+    if ($.mobile) {
         e.stopPropagation();
         e.preventDefault();
     }

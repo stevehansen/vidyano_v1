@@ -39,10 +39,10 @@
 
         $signIn.button("disable");
 
-        var userName = $userName.attr("value");
+        var userName = $userName.val();
         app.staySignedIn = $staySignedIn.prop("checked");
 
-        app.gateway.getApplication(userName, $userPass.attr("value"), function () {
+        app.gateway.getApplication(userName, $userPass.val(), function () {
             app.lastError = null;
 
             if (app.staySignedIn) {
@@ -69,7 +69,7 @@
 
             if (!isNullOrWhiteSpace(returnUrl))
                 app.navigate(returnUrl, true);
-            else if ($.browser.mobile)
+            else if ($.mobile)
                 app.navigate("");
         }, function (e) {
             $signInSpinner.spin(false);
@@ -91,8 +91,8 @@
         }
     };
 
-    $userName.attr("value", $.cookie("userName"));
-    $staySignedIn.attr("checked", app.staySignedIn);
+    $userName.val($.cookie("userName"));
+    $staySignedIn.prop("checked", app.staySignedIn);
 
     $signIn.click(signIn);
 
@@ -105,7 +105,7 @@
     $userName.on("keypress", signInOnEnter);
     $userPass.on("keypress", signInOnEnter);
 
-    if ($userName.attr("value").length == 0)
+    if ($userName.val().length == 0)
         $userName.focus();
     else
         $userPass.focus();
@@ -117,7 +117,7 @@ function showHomePage(sender) {
     if ($("#rootContainer").dataContext() != null && sender != null) {
         $("#content").empty();
 
-        if ($.browser.mobile)
+        if ($.mobile)
             $(".programUnits").hide();
 
         return;
@@ -125,12 +125,12 @@ function showHomePage(sender) {
 
     app.currentPath = '';
 
-    $("#rootContainer").html($($.browser.mobile ? "#home_mobile_template" : "#home_template").html());
+    $("#rootContainer").html($($.mobile ? "#home_mobile_template" : "#home_template").html());
     $("#rootContainer").dataContext(app);
 
     $(".programUnits").show();
 
-    if ($.browser.mobile) {
+    if ($.mobile) {
         $("#home").button();
         $("#home").on("click", function () {
             app.navigate("");
@@ -169,7 +169,7 @@ function showHomePage(sender) {
     var usingDefaultUser = app.isUsingDefaultUser();
     var text = usingDefaultUser ? app.getTranslatedMessage("SignIn") : app.getTranslatedMessage("SignOut");
 
-    if ($.browser.mobile) {
+    if ($.mobile) {
         var signInOutButtonSpan = $("#signInOut").find(".ui-button-text");
         if (signInOutButtonSpan.length != 0) {
             signInOutButtonSpan.text(text);
@@ -233,16 +233,16 @@ function showHomePage(sender) {
     }
     $.setVisibilityForState("SignedIn", true);
 
-    if (sender == null || !$.browser.mobile) {
-        if ($.browser.mobile)
+    if (sender == null || !$.mobile) {
+        if ($.mobile)
             $(".programUnits").show();
 
         var programUnits = $(".programUnits").empty();
         var ul = $("<ul>").addClass("list");
         programUnits.append(ul);
 
-        if (!$.browser.mobile)
-            programUnits.overflow($("<li class='programUnit'><span>...</span></li>"), "programUnitsOverflow");
+        if (!$.mobile)
+            programUnits.overflow($("<li class='programUnit'><a>...</a></li>"), "programUnitsOverflow");
 
         programUnits.show();
 

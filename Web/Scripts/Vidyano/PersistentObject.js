@@ -4,7 +4,7 @@
 /// <reference path="PersistentObjectAttribute.js" />
 /// <reference path="Query.js" />
 /// <reference path="~/Scripts/underscore-min.js" />
-/// <reference path="~/Scripts/jquery-1.8.1.min.js" />
+/// <reference path="~/Scripts/jquery-1.9.1.min.js" />
 
 function PersistentObject(po) {
     /// <summary>Describes a Persistent Object that defines a single entity and its metadata.</summary>
@@ -129,7 +129,7 @@ PersistentObject.prototype.getAttributeValue = function (name) {
 PersistentObject.prototype.getDynamicColumCount = function (attributesTarget) {
     /// <summary>Calculates the count of columns based on the current width of the browser window.</summary>
 
-    if ($.browser.mobile)
+    if ($.mobile)
         return 1;
     
     var selectedItem = this.tabs != null ? this.tabs.selectedItem() : null;
@@ -224,7 +224,7 @@ PersistentObject.prototype.refreshFromResult = function (result) {
                 attr.isValueChanged = serviceAttribute.isValueChanged;
 
                 if (attr.bulkEditCheckbox != null && isInBulkEditMode)
-                    attr.bulkEditCheckbox.attr('checked', attr.isValueChanged);
+                    attr.bulkEditCheckbox.prop("checked", attr.isValueChanged);
             }
         });
         this._sortedAttributes = this.attributes.where(function (item) { return item.isVisible(); });
@@ -266,7 +266,7 @@ PersistentObject.prototype.hasVisibleActions = function () {
     /// <summary>Gets a value indicating that the Persistent Object has any visibile actions.</summary>
     /// <returns type="Boolean" />
 
-    var actionCount = !this.isHidden && this.actions.where(function (a) { return a.name != "Filter" && a.name != "RefreshQuery"; }).length > 0;
+    var actionCount = !this.isHidden && this.actions.where(function (a) { return a.name != "Filter" && a.name != "RefreshQuery" && a.isVisible(); }).length > 0;
     if (actionCount > 0)
         return true;
 
@@ -290,7 +290,7 @@ PersistentObject.prototype.isMasterDetail = function () {
     /// <summary>Gets a value indicating that the Persistent Object is being shown is master-detail mode.</summary>
     /// <returns type="Boolean" />
 
-    return !$.browser.mobile && this.queryLayoutMode == "MasterDetail" && this.queries != null && this.queries.length > 0;
+    return !$.mobile && this.queryLayoutMode == "MasterDetail" && this.queries != null && this.queries.length > 0;
 };
 
 PersistentObject.prototype.open = function (target) {
@@ -309,7 +309,7 @@ PersistentObject.prototype.open = function (target) {
     if (app.isCore)
         return; // NOTE: No rendering on core
 
-    this.target.html($($.browser.mobile ? "#persistentObject_mobile_template" : !this.isMasterDetail() ? "#persistentObject_template" : "#persistentObject_masterDetailTemplate").html());
+    this.target.html($($.mobile ? "#persistentObject_mobile_template" : !this.isMasterDetail() ? "#persistentObject_template" : "#persistentObject_masterDetailTemplate").html());
     this.target.dataContext(this);
 
     this.target.actionBarExpander();
@@ -318,7 +318,7 @@ PersistentObject.prototype.open = function (target) {
     objTitle.text(this.breadcrumb);
 
     var self = this;
-    if (!$.browser.mobile) {
+    if (!$.mobile) {
         var persistenObjectNavigationAttributes = this.target.find(".persistentObjectNavigation.persistentObjectAttributes");
         var persistenObjectNavigationQueries = this.target.find(".persistentObjectNavigation.persistentObjectQueries");
 
@@ -886,7 +886,7 @@ PersistentObject.prototype._showAttributes = function () {
     } else if (typeof (tab.templateKey) != "undefined") {
         this._showTabWithTemplate(tab.templateKey, selectedTabContainer);
     } else {
-        var columnCount = $.browser.mobile ? 1 : parseInt(tab.columnCount, 10);
+        var columnCount = $.mobile ? 1 : parseInt(tab.columnCount, 10);
         var groups = this._sortedAttributes.where(function (attr) { return attr.tab == tab.key; }).distinct(function (attr) { return attr.group; });
 
         if (isNaN(columnCount) || columnCount == 0) {

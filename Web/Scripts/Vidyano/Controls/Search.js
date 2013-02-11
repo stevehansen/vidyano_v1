@@ -28,7 +28,7 @@
 
         var input = $.createInput("text")
            .on("keypress", eventMethods.onKeyPress)
-            .attr("value", query.textSearch || "")
+            .val(query.textSearch || "")
             .attr("placeholder", String.format(app.getTranslatedMessage("FilterSearchHint"), query.label));
         var search = $.createElement("button").button()
             .addClass("searchButton")
@@ -40,7 +40,7 @@
             delete query.focusSearch;
         }
 
-        if (!$.browser.mobile && query.actionNames.contains("Filter") && !asLookup) {
+        if (!$.mobile && query.actionNames.contains("Filter") && !asLookup) {
             var filter = $.createElement("button").button().addClass("filterButton");
             container.append(filter);
 
