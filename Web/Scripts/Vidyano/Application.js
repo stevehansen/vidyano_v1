@@ -134,7 +134,6 @@ var Vidyano = (function (window, $) {
         /// <field name="title" type="String">The title property is used a prefix when updating the document title.</field>
         this.title = document.title;
         this.userName = null;
-        this.allowExperimentalFeatures = true;
         this.uniqueId = null;
         this.bootTime = new Date();
         /// <field name="session" type="PersistentObject">Provides access to the session that is always sent to the service and updated after each request, is null if no session is configured.</field>
@@ -150,8 +149,10 @@ var Vidyano = (function (window, $) {
         /// <field name="currentPage">The currentPage property provides access to the current open page (either a PersistentObject or a Query) and is useful during debugging.</field>
         this.currentPage = null;
         this.currentPath = null;
-        /// <field name="isTablet">This field indicates whether the current application is running on a tablet browser.</field>
-        this.isTablet = navigator.userAgent.match(/(iPad|Android|BlackBerry)/);
+        /// <field name="isMobile" type="Boolean">This field indicates whether the current application is running on a mobile browser.</field>
+        this.isMobile = $.mobile;
+        /// <field name="isTablet" type="Boolean">This field indicates whether the current application is running on a tablet browser.</field>
+        this.isTablet = /(iPad|Android|BlackBerry|ARM)/.test(navigator.userAgent || navigator.vendor || window.opera);
         /// <field name="settings">The settings property is used to override default Vidyano settings like useDefaultCredentials and defaultUserName/defaultPassword.</field>
         this.settings =
         {

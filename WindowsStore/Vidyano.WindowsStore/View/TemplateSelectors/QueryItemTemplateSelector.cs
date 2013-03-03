@@ -11,20 +11,15 @@ namespace Vidyano.View.TemplateSelectors
 {
     public class QueryItemTemplateSelector : DataTemplateSelector
     {
-        public bool IsDetail { get; set; }
-
         protected override DataTemplate SelectTemplateCore(object obj, DependencyObject container)
         {
             var item = obj as QueryResultItem;
 
-            DataTemplate template;
-            if(!((Client)Client.Current).CustomTemplates[CustomTemplates.Type.QueryItems].Templates.TryGetValue(item.Query.PersistentObject.Type, out template))
-            {
-                var resourceName = IsDetail ? "DetailQueryItemTemplate" : "QueryItemTemplate";
-                template = (DataTemplate)Application.Current.Resources[resourceName];
-            }
+            object template;
+            if (item == null || !Application.Current.Resources.TryGetValue("QueryItemTemplate." + item.Query.PersistentObject.Type, out template))
+                template = (DataTemplate)Application.Current.Resources["QueryItemTemplate.Default"];
 
-            return template;
+            return (DataTemplate)template;
         }
     }
 }

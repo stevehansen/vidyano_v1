@@ -101,11 +101,13 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="ApplicationColors.cs" />
     <Compile Include="AttributeContextMenuArgs.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="ClientActions.cs" />
     <Compile Include="Commands\ActionCommand.cs" />
     <Compile Include="Commands\GoBack.cs" />
+    <Compile Include="Commands\GoHome.cs" />
     <Compile Include="Commands\Navigate.cs" />
     <Compile Include="Common\ExpressionParser.cs" />
     <Compile Include="Common\JObjectEx.cs" />
@@ -114,8 +116,8 @@
     <Compile Include="Hooks.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="PersistentObjectClientActions.cs" />
+    <Compile Include="QueryItemClickedArgs.cs" />
     <Compile Include="Settings.cs" />
-    <Compile Include="CustomTemplates.cs" />
     <Compile Include="SettingsFlyout.cs" />
     <Compile Include="ViewModel\Actions\ActionBase.cs" />
     <Compile Include="ViewModel\Actions\AddAndNewAction.cs" />
@@ -143,6 +145,7 @@
     <Compile Include="ViewModel\PersistentObjectTab.cs" />
     <Compile Include="ViewModel\PersistentObjectTabAttributes.cs" />
     <Compile Include="ViewModel\ProgramUnitItem.cs" />
+    <Compile Include="ViewModel\ProgramUnitItemGroup.cs" />
     <Compile Include="ViewModel\Query.cs" />
     <Compile Include="ViewModel\Actions\QueryAction.cs" />
     <Compile Include="ViewModel\QueryColumn.cs" />
@@ -153,13 +156,15 @@
     <Compile Include="View\Common\AutoUpdateBindingEx.cs" />
     <Compile Include="View\Common\BooleanNegationConverter.cs" />
     <Compile Include="View\Common\BooleanToVisibilityConverter.cs" />
+    <Compile Include="View\Common\CharacterCasingConverter.cs" />
     <Compile Include="View\Common\Events.cs" />
     <Compile Include="Common\EnumerableEx.cs" />
     <Compile Include="View\Common\FrameworkElementExtensions.cs" />
     <Compile Include="Common\KeyValueList.cs" />
+    <Compile Include="View\Common\IMultiValueConverter.cs" />
     <Compile Include="View\Common\LayoutAwarePage.cs" />
+    <Compile Include="View\Common\MultiBinding.cs" />
     <Compile Include="View\Common\StringFormatConverter.cs" />
-    <Compile Include="View\Common\CharacterCasingConverter.cs" />
     <Compile Include="View\Controls\PersistentObjectAttributeBinary.cs" />
     <Compile Include="View\Controls\PersistentObjectAttributeComboBox.cs" />
     <Compile Include="View\Controls\PersistentObjectAttributeEditableComboBox.cs" />
@@ -198,6 +203,7 @@
     </Compile>
     <Compile Include="View\TemplateSelectors\ActionIconTemplateSelector.cs" />
     <Compile Include="View\TemplateSelectors\PersistentObjectPageTabTemplateSelector.cs" />
+    <Compile Include="View\TemplateSelectors\ProgramUnitItemContainerTemplateSelector.cs" />
     <Compile Include="View\TemplateSelectors\QueryItemTemplateSelector.cs" />
     <Compile Include="View\TemplateSelectors\ProgramUnitItemTemplateSelector.cs" />
     <Compile Include="View\TemplateSelectors\SnappedPersistentObjectPageTabTemplateContainerSelector.cs" />

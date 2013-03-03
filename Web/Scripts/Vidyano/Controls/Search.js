@@ -29,7 +29,7 @@
         var input = $.createInput("text")
            .on("keypress", eventMethods.onKeyPress)
             .val(query.textSearch || "")
-            .attr("placeholder", String.format(app.getTranslatedMessage("FilterSearchHint"), query.label));
+            .attr("placeholder", app.getTranslatedMessage("FilterSearchHint"));
         var search = $.createElement("button").button()
             .addClass("searchButton")
             .on("click", eventMethods.onSearchClick);

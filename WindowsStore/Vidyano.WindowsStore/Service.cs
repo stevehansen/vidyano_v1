@@ -24,7 +24,7 @@ using Windows.UI.Xaml.Media.Imaging;
 
 namespace Vidyano
 {
-    #if DEBUG && SLOWNETWORKPERFORMANCE
+#if DEBUG && SLOWNETWORKPERFORMANCE
     class SlowHttpClient : HttpClient
     {
         public override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, System.Threading.CancellationToken cancellationToken)
@@ -35,7 +35,7 @@ namespace Vidyano
             return response;
         }
     }
-    #endif
+#endif
 
     public class Service : NotifyableBase
     {
@@ -52,15 +52,15 @@ namespace Vidyano
         private PersistentObject _Application;
         private static Service _Current;
         private bool _IsBusy, _IsConnected, _IsConnectedUsingDefaultCredentials;
-        
+
         private readonly string uniqueId;
         internal static string vaultCredentialsName = string.Format("Vidyano.{0}", Package.Current.Id.Name);
 
-        #if DEBUG && SLOWNETWORKPERFORMANCE
+#if DEBUG && SLOWNETWORKPERFORMANCE
             private readonly HttpClient httpClient = new SlowHttpClient { Timeout = TimeSpan.FromSeconds(10) };
-        #else
-            private readonly HttpClient httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-        #endif
+#else
+        private readonly HttpClient httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+#endif
 
         private const string sessionStateFilename = "sessionState.jsons";
         private readonly Dictionary<string, object> objects = new Dictionary<string, object>();
@@ -141,13 +141,12 @@ namespace Vidyano
         private JObject CreateData(string user = null, string authToken = null)
         {
             var data = new JObject();
-            
+
             data["userName"] = user ?? User;
             data["authToken"] = authToken ?? AuthToken;
 
             data["uniqueId"] = uniqueId;
             data["environment"] = "WindowsStore";
-            data["applicationSpecificPersistentObjects"] = Settings.Current.AppSpecificPersistentObjects;
             data["requestedExpiration"] = ToServiceString(DateTimeOffset.Now.AddYears(1));
 
             return data;
@@ -172,7 +171,7 @@ namespace Vidyano
                 var responseMsg = await httpClient.PostAsync(new Uri(Uri) + "GetApplication", new StringContent(data.ToString(Formatting.None)));
                 var response = JObject.Parse(await responseMsg.Content.ReadAsStringAsync());
 
-                var ex = (string)response["exception"];
+                var ex = (string)response["exception"] ?? (string)response["ExceptionMessage"];
                 if (!string.IsNullOrEmpty(ex))
                     throw new Exception(ex);
 
@@ -218,7 +217,7 @@ namespace Vidyano
                 var responseMsg = await httpClient.PostAsync(new Uri(Uri) + "GetPersistentObject", new StringContent(data.ToString(Formatting.None)));
                 var response = JObject.Parse(await responseMsg.Content.ReadAsStringAsync());
 
-                var ex = (string)response["exception"];
+                var ex = (string)response["exception"] ?? (string)response["ExceptionMessage"];
                 if (!string.IsNullOrEmpty(ex))
                     throw new Exception(ex);
 
@@ -246,7 +245,7 @@ namespace Vidyano
                 var responseMsg = await httpClient.PostAsync(new Uri(Uri) + "GetQuery", new StringContent(data.ToString(Formatting.None)));
                 var response = JObject.Parse(await responseMsg.Content.ReadAsStringAsync());
 
-                var ex = (string)response["exception"];
+                var ex = (string)response["exception"] ?? (string)response["ExceptionMessage"];
                 if (!string.IsNullOrEmpty(ex))
                     throw new Exception(ex);
 
@@ -275,8 +274,9 @@ namespace Vidyano
 
                 var responseMsg = await httpClient.PostAsync(new Uri(Uri) + "ExecuteQuery", new StringContent(data.ToString(Formatting.None)));
                 var response = JObject.Parse(await responseMsg.Content.ReadAsStringAsync());
-                if (!string.IsNullOrEmpty((string)response["exception"]))
-                    throw new Exception((string)response["exception"]);
+                var ex = (string)response["exception"] ?? (string)response["ExceptionMessage"];
+                if (!string.IsNullOrEmpty(ex))
+                    throw new Exception(ex);
 
                 AuthToken = (string)response["authToken"];
 
@@ -356,7 +356,7 @@ namespace Vidyano
                 var responseMsg = await httpClient.PostAsync(new Uri(Uri) + "ExecuteAction", new StringContent(data.ToString(Formatting.None)));
                 var response = JObject.Parse(await responseMsg.Content.ReadAsStringAsync());
 
-                var ex = (string)response["exception"];
+                var ex = (string)response["exception"] ?? (string)response["ExceptionMessage"];
                 if (!string.IsNullOrEmpty(ex))
                 {
                     if (isObjectAction)
@@ -428,6 +428,8 @@ namespace Vidyano
             var nextPageKey = o.PagePath;
             while (objects.Remove(nextPageKey))
             {
+                objects.Remove(nextPageKey + "_Parent");
+
                 nextPageIndex++;
                 nextPageKey = "Page-" + nextPageIndex;
             }
@@ -511,7 +513,15 @@ namespace Vidyano
                     jQuery["Type"] = "Query";
                     jQuery["Model"] = q.Model;
                     if (q.Parent != null)
+                    {
+                        if (q.Parent.PagePath == null)
+                        {
+                            q.Parent.PagePath = q.PagePath + "_Parent";
+                            SerializeCacheObject(jObjects, q.Parent);
+                        }
+
                         jQuery["Parent"] = q.Parent.PagePath;
+                    }
 
                     jObjects[q.PagePath] = jQuery;
                 }

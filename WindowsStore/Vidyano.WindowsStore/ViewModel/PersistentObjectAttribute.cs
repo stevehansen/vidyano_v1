@@ -80,7 +80,7 @@ namespace Vidyano.ViewModel
                     var optionsDirect = OptionsDirect ?? new string[0];
                     optionsDirect.Run(o => options.Add(new Option(o, o)));
                 }
-                else if (Type == DataTypes.KeyValueList)
+                else if (Type == DataTypes.KeyValueList && OptionsDirect != null)
                     options.AddRange(OptionsDirect.Select(o => o.Split(new[] { '=' }, 2)).Select(p => new Option(p[0], p[1])));
 
                 return options.ToArray();

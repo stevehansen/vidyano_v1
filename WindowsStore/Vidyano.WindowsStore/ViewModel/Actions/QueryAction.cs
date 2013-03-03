@@ -19,5 +19,14 @@ namespace Vidyano.ViewModel.Actions
         {
             CanExecute = definition.SelectionRule(selectedItemsCount);
         }
+
+        public override async Task Execute(object option)
+        {
+            await base.Execute(option);
+            Query.PendingSemanicZoomTabsRefresh = true;
+
+            if (Query.SemanticZoomOwner != null)
+                Query.SemanticZoomOwner.PendingSemanicZoomTabsRefresh = true;
+        }
     }
 }

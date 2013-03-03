@@ -9,7 +9,7 @@ using Windows.UI.Xaml.Controls;
 
 namespace Vidyano.View.TemplateSelectors
 {
-    public class ProgramUnitItemTemplateSelector: DataTemplateSelector
+    public class ProgramUnitItemContainerTemplateSelector: DataTemplateSelector
     {
         protected override Windows.UI.Xaml.DataTemplate SelectTemplateCore(object obj, Windows.UI.Xaml.DependencyObject container)
         {
@@ -17,10 +17,14 @@ namespace Vidyano.View.TemplateSelectors
             if (item == null)
                 return null;
 
-            object template = null;
-            Application.Current.Resources.TryGetValue("ProgramUnitItemTemplate." + item.Name, out template);
+            var gvItem = container as GridViewItem;
+            if (gvItem != null)
+            {
+                VariableSizedWrapGrid.SetColumnSpan(gvItem, item.ColumnSpan);
+                VariableSizedWrapGrid.SetRowSpan(gvItem, item.RowSpan);
+            }
 
-            return (DataTemplate)template ?? new DataTemplate();
+            return (DataTemplate)Application.Current.Resources[item.Template];
         }
     }
 }

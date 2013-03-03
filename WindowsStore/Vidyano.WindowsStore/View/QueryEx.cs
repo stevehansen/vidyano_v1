@@ -105,6 +105,7 @@ namespace Vidyano.View
             private void Target_Unloaded(object sender, RoutedEventArgs e)
             {
                 target.Unloaded -= Target_Unloaded;
+                Dispose();
             }
 
             private void Target_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -121,12 +122,6 @@ namespace Vidyano.View
 
                     if (e.RemovedItems.Count > 0)
                         e.RemovedItems.OfType<QueryResultItem>().Run(item => Query.SelectedItems.Remove(item));
-
-                    if (Query.SelectedItems.Count > 0 && (Query.Actions.Any(a => a.CanExecute) || Query.PinnedActions.Any(a => a.CanExecute)))
-                        Query.IsActionsBarOpen = Query.IsActionsBarSticky = true;
-                    else
-                        Query.IsActionsBarOpen = Query.IsActionsBarSticky = false;
-
                 }
                 finally
                 {
@@ -143,13 +138,23 @@ namespace Vidyano.View
                 {
                     skipSync = true;
 
+                    if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Reset && target.SelectedItems.Count > 0)
+                        target.SelectedItems.Clear();
+
                     if (e.OldItems != null && e.OldItems.Count > 0)
-                        e.OldItems.OfType<QueryResultItem>().Run(item => target.SelectedItems.Remove(item));
+                        e.OldItems.OfType<QueryResultItem>().Run(item =>
+                        {
+                            if (target.SelectedItems.Contains(item))
+                                target.SelectedItems.Remove(item);
+                        });
 
                     if (e.NewItems != null && e.NewItems.Count > 0)
                         e.NewItems.OfType<QueryResultItem>().Run(item =>
                             {
-                                target.SelectedItems.Add(item);
+                                if (target.SelectionMode == ListViewSelectionMode.Single)
+                                    target.SelectedItem = item;
+                                else if (target.SelectionMode != ListViewSelectionMode.None)
+                                    target.SelectedItems.Add(item);
                             });
                 }
                 finally
@@ -193,14 +198,8 @@ namespace Vidyano.View
 
             public void Dispose()
             {
-                target.Loaded -= Target_Loaded;
-                target.Unloaded -= Target_Unloaded;
                 target.SelectionChanged -= Target_SelectionChanged;
                 Query.SelectedItems.CollectionChanged -= SelectedItems_CollectionChanged;
-
-                BindingOperations.SetBinding(this, QueryProperty, null);
-                BindingOperations.SetBinding(this, SelectedItemsProperty, null);
-                SetSyncSelectedItemsConnector(target, null);
             }
         }
 

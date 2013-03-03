@@ -1,6 +1,7 @@
 ﻿function ProgramUnit(item, hasManagement) {
     this.id = item.id;
     this.item = item;
+    this.name = item.name;
     this.title = item.title;
     this.templateId = item.template;
     this.hasTemplate = this.templateId != null;

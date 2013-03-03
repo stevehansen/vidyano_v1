@@ -46,8 +46,6 @@ namespace Vidyano.ViewModel
                 }) : new PersistentObjectTabAttributes[0];
 
             Tabs = attributeTabs.Concat(Queries.OrderBy(q => q.Offset).Select(q => new PersistentObjectTabQuery(q) { Index = tabIndex++ })).ToArray();
-            if (Tabs.Length > 0)
-                Tabs.First().ShowLabel = Tabs.Length > 1;
 
             if (!IsHidden)
             {
@@ -71,6 +69,8 @@ namespace Vidyano.ViewModel
 
             // Specials
             HasNotification = !string.IsNullOrWhiteSpace(Notification);
+
+            ((Client)Client.Current).Hooks.OnConstruct(this);
         }
 
         public string Id { get { return GetProperty<string>(); } }
@@ -216,7 +216,12 @@ namespace Vidyano.ViewModel
                         }
                     }
                     else if (OwnerQuery != null)
+                    {
                         await OwnerQuery.RefreshQueryAsync();
+
+                        if (OwnerQuery.SemanticZoomOwner != null)
+                            await OwnerQuery.SemanticZoomOwner.RefreshQueryAsync();
+                    }
                 }
             }
             catch (Exception ex)

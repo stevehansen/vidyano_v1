@@ -17,8 +17,9 @@ namespace Vidyano.ViewModel
         private readonly List<int> queriedPages = new List<int>();
         private readonly SortedDictionary<int, QueryResultItem> items = new SortedDictionary<int, QueryResultItem>();
         private CancellationTokenSource searchCancellationTokenSource;
-        private bool asLookup;
+        private readonly bool asLookup;
         private Task<bool> searchingTask;
+        private PersistentObjectTabQuery[] semanticZoomTabs;
 
         private int _TotalItems;
         private bool _HasSearched, _HasTextSearch;
@@ -46,12 +47,6 @@ namespace Vidyano.ViewModel
             else
                 Columns = new QueryColumn[0];
 
-            var result = (JObject)model["result"];
-            if (result != null)
-                SetResult(result);
-
-            Items = new QueryItemsSource(this);
-
             JToken actionsToken;
             if (model.TryGetValue("actions", out actionsToken))
             {
@@ -62,17 +57,26 @@ namespace Vidyano.ViewModel
                 PinnedActions = actions.Where(a => a.IsPinned).OfType<QueryAction>().ToArray();
             }
             else
-                Actions = new QueryAction[0];
+                PinnedActions = Actions = new QueryAction[0];
 
             var newAction = Actions.OfType<New>().FirstOrDefault();
             var addAction = Actions.OfType<AddReference>().FirstOrDefault();
             if (newAction != null && addAction != null)
-            {
                 Actions = EnumerableEx.Return(new AddAndNewAction(newAction, addAction)).Concat(Actions).ToArray();
-            }
+
+            var result = (JObject)model["result"];
+            if (result != null)
+                SetResult(result);
+            else
+                IsActionsBarOpen = IsActionsBarSticky = true;
+
+            Items = new QueryItemsSource(this);
 
             SelectedItems.CollectionChanged += SelectedItems_CollectionChanged;
             HasTextSearch = !string.IsNullOrEmpty(TextSearch);
+            HasNotification = !string.IsNullOrWhiteSpace(Notification);
+
+            ((Client)Client.Current).Hooks.OnConstruct(this);
         }
 
         public string Id { get { return GetProperty<string>(); } }
@@ -109,15 +113,28 @@ namespace Vidyano.ViewModel
             private set
             {
                 if (SetProperty(value))
+                {
                     HasTextSearch = !String.IsNullOrEmpty(value);
+                    PendingSemanicZoomTabsRefresh = true;
+                }
             }
         }
 
         public bool CanFilter { get; private set; }
 
-        public PersistentObject Parent { get; private set; }
+        public PersistentObject Parent { get; internal set; }
 
         public PersistentObject PersistentObject { get; private set; }
+
+        internal Query SemanticZoomOwner { get; private set; }
+
+        public bool IsSemanticZoomQuery
+        {
+            get
+            {
+                return SemanticZoomOwner != null;
+            }
+        }
 
         private int? PageSize { get { return GetProperty<int?>(); } set { SetProperty(value); } }
 
@@ -133,7 +150,20 @@ namespace Vidyano.ViewModel
 
         public QueryColumn[] Columns { get { return _Columns; } private set { SetProperty(ref _Columns, value); } }
 
-        public QueryItemsSource Items { get { return _Items; } private set { SetProperty(ref _Items, value); } }
+        public QueryItemsSource Items
+        {
+            get { return _Items; }
+            private set
+            {
+                if (SetProperty(ref _Items, value))
+                {
+                    if (SelectedItems.Count > 0)
+                        SelectedItems.Clear();
+
+                    PendingSemanicZoomTabsRefresh = true;
+                }
+            }
+        }
 
         public QueryResultItem this[int index]
         {
@@ -172,15 +202,20 @@ namespace Vidyano.ViewModel
 
         public bool IsActionsBarSticky { get { return _IsActionsBarSticky; } internal set { SetProperty(ref _IsActionsBarSticky, value && HasActions); } }
 
+        public bool IsZoomedOut { get { return GetProperty<bool>(); } internal set { SetProperty(value); } }
+
+        public bool IsZoomedIn { get { return GetProperty<bool>(); } internal set { SetProperty(value); } }
+
+        internal bool PendingSemanicZoomTabsRefresh { get; set; }
+
         #region Private Methods
 
         private void SelectedItems_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
-            if (Actions != null && Actions.Length > 0)
-                Actions.Run(a => a.Invalidate(SelectedItems.Count));
+            Actions.Run(a => a.Invalidate(SelectedItems.Count));
+            PinnedActions.Run(a => a.Invalidate(SelectedItems.Count));
 
-            if (PinnedActions != null && PinnedActions.Length > 0)
-                PinnedActions.Run(a => a.Invalidate(SelectedItems.Count));
+            IsActionsBarOpen = IsActionsBarSticky = TotalItems == 0 || SelectedItems.Count > 0 && (Actions.Any(a => a.CanExecute) || PinnedActions.Any(a => a.CanExecute));
         }
 
         private async Task<bool> SearchAsync(bool resetItems = false)
@@ -207,13 +242,17 @@ namespace Vidyano.ViewModel
                     SetResult(result);
                     return true;
                 }
-                else
-                    return false;
+            }
+            catch (Exception ex)
+            {
+                SetNotification(ex.Message);
             }
             finally
             {
                 searchCancellationTokenSource = null;
             }
+
+            return false;
         }
 
         private void SetResult(JObject result)
@@ -222,7 +261,20 @@ namespace Vidyano.ViewModel
             if (result.TryGetValue("columns", out columnsToken))
             {
                 var columns = (JArray)columnsToken;
-                Columns = columns.Select(jCol => new QueryColumn((JObject)jCol, this)).ToArray();
+                Columns = columns.Select(jCol =>
+                {
+                    var column = new QueryColumn((JObject)jCol, this);
+                    if (Columns != null)
+                    {
+                        var sourceColumn = Columns.FirstOrDefault(c => c.Name == column.Name);
+                        if (sourceColumn != null)
+                        {
+                            column.Includes = sourceColumn.Includes;
+                            column.Excludes = sourceColumn.Excludes;
+                        }
+                    }
+                    return column;
+                }).ToArray();
             }
             else
                 Columns = new QueryColumn[0];
@@ -247,15 +299,22 @@ namespace Vidyano.ViewModel
                 if (PageSize.HasValue && PageSize != 0)
                     queriedPages.AddRange(Enumerable.Range(startIndex / PageSize.Value, Math.Max(1, items.Length / PageSize.Value)));
             }
+
+            IsActionsBarOpen = IsActionsBarSticky = TotalItems == 0;
         }
 
         #endregion
 
         #region Public Methods
 
+        public ActionBase GetAction(string name)
+        {
+            return Actions.FirstOrDefault(a => a.definition.Name == name) ?? PinnedActions.FirstOrDefault(a => a.definition.Name == name);
+        }
+
         public async Task<QueryResultItem[]> GetItemsAsync(int skip, int top)
         {
-            if(searchingTask != null)
+            if (searchingTask != null)
                 await searchingTask;
 
             var gotItems = false;
@@ -317,6 +376,30 @@ namespace Vidyano.ViewModel
 
         #endregion
 
+        #region Internal Methods
+
+        internal async Task<PersistentObjectTabQuery[]> GetSemanticZoomTabs()
+        {
+            if (semanticZoomTabs == null || PendingSemanicZoomTabsRefresh)
+            {
+                var po = await Service.Current.ExecuteActionAsync("QueryFilter.SemanticZoom", Parent, this);
+                if (po != null)
+                {
+                    po.Queries.Run(q =>
+                    {
+                        q.Parent = Parent;
+                        q.SemanticZoomOwner = this;
+                    });
+                    PendingSemanicZoomTabsRefresh = false;
+                    semanticZoomTabs = po.Tabs.OfType<PersistentObjectTabQuery>().ToArray();
+                }
+            }
+
+            return semanticZoomTabs;
+        }
+
+        #endregion
+
         #region IEnumerable<QueryResultItem>
 
         IEnumerator<QueryResultItem> IEnumerable<QueryResultItem>.GetEnumerator()
@@ -351,7 +434,7 @@ namespace Vidyano.ViewModel
                 jObj["persistentObject"] = PersistentObject.ToServiceObject();
 
             if (Columns != null)
-                jObj["column"] = JArray.FromObject(Columns.Select(col => col.ToServiceObject()));
+                jObj["columns"] = JArray.FromObject(Columns.Select(col => col.ToServiceObject()));
 
             return jObj;
         }

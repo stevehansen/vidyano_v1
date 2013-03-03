@@ -59,11 +59,12 @@ namespace Vidyano.View.Controls
             arranges.Clear();
 
             // Remove previous added attribute group children
-            Children.OfType<ContentControl>().Where(cc => cc.Content is PersistentObjectAttributeGroup).Run(c => Children.Remove(c));
-
-            // DataContext is not always guaranteed
-            if (!Children.OfType<FrameworkElement>().All(c => c.DataContext is PersistentObjectAttribute))
-                return new Size(0d, 0d);
+            var nonAttributeChild = Children.OfType<FrameworkElement>().FirstOrDefault(fe => !(fe.DataContext is PersistentObjectAttribute));
+            while (nonAttributeChild != null)
+            {
+                Children.Remove(nonAttributeChild);
+                nonAttributeChild = Children.OfType<FrameworkElement>().FirstOrDefault(fe => !(fe.DataContext is PersistentObjectAttribute));
+            }
 
             // Determine visible attributes, make sure others are hidden
             var attributes = Children.OfType<FrameworkElement>().Select(c => Tuple.Create<FrameworkElement, PersistentObjectAttribute>(c, (PersistentObjectAttribute)c.DataContext)).Where(attr =>
@@ -154,7 +155,7 @@ namespace Vidyano.View.Controls
                     maxWidth += Math.Min(availableSize.Width, Math.Max(MinAttributeWidth, colWidth));
                 });
 
-            return new Size(maxWidth, maxTop);
+            return new Size(maxWidth + HorizontalSpacing, maxTop);
         }
     }
 }

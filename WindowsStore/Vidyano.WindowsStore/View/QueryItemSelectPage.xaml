@@ -19,7 +19,7 @@
             <RowDefinition Height="120" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="{StaticResource ApplicationAccentBackgroundBrush}">
+        <Border Grid.Row="0" Background="{StaticResource ApplicationAccentBrush}">
             <TextBlock Text="{Binding Lookup.Label}" IsHitTestVisible="false" Style="{StaticResource PageHeaderTextStyle}" Foreground="{StaticResource ApplicationForegroundToBackgroundBrush}" Margin="120, 0, 30, 20" x:Name="pageTitle" />
         </Border>
         <Border Grid.Row="1">
@@ -32,19 +32,13 @@
                     Grid.RowSpan="2"
                     ItemTemplateSelector="{StaticResource queryItemTemplateSelector}"
                     ItemsSource="{Binding Lookup.Items}"
+                    ItemContainerStyle="{StaticResource queryGridViewItemStyle}"
                     SelectionMode="Single"
                     IncrementalLoadingTrigger="Edge"
                     DataFetchSize="1"
                     vi:QueryEx.AutoLoadItemsAsync="True"
                     vi:QueryEx.SyncSelectedItems="True"
                     Padding="116,46,116,46">
-
-                    <GridView.ItemContainerStyle>
-                        <Style TargetType="GridViewItem">
-                            <Setter Property="Background" Value="{StaticResource QueryItemBackgroundBrush}" />
-                            <Setter Property="Foreground" Value="{StaticResource QueryItemForegroundBrush}" />
-                        </Style>
-                    </GridView.ItemContainerStyle>
 
                     <GridView.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -65,6 +59,7 @@
                     Visibility="Collapsed"
                     ItemsSource="{Binding Lookup.Items}"
                     ItemTemplateSelector="{StaticResource queryItemTemplateSelector}"
+                    ItemContainerStyle="{StaticResource queryListViewItemStyle}"
                     IncrementalLoadingTrigger="Edge"
                     vi:QueryEx.AutoLoadItemsAsync="True"
                     SelectionMode="Single">
@@ -74,17 +69,10 @@
                             <EntranceThemeTransition />
                         </TransitionCollection>
                     </ListView.Transitions>
-
-                    <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem">
-                            <Setter Property="Background" Value="{StaticResource QueryItemBackgroundBrush}" />
-                            <Setter Property="Foreground" Value="{StaticResource QueryItemForegroundBrush}" />
-                        </Style>
-                    </ListView.ItemContainerStyle>
                 </ListView>
             </Grid>
         </Border>
-        <Border Grid.Row="2" Background="{StaticResource ApplicationAccentBackgroundBrush}">
+        <Border Grid.Row="2" Background="{StaticResource ApplicationAccentBrush}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -114,7 +102,7 @@
                     </ListView.ItemContainerTransitions>
                     
                     <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem">
+                        <Style TargetType="ListViewItem" BasedOn="{StaticResource queryListViewItemStyle}">
                             <Setter Property="VerticalAlignment" Value="Center" />
                             <Setter Property="VerticalContentAlignment" Value="Center" />
                             <Setter Property="Background" Value="{StaticResource QueryItemBackgroundBrush}" />

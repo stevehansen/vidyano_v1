@@ -2,6 +2,9 @@
            xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
            xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
            xmlns:vi="using:Vidyano"
+           xmlns:viView="using:Vidyano.View"
+           xmlns:viCommon="using:Vidyano.View.Common"
+           
            RequestedTheme="Light">
 
     <vi:Client.Resources>
@@ -18,8 +21,6 @@
             
             * AppName: 
                 Is used as the application name on the Home Page and in the Info flyout. (e.g.: My Vidyano Application)
-            * AppSpecificPersistentObjects:
-                Contains a semicolon seperated list of Persistent Object Type's that should only be shown in the Windows Store client. (e.g.: Customer;Product)
             * DefaultUserName:
                 Can be used to specify a default user name that should be used to log into the application. (e.g.: user)
             * DefaultPassword:
@@ -39,10 +40,11 @@
 
             <vi:Settings x:Key="⚙"
                          AppName="Vidyano Windows Store Sample"
-                         AppSpecificPersistentObjects=""
                          NormalActionsAlignment="Right"
                          DefaultUserName="demo"
                          DefaultPassword="demo"
+                         ProgramUnitItemImage="/Assets/ProgramUnitItem.png"
+                         CompanyLogo="/Assets/CompanyLogo.png"
                          >
 
                 <!--  Custom Settings Flyouts  -->
@@ -53,7 +55,7 @@
                             <ScrollViewer VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled" HorizontalScrollMode="Disabled">
                                 <RichTextBlock FontFamily="Segoe UI" FontSize="14" Padding="20, 20, 20, 0">
                                     <Paragraph>
-                                        <Bold Foreground="{StaticResource ApplicationAccentForegroundBrush}" FontSize="18">PRIVACY POLICY</Bold>
+                                        <Bold Foreground="{StaticResource ApplicationAccentBrush}" FontSize="18">PRIVACY POLICY</Bold>
                                         <LineBreak />
                                     </Paragraph>
                                     <Paragraph>
@@ -102,61 +104,95 @@
 
             <!--  Custom Templates  -->
 
-            <vi:CustomTemplates x:Key="ProgramUnitItems">
-                <vi:CustomTemplates.Templates>
-                    <DataTemplate x:Key="Customers">
-                        <Border Background="Red">
-                            <TextBlock Text="" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        </Border>
-                    </DataTemplate>
-                    <DataTemplate x:Key="Products">
-                        <Border Background="{StaticResource ProgramUnitItemBackgroundBrush}">
-                            <TextBlock Text="🚲" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                        </Border>
-                    </DataTemplate>
-                </vi:CustomTemplates.Templates>
-            </vi:CustomTemplates>
+            <DataTemplate x:Key="ProgramUnitItemTemplate.Customers">
+                <TextBlock Text="" />
+            </DataTemplate>
+            <DataTemplate x:Key="ProgramUnitItemTemplate.Products">
+                <Path Data="M0,19.599001L64,19.599001 64,63.225 0,63.225z M36.098,0L52.15377,0 64,11.737 36.098,11.737z M11.959515,0L28.014,0 28.014,11.737 0,11.737z" Stretch="Uniform" Fill="#FFFFFFFF" Width="96" Height="96" Margin="0,0,0,0" RenderTransformOrigin="0.5,0.5" />
+            </DataTemplate>
+            <DataTemplate x:Key="ProgramUnitItemTemplate.Pei">
+                <Path Data="M13.958583,24.422L16.442997,24.422C17.933706,25.484518,19.638317,26.243532,21.458628,26.711039L24.260645,30.713706C24.327045,30.782708,24.414345,30.817809,24.492447,30.867411L20.11072,40.341469C19.866117,40.760777,19.777418,41.211285,20.11072,41.54199L24.526247,45.956165C24.85965,46.29077,25.394651,46.29077,25.727953,45.956165L30.143478,41.54199C30.472881,41.211285,30.472881,40.673475,30.143478,40.341469L25.763355,30.867411C25.844055,30.817809,25.923254,30.782708,25.993855,30.713706L28.794373,26.711039C30.616182,26.243532,32.316589,25.484518,33.810303,24.422L36.294418,24.422C44.002964,24.422,50.253002,30.673306,50.253002,38.380437L50.253002,40.232069 50.253002,43.880529 50.253002,45.323353C50.253002,46.864979,49.002995,48.115,47.461182,48.115L2.7917666,48.115C1.2500074,48.115,0,46.864979,0,45.323353L0,43.880529 0,40.232069 0,38.380437C0,30.673306,6.2500372,24.422,13.958583,24.422z M25.1161,0C31.860701,0 37.327,5.4660378 37.327,12.208251 37.327,18.958224 31.860701,24.423001 25.1161,24.423001 18.3713,24.423001 12.905001,18.958224 12.905001,12.208251 12.905001,5.4660378 18.3713,0 25.1161,0z" Stretch="Uniform" Fill="#FFFFFFFF" Width="96" Height="96" Margin="0,0,0,0" RenderTransformOrigin="0.5,0.5" />
+            </DataTemplate>
 
-            <vi:CustomTemplates x:Key="QueryItems">
-                <vi:CustomTemplates.Templates>
-                    <DataTemplate x:Key="Customer">
-                        <Border Width="310" Padding="12, 24">
-                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
-                                <TextBlock FontFamily="{StaticResource SymbolThemeFontFamily}"
+            <DataTemplate x:Key="QueryItemTemplate.Customer">
+                <Border Padding="12">
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <TextBlock FontFamily="{StaticResource SymbolThemeFontFamily}"
                                            FontSize="42"
                                            Text="" />
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition />
-                                        <RowDefinition />
-                                    </Grid.RowDefinitions>
-                                    <StackPanel Margin="12, 0, 0, 0" Orientation="Horizontal">
-                                        <TextBlock FontSize="20" Text="{Binding [FirstName]}" />
-                                        <TextBlock Margin="12, 0, 0, 0"
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <StackPanel Margin="12, 0, 0, 0" Orientation="Horizontal">
+                                <TextBlock FontSize="20" Text="{Binding [FirstName]}" />
+                                <TextBlock Margin="12, 0, 0, 0"
                                                    FontSize="20"
                                                    Text="{Binding [LastName]}" />
-                                    </StackPanel>
-                                    <TextBlock Grid.Row="1"
+                            </StackPanel>
+                            <TextBlock Grid.Row="1"
                                                Margin="12, 0, 0, 0"
                                                FontSize="16"
                                                Opacity="0.7"
+                                               Foreground="{StaticResource ApplicationContrastBrush}"
                                                Text="{Binding [CompanyName]}" />
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </vi:CustomTemplates.Templates>
-            </vi:CustomTemplates>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+            <DataTemplate x:Key="QueryItemTemplate.Product">
+                <Border Width="320" Padding="12">
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <Image Source="{Binding [Photo]}" Stretch="Uniform" Height="48" Width="48" />
+                        <StackPanel>
+                            <TextBlock Margin="12, 0, 0, 0"
+                                                   FontSize="20"
+                                                   Text="{Binding [Name]}" />
+                            <TextBlock 
+                                               Margin="12, 0, 0, 0"
+                                               FontSize="16"
+                                               Opacity="0.7"
+                                               Foreground="Red"
+                                               Text="{Binding [ListPrice], Converter={StaticResource stringFormatConverter}, ConverterParameter='${0:N2}'}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
 
-            <!--
-                <vi:CustomTemplates x:Key="PersistentObjects">
-                <vi:CustomTemplates.Templates>
-                <DataTemplate x:Key="Customer_Tab[0]">
-                <TextBlock Text="{Binding [FirstName].Value}" />
-                </DataTemplate>
-                </vi:CustomTemplates.Templates>
-                </vi:CustomTemplates>
-            -->
+            <DataTemplate x:Key="QueryTemplate.Customer">
+                <Grid Margin="116,136,116,96">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.5*" />
+                        <ColumnDefinition Width="0.5*" />
+                    </Grid.ColumnDefinitions>
+
+                    <ListView AutomationProperties.AutomationId="ItemsGridView"
+                                      AutomationProperties.Name="Items"
+                                      DataFetchSize="1"
+                                      IncrementalLoadingTrigger="Edge"
+                                      IsItemClickEnabled="True"
+                                      ItemContainerStyle="{StaticResource queryListViewItemStyle}"
+                                      ItemTemplateSelector="{StaticResource queryItemTemplateSelector}"
+                                      ItemsSource="{Binding Query.Items}"
+                                      SelectionMode="Extended"
+                                      TabIndex="1"
+                                      Padding="0, 0, 20, 0"
+                                      viView:QueryEx.AutoLoadItemsAsync="True"
+                                      viView:QueryEx.SyncSelectedItems="True">
+
+                        <viCommon:Events.Bindings>
+                            <viCommon:EventBindingCollection>
+                                <viCommon:EventBinding Event="ItemClick" Method="QueryResultItemClick" />
+                            </viCommon:EventBindingCollection>
+                        </viCommon:Events.Bindings>
+                    </ListView>
+
+                    <Border Padding="12, 0, 0, 0" Grid.Column="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                        <WebView Source="http://www.vidyano.com" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+                    </Border>
+                </Grid>
+            </DataTemplate>
 
             <!--  ================  -->
 

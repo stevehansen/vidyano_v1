@@ -14,21 +14,21 @@ namespace Vidyano.View.TemplateSelectors
     {
         protected override Windows.UI.Xaml.DataTemplate SelectTemplateCore(object obj, Windows.UI.Xaml.DependencyObject container)
         {
-            DataTemplate template = null;
+            object template = null;
             var tab = (PersistentObjectTab)obj;
 
             if (tab != null)
             {
-                if (!((Client)Client.Current).CustomTemplates[CustomTemplates.Type.PersistentObjects].Templates.TryGetValue(string.Format("{0}_Tab[{1}]", tab.Parent.Type, tab.Index), out template))
+                if (!Application.Current.Resources.TryGetValue(string.Format("PersistentObjectTemplate.{0}.Tab[{1}]", tab.Parent.Type, tab.Index), out template))
                 {
                     if (obj is PersistentObjectTabAttributes)
-                        template = (DataTemplate)Application.Current.Resources["PersistentObjectPageAttributeTabTemplate"];
+                        template = (DataTemplate)Application.Current.Resources["PersistentObjectTemplate.AttributeTab"];
                     else if (obj is PersistentObjectTabQuery)
-                        template = (DataTemplate)Application.Current.Resources["PersistentObjectPageQueryTabTemplate"];
+                        template = (DataTemplate)Application.Current.Resources["PersistentObjectTemplate.QueryTab"];
                 }
             }
 
-            return template ?? new DataTemplate();
+            return (DataTemplate)template ?? new DataTemplate();
         }
     }
 }

@@ -121,8 +121,12 @@ ActionBase.prototype.onExecute = function (option, continueWith, parameters) {
                 self.parent.showNotification(po.notification, po.notificationType);
             }
         }
-        else if (self.query != null && self.refreshQueryOnCompleted)
+        else if (self.query != null && self.refreshQueryOnCompleted) {
             self.query.search();
+
+            if (self.query.semanticZoomOwner != null)
+                self.query.semanticZoomOwner.search();
+        }
 
         if (continueWith != null)
             continueWith();

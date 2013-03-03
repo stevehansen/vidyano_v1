@@ -51,14 +51,14 @@
         </Grid.RowDefinitions>
 
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Grid.Row="1">
-            <ProgressRing Grid.ColumnSpan="2" Width="64" Height="64" IsActive="{Binding IsBusy, Source={StaticResource ☁}}" Foreground="White" x:Name="progress" />
+            <ProgressRing Grid.ColumnSpan="2" Width="64" Height="64" IsActive="{Binding IsBusy, Source={StaticResource ☁}}" Foreground="{StaticResource ProgressBarIndeterminateForegroundThemeBrush}" x:Name="progress" />
             
-            <TextBlock x:Name="noInternetMessageTitle" Visibility="Collapsed" Foreground="White" FontSize="24" Margin="6" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
-            <TextBlock x:Name="noInternetMessageMessage" Visibility="Collapsed" Foreground="White" FontSize="18" Margin="6" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
-            <Button Visibility="Collapsed" x:Name="tryAgain" Margin="24" Click="TryAgain_Click" HorizontalAlignment="Center" />
+            <TextBlock x:Name="noInternetMessageTitle" Visibility="Collapsed" Foreground="{StaticResource ApplicationAccentBrush}" FontSize="24" Margin="6" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
+            <TextBlock x:Name="noInternetMessageMessage" Visibility="Collapsed" Foreground="{StaticResource ApplicationAccentBrush}" FontSize="18" Margin="6" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
+            <Button Visibility="Collapsed" x:Name="tryAgain" Margin="24" Click="TryAgain_Click" HorizontalAlignment="Center" Foreground="{StaticResource ApplicationAccentBrush}" />
 
-            <TextBlock x:Name="mustBeSignedInMessage" Visibility="Collapsed" Foreground="White" FontSize="18" Margin="6" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
-            <Button Visibility="Collapsed" x:Name="signIn" Margin="24" Click="SignIn_Click" HorizontalAlignment="Center" />
+            <TextBlock x:Name="mustBeSignedInMessage" Visibility="Collapsed" Foreground="{StaticResource ApplicationAccentBrush}" FontSize="18" Margin="6" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" />
+            <Button Visibility="Collapsed" x:Name="signIn" Margin="24" Click="SignIn_Click" HorizontalAlignment="Center" Foreground="{StaticResource ApplicationAccentBrush}" />
         </StackPanel>
 
         <Grid>

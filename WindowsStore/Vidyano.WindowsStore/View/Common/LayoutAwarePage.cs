@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -13,7 +15,7 @@ using Windows.UI.Xaml.Controls;
 
 namespace Vidyano.View.Common
 {
-    public class LayoutAwarePage: Page
+    public class LayoutAwarePage : Page, INotifyPropertyChanged
     {
         private List<Control> layoutAwareControls;
         private Frame frame;
@@ -46,11 +48,14 @@ namespace Vidyano.View.Common
 
             GoBack = new GoBack();
             Navigate = new Navigate();
+            GoHome = new GoHome();
         }
 
         public ICommand GoBack { get; private set; }
 
         public ICommand Navigate { get; private set; }
+
+        public ICommand GoHome { get; private set; }
 
         #region Service Events
 
@@ -68,19 +73,6 @@ namespace Vidyano.View.Common
         #endregion
 
         #region Navigation support
-
-        /// <summary>
-        /// Invoked as an event handler to navigate backward in the page's associated
-        /// <see cref="Frame"/> until it reaches the top of the navigation stack.
-        /// </summary>
-        /// <param name="sender">Instance that triggered the event.</param>
-        /// <param name="e">Event data describing the conditions that led to the event.</param>
-        private void GoHome(object sender, RoutedEventArgs e)
-        {
-            // Use the navigation frame to return to the topmost page
-            while (frame.CanGoBack)
-                frame.GoBack();
-        }
 
         /// <summary>
         /// Invoked as an event handler to navigate forward in the navigation stack
@@ -217,6 +209,65 @@ namespace Vidyano.View.Common
                 }
             }
         }
+
+        #endregion
+
+        #region INotifyPropertyChanged
+
+        /// <summary>
+        /// Multicast event for property change notifications.
+        /// </summary>
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        /// <summary>
+        /// Checks if a property already matches a desired value.  Sets the property and
+        /// notifies listeners only when necessary.
+        /// </summary>
+        /// <typeparam name="T">Type of the property.</typeparam>
+        /// <param name="storage">Reference to a property with both getter and setter.</param>
+        /// <param name="value">Desired value for the property.</param>
+        /// <param name="propertyName">Name of the property used to notify listeners.  This
+        /// value is optional and can be provided automatically when invoked from compilers that
+        /// support CallerMemberName.</param>
+        /// <returns>True if the value was changed, false if the existing value matched the
+        /// desired value.</returns>
+        protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] String propertyName = null)
+        {
+            if (object.Equals(storage, value)) return false;
+
+            storage = value;
+            OnPropertyChanged(propertyName);
+            return true;
+        }
+
+        /// <summary>
+        /// Notifies listeners that a property value has changed.
+        /// </summary>
+        /// <param name="propertyName">Name of the property used to notify listeners.  This
+        /// value is optional and can be provided automatically when invoked from compilers
+        /// that support <see cref="CallerMemberNameAttribute"/>.</param>
+        protected async void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            try
+            {
+                PropertyChanging = propertyName;
+
+                var eventHandler = PropertyChanged;
+                if (eventHandler != null)
+                {
+                    if (this.Dispatcher == null || this.Dispatcher.HasThreadAccess)
+                        eventHandler(this, new PropertyChangedEventArgs(propertyName));
+                    else
+                        await this.Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => eventHandler(this, new PropertyChangedEventArgs(propertyName)));
+                }
+            }
+            finally
+            {
+                PropertyChanging = null;
+            }
+        }
+
+        protected string PropertyChanging { get; private set; }
 
         #endregion
     }

@@ -63,22 +63,22 @@ namespace Vidyano.View.Controls
             var poa = DataContext as PersistentObjectAttribute;
             if (poa != null)
             {
-                var name = new StringBuilder("PersistentObjectAttribute");
+                var name = new StringBuilder("PersistentObjectAttributeTemplate");
                 if (poa.Parent.IsInEdit)
                 {
-                    name.Append("_Edit");
+                    name.Append(".Edit");
 
                     if (poa.IsReadOnly)
-                        name.Append("_ReadOnly");
+                        name.Append(".ReadOnly");
                 }
 
-                ContentTemplate = GetAttributeTemplate(name.ToString() + "_{0}_{1}", poa.Parent.Type, poa.Name);
+                ContentTemplate = GetAttributeTemplate(name.ToString() + ".{0}.{1}", poa.Parent.Type, poa.Name);
 
                 if (ContentTemplate == null)
-                    ContentTemplate = GetAttributeTemplate(name.ToString() + "_{0}", poa.Type);
+                    ContentTemplate = GetAttributeTemplate(name.ToString() + ".{0}", poa.Type);
 
                 if (ContentTemplate == null)
-                    ContentTemplate = GetAttributeTemplate(name.ToString() + "_Default");
+                    ContentTemplate = GetAttributeTemplate(name.ToString() + ".Default");
             }
         }
 

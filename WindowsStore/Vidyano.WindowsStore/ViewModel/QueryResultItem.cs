@@ -31,6 +31,8 @@ namespace Vidyano.ViewModel
 
         public Query Query { get; private set; }
 
+        public bool HasValues { get { return values.HasValues; } }
+
         public object this[string key]
         {
             get
@@ -42,6 +44,17 @@ namespace Vidyano.ViewModel
                     return Service.FromServiceString((string)value["value"], column.Type);
 
                 return null;
+            }
+            set
+            {
+                var column = Query.Columns.FirstOrDefault(c => c.Name == key);
+
+                var val = values.FirstOrDefault(v => (string)v["key"] == key);
+                if (val != null)
+                {
+                    val["value"] = Service.ToServiceString(value);
+                    OnPropertyChanged("Item[]");
+                }
             }
         }
 

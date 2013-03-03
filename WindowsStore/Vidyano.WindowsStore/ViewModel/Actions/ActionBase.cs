@@ -63,11 +63,15 @@ namespace Vidyano.ViewModel.Actions
 
         public string[] Options { get; protected set; }
 
+        internal int Offset { get; private set; }
+
+        internal bool IsDependent { get; private set; }
+
         public string Icon
         {
             get
             {
-                return definition.Name + "_ActionIcon";
+                return "ActionIcon." + definition.Name;
             }
         }
 
@@ -177,7 +181,12 @@ namespace Vidyano.ViewModel.Actions
             }
 
             if (definition.RefreshQueryOnCompleted && Query != null)
+            {
                 await Query.RefreshQueryAsync();
+
+                if (Query.SemanticZoomOwner != null)
+                    await Query.SemanticZoomOwner.RefreshQueryAsync();
+            }
         }
 
         internal static ActionBase[] GetActions(JToken actionsToken, PersistentObject parent, Query query = null)
@@ -197,12 +206,17 @@ namespace Vidyano.ViewModel.Actions
                 var action = GetAction(actionDefinition.Value, parent, query);
                 if (action != null)
                 {
+                    var parentOffset = action.Offset = actions.Count;
                     actions.Add(action);
                     foreach (var dependentActionDefinition in action.DependentActions)
                     {
                         action = GetAction(dependentActionDefinition, parent, query);
                         if (action != null)
+                        {
+                            action.Offset = parentOffset;
+                            action.IsDependent = true;
                             actions.Add(action);
+                        }
                     }
                 }
             }
@@ -212,9 +226,9 @@ namespace Vidyano.ViewModel.Actions
 
         internal static ActionBase GetAction(Definition definition, PersistentObject parent, Query query = null)
         {
-            var constructor = actionConstructors.GetOrAdd(definition.Name, n =>
+            var constructor = actionConstructors.GetOrAdd(definition.Name + ";" + (query == null), n =>
                 {
-                    return (typeof(ActionBase).GetTypeInfo().Assembly.GetType("Vidyano.ViewModel.Actions." + n) ?? (query == null ? typeof(ActionBase) : typeof(QueryAction))).GetTypeInfo().DeclaredConstructors.First();
+                    return (typeof(ActionBase).GetTypeInfo().Assembly.GetType("Vidyano.ViewModel.Actions." + definition.Name) ?? (query == null ? typeof(ActionBase) : typeof(QueryAction))).GetTypeInfo().DeclaredConstructors.First();
                 });
 
             return constructor.Invoke(new object[] { definition, parent, query }) as ActionBase;
@@ -224,8 +238,8 @@ namespace Vidyano.ViewModel.Actions
         {
             if (Settings.Current.NormalActionsAlignment == Settings.NormalActionsAlignmentEnum.Right)
             {
-                leftActions = (pinndActions ?? new ActionBase[0]).OrderByDescending(a => a.definition.Offset).ToArray();
-                rightActions = (normalActions ?? new ActionBase[0]).OrderByDescending(a => a.definition.Offset).ToArray();
+                leftActions = (pinndActions ?? new ActionBase[0]).OrderByDescending(a => a.Offset).ThenBy(a => a.IsDependent).ToArray();
+                rightActions = (normalActions ?? new ActionBase[0]).OrderByDescending(a => a.Offset).ThenBy(a => a.IsDependent).ToArray();
             }
             else
             {

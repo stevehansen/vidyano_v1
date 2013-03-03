@@ -63,6 +63,7 @@ function Query(query, parent, asLookup) {
     });
     query.totalItem = null;
     query.hasTotalItem = false;
+    query.semanticZoomOwner = null;
 
     /// <field name="columns" type="Array" elementType="QueryColumn">Contains the columns for this instance.</field>
     query.updateColumns(query.columns);
@@ -77,9 +78,12 @@ function Query(query, parent, asLookup) {
 
     if (!query.isSystem) {
         var onPo = app.onPersistentObject[query.persistentObject.type];
-        if (onPo != null && onPo.receiveQuery != null) {
+        if (onPo != null) {
             try {
-                onPo.receiveQuery(query);
+                if (onPo.onConstructQuery != null)
+                    onPo.onConstructQuery(query);
+                else if (onPo.receiveQuery != null)
+                    onPo.receiveQuery(query);
             }
             catch (e) {
                 app.showException(e.message || e);
@@ -123,12 +127,12 @@ Query.prototype.getItems = function (start, length, onComplete, onError) {
     var self = this;
     if (!this.hasSearched) {
         // NOTE: Don't know totalItems yet, call normal search first
-        this.search(function() {
+        this.search(function () {
             self.getItems(start, length, onComplete, onError);
         }, onError);
         return;
     }
-    
+
     if (this.totalItems >= 0) {
         if (start > this.totalItems)
             start = this.totalItems;
@@ -308,7 +312,7 @@ Query.prototype.search = function (onCompleted, onError, skipSpin) {
 
             var oldOnCompleted = onCompleted;
             var oldOnError = onError;
-            
+
             var q = this;
             onCompleted = function (result) {
                 q.spinnerTarget.spin(false);
@@ -316,7 +320,7 @@ Query.prototype.search = function (onCompleted, onError, skipSpin) {
                 if (oldOnCompleted != null)
                     oldOnCompleted(result);
             };
-            onError = function(e) {
+            onError = function (e) {
                 q.spinnerTarget.spin(false);
 
                 if (oldOnError != null)
@@ -341,6 +345,22 @@ Query.prototype.selectNone = function () {
     /// <summary>Selects no items in the Query.</summary>
 
     this.items.selectedItems([]);
+};
+
+Query.prototype.semanticZoom = function () {
+    var self = this;
+    var parent = this.parent;
+    app.gateway.executeAction("QueryFilter.SemanticZoom", parent, this, null, null, function (result) {
+        if (result != null) {
+            if (result.queries != null)
+                result.queries.run(function (q) {
+                    q.parent = parent;
+                    q.semanticZoomOwner = self;
+                });
+
+            app.openPersistentObject(result, true);
+        }
+    });
 };
 
 Query.prototype.setResult = function (result) {

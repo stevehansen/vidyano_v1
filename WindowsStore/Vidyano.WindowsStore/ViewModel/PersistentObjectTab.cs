@@ -16,7 +16,6 @@ namespace Vidyano.ViewModel
         {
             Title = title;
             Parent = parent;
-            ShowLabel = true;
 
             Navigate = new Commands.Navigate();
         }
@@ -30,7 +29,5 @@ namespace Vidyano.ViewModel
         public PersistentObject Parent { get; private set; }
 
         internal int Index { get; set; }
-
-        public bool ShowLabel { get; internal set; }
     }
 }

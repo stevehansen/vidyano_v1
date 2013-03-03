@@ -45,6 +45,18 @@ function PersistentObject(po) {
 
     po._initialize();
 
+    if (!po.isSystem) {
+        var onPo = app.onPersistentObject[po.type];
+        if (onPo != null && onPo.onConstruct != null) {
+            try {
+                onPo.onConstruct(po);
+            }
+            catch (e) {
+                app.showException(e.message || e);
+            }
+        }
+    }
+
     return po;
 }
 
@@ -98,8 +110,8 @@ PersistentObject.prototype.editMode = function (val) {
                 endEdit.isVisible(false);
 
             if (this.target != null) {
-                this.target.find("select").editableSelectInstances().run(function(es) {
-                    if (es != null && typeof(es.hideList) == "function")
+                this.target.find("select").editableSelectInstances().run(function (es) {
+                    if (es != null && typeof (es.hideList) == "function")
                         es.hideList();
                 });
             }
@@ -131,7 +143,7 @@ PersistentObject.prototype.getDynamicColumCount = function (attributesTarget) {
 
     if ($.mobile)
         return 1;
-    
+
     var selectedItem = this.tabs != null ? this.tabs.selectedItem() : null;
     if (selectedItem != null && selectedItem.columnCount != null && selectedItem.columnCount != 0)
         return selectedItem.columnCount;
@@ -242,7 +254,6 @@ PersistentObject.prototype.refreshFromResult = function (result) {
                 this.target.find(".resultTitle").text(this.breadcrumb);
         }
 
-        this.showNotification(result.notification, result.notificationType);
         this.isDirty(this.attributes.where(function (attr) { return attr.isValueChanged; }).length > 0);
 
         if (result.queriesToRefresh != null && this.queries != null) {
@@ -259,6 +270,7 @@ PersistentObject.prototype.refreshFromResult = function (result) {
             if (targetFocus != null)
                 targetFocus.focus();
         }
+        this.showNotification(result.notification, result.notificationType);
     }
 };
 
@@ -324,6 +336,9 @@ PersistentObject.prototype.open = function (target) {
 
         if (!this.isMasterDetail())
             this.target.find(".persistentObjectNavigationContainer").autoSizePanel([persistenObjectNavigationAttributes, persistenObjectNavigationQueries], 1);
+
+        if (this.isHidden)
+            this.target.find(".resultPanel").addClass("noPersistentObjectActions");
 
         if (this.tabs.length == 1 && this.queries.length == 0) {
             this.target.find(".resultPanel").addClass("noNavigation");
@@ -561,8 +576,12 @@ PersistentObject.prototype.save = function (onCompleted, onError) {
                         });
                     }
                 }
-                else if (self.ownerQuery != null)
+                else if (self.ownerQuery != null) {
                     self.ownerQuery.search();
+
+                    if (self.ownerQuery.semanticZoomOwner != null)
+                        self.ownerQuery.semanticZoomOwner.search();
+                }
             }
 
             self.showNotification(self.notification, self.notificationType);
@@ -808,11 +827,13 @@ PersistentObject.prototype._updateAttributes = function (attrs, requiresRerender
         var tab = this.tabs.selectedItem();
         if (!isNullOrEmpty(tab.newTemplateKey) && this.isNew == true) {
             container.empty();
+            container.append($("<div class='notificationTarget'></div>"));
             this._showTabWithTemplate(tab.newTemplateKey, container);
             this._attributeRender(container);
         }
         else if (!isNullOrEmpty(tab.templateKey)) {
             container.empty();
+            container.append($("<div class='notificationTarget'></div>"));
             this._showTabWithTemplate(tab.templateKey, container);
             this._attributeRender(container);
         }
@@ -883,7 +904,7 @@ PersistentObject.prototype._showAttributes = function () {
     var tab = this.tabs.selectedItem();
     if (typeof (tab.newTemplateKey) != "undefined" && this.isNew == true) {
         this._showTabWithTemplate(tab.newTemplateKey, selectedTabContainer);
-    } else if (typeof (tab.templateKey) != "undefined") {
+    } else if (typeof (tab.templateKey) != "undefined" && this.isNew == false) {
         this._showTabWithTemplate(tab.templateKey, selectedTabContainer);
     } else {
         var columnCount = $.mobile ? 1 : parseInt(tab.columnCount, 10);
@@ -989,7 +1010,7 @@ PersistentObject.prototype._attributeRender = function (container) {
     this._postAttributeRender(container);
 };
 
-PersistentObject.prototype._focusFirstAttribute = function(container) {
+PersistentObject.prototype._focusFirstAttribute = function (container) {
     if (this.inEdit) {
         var elementToFocus = container.find(":focusable").filter(':first');
         if (elementToFocus.length > 0) {
@@ -1038,7 +1059,7 @@ PersistentObject.prototype._postPersistentObjectRender = function (container, fo
     container.find('#weekScheduledPlaceHolder').weekScheduler();
     container.find('#browseCertificate').vidyanoBrowseCertificate();
 
-    if(focusFirstElement)
+    if (focusFirstElement)
         this._focusFirstAttribute(container);
 
     var code = app.code[this.id];

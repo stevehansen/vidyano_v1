@@ -53,7 +53,7 @@ namespace Vidyano.Common
                 var eventHandler = PropertyChanged;
                 if (eventHandler != null)
                 {
-                    if (UIDispatcher.HasThreadAccess)
+                    if (UIDispatcher == null || UIDispatcher.HasThreadAccess)
                         eventHandler(this, new PropertyChangedEventArgs(propertyName));
                     else
                         await UIDispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => eventHandler(this, new PropertyChangedEventArgs(propertyName)));

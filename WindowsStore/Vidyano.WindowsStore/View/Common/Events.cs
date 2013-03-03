@@ -99,7 +99,7 @@ namespace Vidyano.View.Common
                 eventBinding.removeMethod = removeMethod;
             }
 
-            WindowsRuntimeMarshal.AddEventHandler<T>((Func <T, EventRegistrationToken>)eventBinding.addMethod, (Action<EventRegistrationToken>)eventBinding.removeMethod, (T)eventBinding.handler);
+            WindowsRuntimeMarshal.AddEventHandler<T>((Func<T, EventRegistrationToken>)eventBinding.addMethod, (Action<EventRegistrationToken>)eventBinding.removeMethod, (T)eventBinding.handler);
         }
 
         public static void RemoveHandler<T>(DependencyObject d, EventBinding eventBinding, EventInfo runtimeEvent)
@@ -135,9 +135,15 @@ namespace Vidyano.View.Common
             var fe = sender as FrameworkElement;
             if (fe != null && fe.DataContext != null)
             {
-                var targetMethod = fe.DataContext.GetType().GetRuntimeMethod(Method, new[] { typeof(object), typeof(T) });
-                if(targetMethod != null)
-                    targetMethod.Invoke(fe.DataContext, new [] { sender, e });
+                var methods = fe.DataContext.GetType().GetRuntimeMethods();
+                var targetMethod = methods.Where(m => m.Name == Method).FirstOrDefault(m =>
+                {
+                    var parameters = m.GetParameters();
+                    return parameters != null && parameters.Length == 2 && parameters[0].ParameterType == typeof(object) && parameters[1].ParameterType == typeof(T);
+                });
+
+                if (targetMethod != null)
+                    targetMethod.Invoke(fe.DataContext, new[] { sender, e });
             }
         }
     }

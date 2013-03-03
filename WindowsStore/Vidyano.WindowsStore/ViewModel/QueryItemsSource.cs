@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using System.Text;
 using System.Threading.Tasks;
 using Windows.UI.Xaml.Data;
 
@@ -14,10 +10,9 @@ namespace Vidyano.ViewModel
         internal QueryItemsSource(Query query)
         {
             Query = query;
+
             foreach (var item in query)
-            {
                 Add(item);
-            }
         }
 
         public Query Query { get; private set; }
@@ -26,7 +21,7 @@ namespace Vidyano.ViewModel
         {
             get
             {
-                return Count < Query.TotalItems || !Query.HasSearched;
+                return (!Query.HasNotification || Query.NotificationType != NotificationType.Error) && (Count < Query.TotalItems || !Query.HasSearched);
             }
         }
 
@@ -34,10 +29,11 @@ namespace Vidyano.ViewModel
         {
             return Query.GetItemsAsync(Count, (int)count).ContinueWith(t =>
             {
-                for (int i = 0; i < t.Result.Length; i++)
-                {
-                    Add(t.Result[i]);
-                }
+                if (t.Exception != null)
+                    return new LoadMoreItemsResult { Count = 0 };
+
+                foreach (var item in t.Result)
+                    Add(item);
 
                 return new LoadMoreItemsResult { Count = (uint)t.Result.Length };
             }, TaskScheduler.FromCurrentSynchronizationContext()).AsAsyncOperation();

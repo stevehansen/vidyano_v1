@@ -11,7 +11,7 @@ namespace Vidyano
     public class Settings : NotifyableBase
     {
         private static Settings _Current;
-        private string _AppName, _DefaultUserName, _DefaultPassword, _AppSpecificPersistentObjects, _StartupPageArgument;
+        private string _AppName, _ProgramUnitItemImage, _CompanyLogo, _DefaultUserName, _DefaultPassword, _StartupPageArgument;
         private bool _UseLiveConnect;
         private List<SettingsFlyout> _Flyouts;
         private NormalActionsAlignmentEnum _NormalActionsAlignment = NormalActionsAlignmentEnum.Right;
@@ -28,7 +28,9 @@ namespace Vidyano
 
         public string AppName { get { return _AppName; } set { SetProperty(ref _AppName, value); } }
 
-        public string AppSpecificPersistentObjects { get { return _AppSpecificPersistentObjects; } set { SetProperty(ref _AppSpecificPersistentObjects, value); } }
+        public string ProgramUnitItemImage { get { return _ProgramUnitItemImage; } set { SetProperty(ref _ProgramUnitItemImage, value); } }
+
+        public string CompanyLogo { get { return _CompanyLogo; } set { SetProperty(ref _CompanyLogo, value); } }
 
         public string DefaultUserName { get { return _DefaultUserName; } set { SetProperty(ref _DefaultUserName, value); } }
 

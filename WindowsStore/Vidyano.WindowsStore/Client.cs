@@ -29,17 +29,23 @@ namespace Vidyano
             this.UnhandledException += OnUnhandledException;
         }
 
+        public static Client CurrentClient
+        {
+            get
+            {
+                return (Client)Client.Current;
+            }
+        }
+
         public Service Service { get; private set; }
 
         internal CoreDispatcher Dispatcher { get; private set; }
 
         internal string GlobalSearchQueryText { get; private set; }
 
-        protected internal Hooks Hooks { get; set; }
+        public Hooks Hooks { get; protected set; }
 
         internal bool HasSearch { get; private set; }
-
-        internal IReadOnlyDictionary<CustomTemplates.Type, CustomTemplates> CustomTemplates { get; private set; }
 
         protected override async void OnLaunched(LaunchActivatedEventArgs args)
         {
@@ -48,26 +54,11 @@ namespace Vidyano
             await Initialize(args);
         }
 
-        private CustomTemplates GetCustomTemplates(Vidyano.CustomTemplates.Type type)
-        {
-            object resource;
-            Resources.TryGetValue(type.ToString(), out resource);
-
-            var templates = resource as Vidyano.CustomTemplates;
-            return templates != null ? templates : new Vidyano.CustomTemplates();
-        }
-
         private async Task Initialize(IActivatedEventArgs args)
         {
             Service = (Service)Resources["☁"];
             if (Service == null)
                 throw new Exception("Failed to locate Service resource.");
-
-            var customTemplates = new Dictionary<CustomTemplates.Type, CustomTemplates>();
-            customTemplates[Vidyano.CustomTemplates.Type.ProgramUnitItems] = GetCustomTemplates(Vidyano.CustomTemplates.Type.ProgramUnitItems);
-            customTemplates[Vidyano.CustomTemplates.Type.QueryItems] = GetCustomTemplates(Vidyano.CustomTemplates.Type.QueryItems);
-            customTemplates[Vidyano.CustomTemplates.Type.PersistentObjects] = GetCustomTemplates(Vidyano.CustomTemplates.Type.PersistentObjects);
-            CustomTemplates = new System.Collections.ObjectModel.ReadOnlyDictionary<CustomTemplates.Type, CustomTemplates>(customTemplates);
 
             NotifyableBase.UIDispatcher = Window.Current.Dispatcher;
             var rootFrame = Window.Current.Content as Frame;
@@ -163,7 +154,7 @@ namespace Vidyano
                 {
                     if (queryPage != null)
                         await queryPage.Query.SearchTextAsync(text);
-                    else if(queryItemSelectPage != null)
+                    else if (queryItemSelectPage != null)
                         await queryItemSelectPage.Lookup.SearchTextAsync(text);
                 }
             }

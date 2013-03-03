@@ -11,7 +11,7 @@
 function ServiceGateway(serviceUri) {
     this.serviceUri = serviceUri;
 
-    this._createData = function() {
+    this._createData = function () {
         var data = {
             userName: app.userName,
             authToken: app.getAuthToken(),
@@ -19,7 +19,7 @@ function ServiceGateway(serviceUri) {
 
         if (app.session != null)
             data.session = app.session.toServiceObject();
-        
+
         if (app.settings.applicationSpecificPersistentObjects != null)
             data.applicationSpecificPersistentObjects = app.settings.applicationSpecificPersistentObjects;
 
@@ -31,11 +31,11 @@ function ServiceGateway(serviceUri) {
 
         if (app.uniqueId != null)
             data.uniqueId = app.uniqueId;
-        
+
         return data;
     };
 
-    this._createUri = function(method) {
+    this._createUri = function (method) {
         var uri = this.serviceUri;
         if (!isNullOrEmpty(uri) && !uri.endsWith('/'))
             uri += '/';
@@ -106,7 +106,7 @@ function ServiceGateway(serviceUri) {
         if (query != null)
             data.query = query.toServiceObject();
         if (selectedItems != null)
-            data.selectedItems = selectedItems.select(function(si) { return si.toServiceObject(); });
+            data.selectedItems = selectedItems.select(function (si) { return si.toServiceObject(); });
         if (parameters != null)
             data.parameters = parameters;
 
@@ -122,7 +122,7 @@ function ServiceGateway(serviceUri) {
             else {
                 if (typeof (onError) == "function")
                     onError(result.exception);
-                else 
+                else
                     (query != null ? query : parent).showNotification(result.exception, "Error");
             }
         };
@@ -271,8 +271,17 @@ function ServiceGateway(serviceUri) {
                 var newPo = new PersistentObject(result.result);
                 if (!newPo.isSystem) {
                     var onPo = app.onPersistentObject[newPo.type];
-                    if (onPo != null && onPo.receive != null)
-                        onPo.receive(newPo);
+                    if (onPo != null) {
+                        try {
+                            if (onPo.onReceive != null)
+                                onPo.onReceive(newPo);
+                            else if (onPo.receive != null)
+                                onPo.receive(newPo);
+                        }
+                        catch (e) {
+                            app.showException(e.message || e);
+                        }
+                    }
                 }
 
                 if (typeof (onCompleted) == "function")
@@ -295,7 +304,7 @@ function ServiceGateway(serviceUri) {
             data.userName = userName;
         if (data.authToken == null)
             data.password = userPass;
-        
+
         var showError = function (message) {
             app.spin(false);
             if (typeof (onError) == "function")
@@ -489,10 +498,10 @@ function ServiceGateway(serviceUri) {
         if (query != null)
             data.query = query.toServiceObject();
         if (selectedItems != null)
-            data.selectedItems = selectedItems.select(function(si) { return si.toServiceObject(); });
+            data.selectedItems = selectedItems.select(function (si) { return si.toServiceObject(); });
         if (parameters != null)
             data.parameters = parameters;
-        
+
         var name = "iframe-vidyano-download";
         var iframe = $("iframe[name='" + name + "']");
         if (iframe.length == 0) {
@@ -508,7 +517,7 @@ function ServiceGateway(serviceUri) {
         form.submit().remove();
     };
 
-    this.getLanguages = function(onCompleted, onError) {
+    this.getLanguages = function (onCompleted, onError) {
         $.support.cors = true; // Note: Allows cross domain requests
         $.crossDomain = true;
 
@@ -650,7 +659,7 @@ ServiceGateway.toServiceString = function (value, typeName) {
     else if (typeName == "Date" || typeName == "DateTime" || typeName == "NullableDate" || typeName == "NullableDateTime") {
         if (!isNullOrEmpty(value)) {
             var date = value;
-            if (typeof(date) == "string")
+            if (typeof (date) == "string")
                 date = new Date(value);
 
             return date.format("dd-MM-yyyy HH:mm:ss.fff");
@@ -677,7 +686,7 @@ ServiceGateway.toServiceString = function (value, typeName) {
     else if (typeName == "Boolean" || typeName == "YesNo" || typeName == "NullableBoolean") {
         if (value == null)
             return null;
-        
+
         if (typeof (value) == "string")
             value = Boolean.parse(value);
 

@@ -600,6 +600,9 @@
                 }
             }
             else {
+                if (!attribute.isRequired && attribute.type != "Enum" && (attribute.options == null || !attribute.options.contains(null)))
+                    select.append("<option" + (attribute.value == null ? ' selected="selected"' : "") + "></option>");
+
                 attribute.options.run(function (option) {
                     select.append("<option" + (attribute.value == option ? ' selected="selected"' : "") + ">" + option + "</option>");
                 });

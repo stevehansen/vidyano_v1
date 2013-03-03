@@ -36,7 +36,7 @@ namespace Vidyano
 
             // Send Email
             if (!attr.Parent.IsInEdit && !string.IsNullOrEmpty(attr.DisplayValue) &&
-                DataTypes.Text.Contains(attr.Type) && attr.Rules.Contains("IsValidEmail"))
+                DataTypes.Text.Contains(attr.Type) && (attr.Rules.Contains("IsEmail") || attr.Rules.Contains("IsValidEmail")))
             {
                 args.Commands.Add(new UICommand(Service.Current.Messages["SendEmail"], async _ =>
                     {
@@ -322,7 +322,7 @@ namespace Vidyano
 
         #region Notifications
 
-        protected internal virtual async void ShowNotification(string notification, NotificationType notificationType, bool asDialog = false)
+        public virtual async void ShowNotification(string notification, NotificationType notificationType, bool asDialog = false)
         {
             var notifier = ToastNotificationManager.CreateToastNotifier();
             if (!asDialog && notifier.Setting == NotificationSetting.Enabled && Service.Current != null)
@@ -368,7 +368,7 @@ namespace Vidyano
                     await dialog.ShowAsync();
                 });
 
-                if (Service.UIDispatcher.HasThreadAccess)
+                if (Service.UIDispatcher == null || Service.UIDispatcher.HasThreadAccess)
                     showDialog();
                 else
                     await Service.UIDispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler(showDialog));
@@ -377,7 +377,11 @@ namespace Vidyano
 
         #endregion
 
-        internal static void OnSettingsCommandsRequested(IList<SettingsCommand> commands)
+        #region SettingsPane
+
+        public event EventHandler<bool> SettingsVisibilityChanged = delegate { };
+
+        protected internal virtual void OnSettingsCommandsRequested(IList<SettingsCommand> commands)
         {
             if (Service.Current.IsConnected)
             {
@@ -406,9 +410,58 @@ namespace Vidyano
                         popup.SetValue(Canvas.LeftProperty, (Window.Current.Content as Frame).ActualWidth - SettingsPage.PaneWidth);
                         popup.SetValue(Canvas.TopProperty, 0);
 
+                        popup.Opened += (_, __) => ((Client)Client.Current).Hooks.SettingsVisibilityChanged(settingsPage, true);
+                        popup.Closed += (_, __) => ((Client)Client.Current).Hooks.SettingsVisibilityChanged(settingsPage, false);
+
+                        WindowActivatedEventHandler activatedHandler = null;
+                        activatedHandler = (_, e) =>
+                        {
+                            if (e.WindowActivationState == Windows.UI.Core.CoreWindowActivationState.Deactivated)
+                            {
+                                Window.Current.Activated -= activatedHandler;
+                                popup.IsOpen = false;
+                            }
+                        };
+
+                        Window.Current.Activated += activatedHandler;
+
                         popup.IsOpen = true;
                     })));
             });
         }
+
+        #endregion
+
+        #region QueryResultItemClick
+
+        protected internal virtual void OnQueryItemClicked(object sender, QueryItemClickedArgs e)
+        {
+        }
+
+        #endregion
+
+        #region Construct
+
+        protected internal virtual void OnConstruct(PersistentObject po)
+        {
+            
+        }
+
+        protected internal virtual void OnConstruct(Query query)
+        {
+
+        }
+
+        #endregion
+
+        #region ProgramUnitItems
+
+#pragma warning disable 1998
+        protected internal virtual async Task OnLoadProgramUnitItems(IList<ProgramUnitItem> items)
+        {
+        }
+#pragma warning restore 1998
+
+        #endregion
     }
 }

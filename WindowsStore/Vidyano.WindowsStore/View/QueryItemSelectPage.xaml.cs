@@ -37,7 +37,7 @@ namespace Vidyano.View
         private PersistentObjectAttributeWithReference referenceAttribute;
         private Query query;
         private SelectMode mode = SelectMode.ReferenceAttribute;
-        private string targetProgramUnit;
+        private string targetProgramUnit, targetProgramUnitGroup;
         private string previousState;
 
         public QueryItemSelectPage()
@@ -76,6 +76,7 @@ namespace Vidyano.View
             else
             {
                 targetProgramUnit = (string)key["targetProgramUnit"];
+                targetProgramUnitGroup = (string)key["targetProgramUnitGroup"];
                 Lookup = Service.Current.GetCachedObject<Query>((string)key["AdministratorAddQueriesQuery"]);
 
                 queryGridView.SelectionMode = queryListView.SelectionMode = ListViewSelectionMode.Multiple;
@@ -155,6 +156,7 @@ namespace Vidyano.View
                     {
                         var parameters = new Dictionary<string, string>();
                         parameters["Id"] = targetProgramUnit;
+                        parameters["GroupId"] = targetProgramUnitGroup;
                         var result = await Service.Current.ExecuteActionAsync("Query.AddQueriesToProgramUnit", null, Lookup, Lookup.SelectedItems.ToArray(), parameters);
                         if (result != null && !result.HasNotification)
                         {

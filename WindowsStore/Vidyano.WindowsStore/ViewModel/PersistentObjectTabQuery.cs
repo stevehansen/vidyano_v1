@@ -35,20 +35,20 @@ namespace Vidyano.ViewModel
 
         public bool IsEmpty { get { return _IsEmpty; } set { SetProperty(ref _IsEmpty, value); } }
 
-        public string FilterSearchHint
-        {
-            get
-            {
-                return String.Format(Service.Current.Messages["FilterSearchHint"], Query.Label);
-            }
-        }
-
         public Query Query { get; private set; }
 
         public async void QueryResultItemClick(object sender, ItemClickEventArgs e)
         {
             var item = e.ClickedItem as QueryResultItem;
             if (item == null)
+                return;
+
+            var clickHookArgs = new QueryItemClickedArgs(item);
+            ((Client)Client.Current).Hooks.OnQueryItemClicked(sender, clickHookArgs);
+            if (clickHookArgs.Cancel)
+                return;
+
+            if (!item.Query.CanRead)
                 return;
 
             try

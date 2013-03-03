@@ -13,9 +13,11 @@ namespace Vidyano.View
 {
     sealed partial class PersistentObjectPage
     {
-        public static readonly DependencyProperty PersistentObjectProperty = DependencyProperty.Register("PersistentObject", typeof(PersistentObject), typeof(PersistentObjectPage), new PropertyMetadata(null));
-        public static readonly DependencyProperty ActiveSnappedTabProperty = DependencyProperty.Register("ActiveSnappedTab", typeof(PersistentObjectTab), typeof(PersistentObjectPage), new PropertyMetadata(null));
         private static readonly DependencyProperty HasNotificationProperty = DependencyProperty.Register("HasNotification", typeof(bool), typeof(PersistentObjectPage), new PropertyMetadata(false, HasNotificationChanged));
+
+        private PersistentObject _PersistentObject;
+        private PersistentObjectTab _ActiveSnappedTab;
+        private ActionBase[] _LeftActions, _RightActions;
 
         public PersistentObjectPage()
         {
@@ -25,20 +27,38 @@ namespace Vidyano.View
             SetBinding(HasNotificationProperty, new Binding { Path = new PropertyPath("PersistentObject.HasNotification") });
         }
 
-        public PersistentObject PersistentObject
+        public PersistentObject PersistentObject { get { return _PersistentObject; } private set { SetProperty(ref _PersistentObject, value); } }
+
+        public PersistentObjectTab ActiveSnappedTab { get { return _ActiveSnappedTab; } private set { SetProperty(ref _ActiveSnappedTab, value); } }
+
+        public ActionBase[] LeftActions { get { return _LeftActions; } private set { SetProperty(ref _LeftActions, value); } }
+
+        public ActionBase[] RightActions { get { return _RightActions; } private set { SetProperty(ref _RightActions, value); } }
+
+        public DataTemplate PersistentObjectTemplate
         {
-            get { return (PersistentObject)GetValue(PersistentObjectProperty); }
-            set { SetValue(PersistentObjectProperty, value); }
+            get
+            {
+                object template;
+
+                if (!Application.Current.Resources.TryGetValue("PersistentObjectTemplate." + PersistentObject.Type, out template))
+                    template = (DataTemplate)Application.Current.Resources["PersistentObjectTemplate.Default"];
+
+                return (DataTemplate)template ?? new DataTemplate();
+            }
         }
 
-        public ActionBase[] LeftActions { get; private set; }
-
-        public ActionBase[] RightActions { get; private set; }
-
-        public PersistentObjectTab ActiveSnappedTab
+        public DataTemplate PersistentObjectSnappedTemplate
         {
-            get { return (PersistentObjectTab)GetValue(ActiveSnappedTabProperty); }
-            set { SetValue(ActiveSnappedTabProperty, value); }
+            get
+            {
+                object template;
+
+                if (!Application.Current.Resources.TryGetValue("PersistentObjectSnappedTemplate." + PersistentObject.Type, out template))
+                    template = (DataTemplate)Application.Current.Resources["PersistentObjectSnappedTemplate.Default"];
+
+                return (DataTemplate)template ?? new DataTemplate();
+            }
         }
 
         protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
@@ -51,8 +71,9 @@ namespace Vidyano.View
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            DataContext = this;
             PersistentObject = Service.Current.GetCachedObject<PersistentObject>(e.Parameter as string);
+
+            DataContext = this;
             ActiveSnappedTab = PersistentObject.Tabs.FirstOrDefault();
 
             ActionBase[] leftActions, rightActions;

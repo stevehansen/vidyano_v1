@@ -145,13 +145,15 @@ namespace Vidyano.View
             if (Service.Current.IsConnectedUsingDefaultCredentials)
             {
                 Service.Current.IsConnectedUsingDefaultCredentials = false;
-                if (!await LiveSignIn())
+                if (Settings.Current.UseLiveConnect)
+                    await LiveSignIn();
+                else
                     await UISignIn();
             }
 
             var connected = Service.Current.IsConnected;
             if (!connected)
-                connected = await VaultSignIn() || await DefaultCredentialsSignIn() || await LiveSignIn() || await UISignIn();
+                connected = await VaultSignIn() || await DefaultCredentialsSignIn() || (Settings.Current.UseLiveConnect ? await LiveSignIn() : await UISignIn());
 
             if (connected)
             {
@@ -244,7 +246,9 @@ namespace Vidyano.View
 
         private async Task<bool> LiveSignIn()
         {
-            if (Settings.Current.UseLiveConnect)
+            string err = null;
+
+            try
             {
                 var result = await Service.Current.LiveSignInAsync("wl.basic", "wl.emails");
                 if (result.Status == LiveConnectSessionStatus.Connected)
@@ -256,6 +260,23 @@ namespace Vidyano.View
                     vault.Add(new PasswordCredential(Service.vaultCredentialsName, Service.Current.User, Service.Current.AuthToken));
                 }
             }
+            catch (Exception ex)
+            {
+                err = ex.Message;
+            }
+
+            if (!String.IsNullOrEmpty(err))
+            {
+                var dialog = new MessageDialog(err, (string)language["messages"]["SignInError"]);
+                var retry = false;
+                dialog.Commands.Add(new UICommand((string)language["messages"]["RetrySignIn"], _ => retry = true));
+                dialog.Commands.Add(new UICommand((string)language["messages"]["CancelSignIn"]));
+
+                await dialog.ShowAsync();
+
+                if (retry)
+                    return await LiveSignIn();
+            }
 
             return Service.Current.IsConnected;
         }
@@ -263,6 +284,7 @@ namespace Vidyano.View
         private async Task<bool> UISignIn()
         {
             string err = null;
+
             try
             {
                 VisualStateManager.GoToState(this, "Connecting", false);
@@ -286,14 +308,14 @@ namespace Vidyano.View
                     {
                         var vault = new PasswordVault();
 
+                        try
+                        {
+                            vault.FindAllByResource(Service.vaultCredentialsName).Run(vault.Remove);
+                        }
+                        catch { }
+
                         if (results.CredentialSaveOption == Windows.Security.Credentials.UI.CredentialSaveOption.Selected)
                             vault.Add(new PasswordCredential(Service.vaultCredentialsName, Service.Current.User, Service.Current.AuthToken));
-                        else
-                        {
-                            var vidyanoCredentials = vault.FindAllByResource(Service.vaultCredentialsName).FirstOrDefault();
-                            if (vidyanoCredentials != null)
-                                vault.Remove(vidyanoCredentials);
-                        }
                     }
                 }
             }

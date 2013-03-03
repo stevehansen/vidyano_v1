@@ -47,7 +47,8 @@
         var columnCount;
         var lastSelectedIndex;
         var selectedColumn;
-
+        var pinnedWidth, dataSelectorWidth, viewportOffset, viewportScrollLeft;
+        
         var methods = {
             refresh: function (e, q) {
                 if (q != query)
@@ -120,9 +121,9 @@
 
                 header = $("<div>").addClass("header").css({
                     position: "absolute",
-                    top: "0px",
-                    left: "0px",
-                    right: "0px",
+                    top: "0",
+                    left: "0",
+                    right: "0",
                     overflow: "hidden",
                     "white-space": "nowrap"
                 });
@@ -143,16 +144,22 @@
                 var managementButtonContainer = $("<div>").addClass("managementButtonContainer");
                 header.append(managementButtonContainer);
                 var managementButton = $("<div>").addClass("managementButton");
+                if (!query.isSystem && (query.parent == null || query.parent.type != "SemanticZoom")) {
+                    var semanticZoomButton = $("<div>").addClass("semanticZoomButton");
+                    managementButtonContainer.append(semanticZoomButton);
+                    semanticZoomButton.on("click", function () { query.semanticZoom(); });
+                } else
+                    managementButtonContainer.css({ width: "24px" });
                 managementButtonContainer.append(managementButton);
-                managementButton.bind("click", methods.toggleManagement);
+                managementButton.on("click", methods.toggleManagement);
 
                 viewport = $("<div>").addClass("viewport").css({
                     overflow: "auto",
                     position: "absolute",
                     top: headerHeight + "px",
-                    left: "0px",
-                    bottom: "0px", //(query.hasTotalItem ? options.rowHeight : 0) + "px",
-                    right: "0px",
+                    left: "0",
+                    bottom: "0", //(query.hasTotalItem ? options.rowHeight : 0) + "px",
+                    right: "0",
                     width: "100%"
                 });
 
@@ -162,10 +169,12 @@
                     remainderRule.css("width", viewport.outerWidth(true) + "px");
                     if (ie8)
                         remainderTable.width(viewport.outerWidth(true));
-
                     methods.invalidateDataTablePosition();
-                });
 
+                    pinnedWidth = pinnedDataTableContainer.outerWidth(true);
+                    dataSelectorWidth = dataSelector.outerWidth(true);
+                    viewportOffset = viewport.offset();
+                });
                 viewport.bind("scroll", function (e) {
                     if (query.queryGridSettings.scrollLeft != e.currentTarget.scrollLeft) {
                         query.queryGridSettings.scrollLeft = e.currentTarget.scrollLeft;
@@ -178,11 +187,13 @@
                         query.queryGridSettings.scrollTop = e.currentTarget.scrollTop;
                         methods.syncData(query.queryGridSettings.scrollTop);
                     }
+
+                    viewportScrollLeft = viewport.scrollLeft();
                 });
                 viewport.bind("click", methods.viewportClick);
-
                 scroller = $(!app.isTablet ? "<a>" : "<div>").addClass("dataScroller").css({
-                    "background-color": "rgba(255, 255, 255, 0)",
+                    "background-color": "white",
+                    opacity: 0,
                     position: "absolute",
                     top: "0px",
                     left: "0px",
@@ -191,36 +202,8 @@
                 });
                 viewport.append(scroller);
 
-                scroller.bind("mousemove", function (e) {
-                    var pinnedWidth = pinnedDataTableContainer.outerWidth(true);
-                    var clientX = e.clientX - dataSelector.outerWidth(true) - viewport.offset().left;
-                    var x = clientX + (clientX < pinnedWidth ? 0 : viewport.scrollLeft());
-
-                    var columns = [];
-                    if (clientX < pinnedWidth) {
-                        for (var i = 0; i < pinnedColumns.length; i++) {
-                            columns.push(pinnedColumns[i].name);
-                        }
-                    }
-
-                    for (var cr in data.columnRules) {
-                        if (!columns.contains(cr))
-                            columns.push(cr);
-                    }
-
-                    for (var i = 0; i < columns.length; i++) {
-                        var cr = columns[i];
-                        var width = Math.max(data.columnRules[cr].outerWidth, data.columnRules[cr].width)
-                        if (x > width)
-                            x -= width;
-                        else {
-                            selectedColumn = query.getColumn(cr);
-                            break;
-                        }
-                    }
-
-                    methods.hover(Math.floor((e.clientY - viewport.offset().top) / options.rowHeight));
-                });
+                if(!app.isTablet)
+                    viewport.bind("mousemove", methods.viewportMouseMove);
 
                 var dataContainer = $("<div>").css({
                     overflow: "hidden",
@@ -236,9 +219,7 @@
                 dataSelector = $("<table>").addClass("dataSelector").css({ display: "inline-block" });
                 if (options.hideSelector)
                     dataSelector.addClass("noSelection");
-                dataSelector.bind("resize", methods.invalidateDataTablePosition);
                 dataContainer.append(dataSelector);
-
                 pinnedDataTableContainer = $("<div>").css({
                     display: "inline-block"
                 }).addClass("pinnedDataTableContainer");
@@ -562,10 +543,9 @@
                             rows[r].tr.run(function (tr) { tr.addClass(extraClass); });
                         }
                     }
-
                     methods.getColumnsWithDivs().run(function (col) {
                         if (idx == null) {
-                            rows[r].contentDivs[col.name][0].innerHTML = "";
+                            rows[r].contentDivs[col.name][0].innerText = "";
                             rows[r].selector.addClass("noData");
                             rows[r].selector.removeClass("hasData");
                         }
@@ -648,9 +628,42 @@
                 methods.updateSelectedRowRules();
             },
 
+            viewportMouseMove: function (e) {
+                var clientX = e.clientX - dataSelectorWidth - viewportOffset.left;
+                var x = clientX + (clientX < pinnedWidth ? 0 : viewportScrollLeft);
+
+                var columns = [];
+                if (clientX < pinnedWidth) {
+                    for (var i = 0; i < pinnedColumns.length; i++) {
+                        columns.push(pinnedColumns[i].name);
+                    }
+                }
+
+                for (var cr in data.columnRules) {
+                    if (!columns.contains(cr))
+                        columns.push(cr);
+                }
+
+                for (var i = 0; i < columns.length; i++) {
+                    var cr = columns[i];
+                    var width = Math.max(data.columnRules[cr].outerWidth, data.columnRules[cr].width);
+                    if (x > width)
+                        x -= width;
+                    else {
+                        selectedColumn = query.getColumn(cr);
+                        break;
+                    }
+                }
+
+                methods.hover(Math.floor((e.clientY - viewportOffset.top) / options.rowHeight));
+            },
+
             viewportClick: function (e) {
                 if (e.ctrlKey == true)
                     return;
+
+                if (app.isTablet)
+                    methods.viewportMouseMove(e);
 
                 if (currentRowHoverIdx >= 0) {
                     var selectedItems = (query.items.selectedItems() || []).slice();

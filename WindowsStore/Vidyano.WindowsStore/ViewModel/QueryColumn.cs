@@ -21,6 +21,10 @@ namespace Vidyano.ViewModel
 
         internal bool DisableSort { get { return GetProperty<bool>(); } }
 
+        internal string[] Includes { get { return GetProperty<string[]>(); } set { SetProperty(value); } }
+
+        internal string[] Excludes { get { return GetProperty<string[]>(); } set { SetProperty(value); } }
+
         public string Label { get { return GetProperty<string>(); } }
 
         public string Name { get { return GetProperty<string>(); } }
@@ -33,7 +37,7 @@ namespace Vidyano.ViewModel
 
         protected override string[] GetServiceProperties()
         {
-            return new[] { "id", "name", "label", "type" };
+            return new[] { "id", "name", "label", "includes", "excludes", "type", "displayAttribute" };
         }
 
         #endregion
