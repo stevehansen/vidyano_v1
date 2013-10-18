@@ -1,0 +1,267 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{D0085ED9-6D93-4402-95FC-C1E797B96B0C}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Vidyano.WindowsStore</RootNamespace>
+    <AssemblyName>Vidyano.WindowsStore</AssemblyName>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <FileAlignment>512</FileAlignment>
+    <ProjectTypeGuids>{BC8A1FFA-BEE3-4634-8014-F334798102B3};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>TRACE;DEBUG;NETFX_CORE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\ARM\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;NETFX_CORE</DefineConstants>
+    <NoWarn>;2008</NoWarn>
+    <DebugType>full</DebugType>
+    <PlatformTarget>ARM</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|ARM'">
+    <OutputPath>bin\ARM\Release\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE</DefineConstants>
+    <Optimize>true</Optimize>
+    <NoWarn>;2008</NoWarn>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>ARM</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;NETFX_CORE</DefineConstants>
+    <NoWarn>;2008</NoWarn>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE</DefineConstants>
+    <Optimize>true</Optimize>
+    <NoWarn>;2008</NoWarn>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;NETFX_CORE</DefineConstants>
+    <NoWarn>;2008</NoWarn>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE</DefineConstants>
+    <Optimize>true</Optimize>
+    <NoWarn>;2008</NoWarn>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
+    <ErrorReport>prompt</ErrorReport>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\..\VersionInfo.cs">
+      <Link>Properties\VersionInfo.cs</Link>
+    </Compile>
+    <Compile Include="ApplicationColors.cs" />
+    <Compile Include="AttributeContextMenuArgs.cs" />
+    <Compile Include="Client.cs" />
+    <Compile Include="Commands\GoBack.cs" />
+    <Compile Include="Commands\GoHome.cs" />
+    <Compile Include="Commands\ShowNotificationWithDialogCommand.cs" />
+    <Compile Include="StoreBackgroundHooks.cs" />
+    <Compile Include="StoreHooks.cs" />
+    <Compile Include="Logger.cs" />
+    <Compile Include="QueryItemClickedArgs.cs" />
+    <Compile Include="Settings.cs" />
+    <Compile Include="SettingsFlyout.cs" />
+    <Compile Include="ViewModel\Actions\AddReference.cs" />
+    <Compile Include="ViewModel\Actions\CancelSave.cs" />
+    <Compile Include="ViewModel\Actions\Delete.cs" />
+    <Compile Include="ViewModel\Actions\Filter.cs" />
+    <Compile Include="ViewModel\Actions\ShowHelp.cs" />
+    <Compile Include="ViewModel\Actions\Save.cs" />
+    <Compile Include="ViewModel\Pages\HomePage.cs" />
+    <Compile Include="ViewModel\Pages\ISearchPage.cs" />
+    <Compile Include="ViewModel\Pages\PersistentObjectPage.cs" />
+    <Compile Include="ViewModel\Pages\QueryItemSelectPage.cs" />
+    <Compile Include="ViewModel\Pages\QueryPage.cs" />
+    <Compile Include="ViewModel\Pages\SignInPage.cs" />
+    <Compile Include="ViewModel\Pages\VidyanoPage.cs" />
+    <Compile Include="ViewModel\ProgramUnitItem.cs" />
+    <Compile Include="ViewModel\QueryItemsSource.cs" />
+    <Compile Include="ViewModel\StorePersistentObject.cs" />
+    <Compile Include="ViewModel\StoreQuery.cs" />
+    <Compile Include="View\AutoUpdateBindingEx.cs" />
+    <Compile Include="View\Controls\AppBarUserButton.cs" />
+    <Compile Include="View\Converters\DefaultValueConverter.cs" />
+    <Compile Include="View\Converters\ResourceLocatorConverter.cs" />
+    <Compile Include="View\PasswordBoxEx.cs" />
+    <Compile Include="View\TextBoxEx.cs" />
+    <Compile Include="View\Converters\BooleanNegationConverter.cs" />
+    <Compile Include="View\Converters\BooleanToVisibilityConverter.cs" />
+    <Compile Include="View\Converters\CharacterCasingConverter.cs" />
+    <Compile Include="View\Converters\EnumToVisibilityConverter.cs" />
+    <Compile Include="View\Events.cs" />
+    <Compile Include="View\FrameworkElementExtensions.cs" />
+    <Compile Include="View\Converters\IMultiValueConverter.cs" />
+    <Compile Include="View\LayoutAwarePage.cs" />
+    <Compile Include="View\MultiBinding.cs" />
+    <Compile Include="View\Converters\StringFormatConverter.cs" />
+    <Compile Include="View\Controls\PersistentObjectAttributeBinary.cs" />
+    <Compile Include="View\Controls\PersistentObjectAttributeComboBox.cs" />
+    <Compile Include="View\Controls\PersistentObjectAttributeEditableComboBox.cs" />
+    <Compile Include="View\Controls\PersistentObjectAttributeReference.cs" />
+    <Compile Include="View\Controls\PersistentObjectAttributeControlBase.cs" />
+    <Compile Include="View\Controls\PersistentObjectAttributeDateTimeOffset.cs" />
+    <Compile Include="View\Controls\PersistentObjectAttributeImage.cs" />
+    <Compile Include="View\Controls\PersistentObjectAttributeNumeric.cs" />
+    <Compile Include="View\Controls\PersistentObjectAttributePassword.cs" />
+    <Compile Include="View\Controls\PersistentObjectAttributeString.cs" />
+    <Compile Include="View\Controls\PersistentObjectAttributeToggleSwitch.cs" />
+    <Compile Include="View\Controls\PersistentObjectAttributePresenter.cs" />
+    <Compile Include="View\Pages\PersistentObjectPage.xaml.cs">
+      <DependentUpon>PersistentObjectPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\QueryEx.cs" />
+    <Compile Include="View\Pages\QueryItemSelectPage.xaml.cs">
+      <DependentUpon>QueryItemSelectPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\Controls\PersistentObjectAttributePanel.cs" />
+    <Compile Include="Common\InMemoryRandomAccessStream.cs" />
+    <Compile Include="View\Pages\HomePage.xaml.cs">
+      <DependentUpon>HomePage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="View\Pages\QueryPage.xaml.cs">
+      <DependentUpon>QueryPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\Pages\SettingsPage.xaml.cs">
+      <DependentUpon>SettingsPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\Pages\SignInPage.xaml.cs">
+      <DependentUpon>SignInPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\TemplateSelectors\ActionIconTemplateSelector.cs" />
+    <Compile Include="View\TemplateSelectors\PersistentObjectPageTabTemplateSelector.cs" />
+    <Compile Include="View\TemplateSelectors\ProgramUnitItemContainerTemplateSelector.cs" />
+    <Compile Include="View\TemplateSelectors\ProgramUnitItemTemplateSelector.cs" />
+    <Compile Include="View\TemplateSelectors\SnappedPersistentObjectPageTabTemplateContainerSelector.cs" />
+    <Compile Include="View\ViewModelTriggers.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="Themes\Generic.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Page>
+    <Page Include="View\Pages\PersistentObjectPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\Pages\QueryItemSelectPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\Pages\HomePage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\Pages\QueryPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\Pages\SettingsPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\Pages\SignInPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Vidyano.Core\Vidyano.Core.csproj">
+      <Project>{d4e0846a-8f29-4311-8eda-2242cbed1633}</Project>
+      <Name>Vidyano.Core</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\Newtonsoft.Json.5.0.6\lib\netcore45\Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <SDKReference Include="LiveSDKXAML, Version=5.4">
+      <Name>Live SDK</Name>
+    </SDKReference>
+  </ItemGroup>
+  <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '11.0' ">
+    <VisualStudioVersion>11.0</VisualStudioVersion>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsXaml\v$(VisualStudioVersion)\Microsoft.Windows.UI.Xaml.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>echo f | xcopy $(ProjectDir)bin\Release\Vidyano.WindowsStore.dll $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Vidyano.WindowsStore.WindowsStore.dll /Y
+echo f | xcopy $(ProjectDir)bin\Release\Vidyano.WindowsStore.pri $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Vidyano.WindowsStore.pri /Y
+echo f | xcopy $(ProjectDir)bin\Release\Vidyano.Core.dll $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Vidyano.Core.WindowsStore.dll /Y
+echo f | xcopy $(ProjectDir)bin\Release\Newtonsoft.Json.dll $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Newtonsoft.Json.WindowsStore.dll /Y
+echo f | xcopy $(ProjectDir)bin\Release\Microsoft.Live.dll $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Microsoft.Live.WindowsStore.dll /Y
+echo f | xcopy $(ProjectDir)Themes\Generic.xaml $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Vidyano.WindowsStore\Themes\Generic.xaml /Y
+xcopy $(ProjectDir)View\Pages\*.xaml $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Vidyano.WindowsStore\View\Pages\ /Y
+</PostBuildEvent>
+  </PropertyGroup>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,7 +1,7 @@
 /*! jQuery UI - v1.10.0 - 2013-02-03
 * http://jqueryui.com
 * Includes: jquery.ui.core.css, jquery.ui.resizable.css, jquery.ui.selectable.css, jquery.ui.accordion.css, jquery.ui.autocomplete.css, jquery.ui.button.css, jquery.ui.datepicker.css, jquery.ui.dialog.css, jquery.ui.menu.css, jquery.ui.progressbar.css, jquery.ui.slider.css, jquery.ui.spinner.css, jquery.ui.tabs.css, jquery.ui.tooltip.css
-* To view and modify this theme, visit http://jqueryui.com/themeroller/?ffDefault=Segoe%20UI&fwDefault=bold&fsDefault=1.1em&cornerRadius=0px&bgColorHeader=ffffff&bgTextureHeader=flat&bgImgOpacityHeader=35&borderColorHeader=ffffff&fcHeader=126790&iconColorHeader=ffffff&bgColorContent=f0f0f0&bgTextureContent=flat&bgImgOpacityContent=100&borderColorContent=dddddd&fcContent=333333&iconColorContent=222222&bgColorDefault=1c94c4&bgTextureDefault=flat&bgImgOpacityDefault=100&borderColorDefault=1c94c4&fcDefault=ffffff&iconColorDefault=ffffff&bgColorHover=0c5d7d&bgTextureHover=flat&bgImgOpacityHover=100&borderColorHover=0c5d7d&fcHover=ffffff&iconColorHover=ffffff&bgColorActive=0c5d7d&bgTextureActive=flat&bgImgOpacityActive=65&borderColorActive=0c5d7d&fcActive=ffffff&iconColorActive=ffffff&bgColorHighlight=0c5d7d&bgTextureHighlight=flat&bgImgOpacityHighlight=75&borderColorHighlight=0c5d7d&fcHighlight=ffffff&iconColorHighlight=228ef1&bgColorError=b81900&bgTextureError=flat&bgImgOpacityError=18&borderColorError=cd0a0a&fcError=ffffff&iconColorError=ffd27a&bgColorOverlay=666666&bgTextureOverlay=flat&bgImgOpacityOverlay=20&opacityOverlay=50&bgColorShadow=000000&bgTextureShadow=flat&bgImgOpacityShadow=10&opacityShadow=20&thicknessShadow=5px&offsetTopShadow=-5px&offsetLeftShadow=-5px&cornerRadiusShadow=5px&ctl=themeroller
+* To view and modify this theme, visit http://jqueryui.com/themeroller/?ffDefault=Segoe%20UI&fwDefault=bold&fsDefault=1.1em&cornerRadius=0px&bgColorHeader=ffffff&bgTextureHeader=flat&bgImgOpacityHeader=35&borderColorHeader=ffffff&fcHeader=126790&iconColorHeader=ffffff&bgColorContent=f0f0f0&bgTextureContent=flat&bgImgOpacityContent=100&borderColorContent=dddddd&fcContent=333333&iconColorContent=222222&bgColorDefault=118bbb&bgTextureDefault=flat&bgImgOpacityDefault=100&borderColorDefault=118bbb&fcDefault=ffffff&iconColorDefault=ffffff&bgColorHover=0c5d7d&bgTextureHover=flat&bgImgOpacityHover=100&borderColorHover=0c5d7d&fcHover=ffffff&iconColorHover=ffffff&bgColorActive=0c5d7d&bgTextureActive=flat&bgImgOpacityActive=65&borderColorActive=0c5d7d&fcActive=ffffff&iconColorActive=ffffff&bgColorHighlight=0c5d7d&bgTextureHighlight=flat&bgImgOpacityHighlight=75&borderColorHighlight=0c5d7d&fcHighlight=ffffff&iconColorHighlight=228ef1&bgColorError=b81900&bgTextureError=flat&bgImgOpacityError=18&borderColorError=cd0a0a&fcError=ffffff&iconColorError=ffd27a&bgColorOverlay=666666&bgTextureOverlay=flat&bgImgOpacityOverlay=20&opacityOverlay=50&bgColorShadow=000000&bgTextureShadow=flat&bgImgOpacityShadow=10&opacityShadow=20&thicknessShadow=5px&offsetTopShadow=-5px&offsetLeftShadow=-5px&cornerRadiusShadow=5px&ctl=themeroller
 * Copyright (c) 2013 jQuery Foundation and other contributors Licensed MIT */
 
 /* Layout helpers
@@ -819,8 +819,8 @@ body .ui-tooltip {
 .ui-state-default,
 .ui-widget-content .ui-state-default,
 .ui-widget-header .ui-state-default {
-	border: 1px solid #1c94c4;
-	background: #1c94c4 50% 50% repeat-x;
+	border: 1px solid #118bbb;
+	background: #118bbb 50% 50% repeat-x;
 	font-weight: bold;
 	color: #ffffff;
 }

@@ -16,9 +16,9 @@
                 if (!$.mobile || (!isNullOrWhiteSpace(query.itemTemplateKey) && typeof (app.templates[query.itemTemplateKey].data) == "function")) {
                     content.append(app.templates[query.itemTemplateKey].data(item));
 
-                    query.columns.run(function (col) {
+                    query.columns.forEach(function (col) {
                         content.find("div[data-vidyano-column=\"" + col.name + "\"]").each(function () {
-                            $(this).append(col.render(item.values));
+                            col.render(item, $(this));
                         });
 
                         content.find("label[data-vidyano-column=\"" + col.name + "\"]").each(function () {
@@ -71,17 +71,18 @@
                 if (query.items.length == query.totalItems)
                     return;
 
-                var loadMoreElement = $("<div>").text(app.getTranslatedMessage("LoadMore")).addClass("loadMore");
+                var loadMoreSpan = $("<span>").text(app.getTranslatedMessage("LoadMore"));
+                var loadMoreElement = $("<div>").append(loadMoreSpan).addClass("loadMore");
                 container.append(loadMoreElement);
 
-                loadMoreElement.one("click", function () {
+                loadMoreSpan.one("click", function () {
                     loadMoreElement.empty();
                     loadMoreElement.spin(app.settings.defaultSpinnerOptions);
 
                     query.getItems(query.items.length, query.pageSize, function (start, length) {
                         loadMoreElement.remove();
 
-                        query.items.slice(start, start + length).run(function (item) {
+                        query.items.slice(start, start + length).forEach(function (item) {
                             methods.renderItem(item);
                         });
 
@@ -124,24 +125,26 @@
             }
 
             queryViewerContainer.empty();
-            if ($.mobile && query.items.length == 0) {
-                root.append($("<p class='noResults'>").text(app.getTranslatedMessage("NoResultsFound")));
-            }
-            else {
-                root.find(".noResults").remove();
-                root.append(queryViewerContainer);
+            root.find(".noResults").remove();
 
-                query.items.run(function (item) {
-                    methods.renderItem(item);
-                });
+            if (query.hasSearched) {
+                if ($.mobile && query.items.length == 0)
+                    root.append($("<p class='noResults'>").text(app.getTranslatedMessage("NoResultsFound")));
+                else {
+                    root.append(queryViewerContainer);
 
-                if ($.mobile)
-                    methods.loadMore(queryViewerContainer);
+                    query.items.forEach(function (item) {
+                        methods.renderItem(item);
+                    });
+
+                    if ($.mobile)
+                        methods.loadMore(queryViewerContainer);
+                }
             }
         };
 
-        queryViewerContainer.unbind("itemsChanged");
-        queryViewerContainer.bind("itemsChanged", render);
+        queryViewerContainer.off("itemsChanged");
+        queryViewerContainer.on("itemsChanged", render);
 
         render();
 

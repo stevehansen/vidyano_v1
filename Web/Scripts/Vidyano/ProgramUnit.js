@@ -3,6 +3,7 @@
     this.item = item;
     this.name = item.name;
     this.title = item.title;
+    this.openFirst = item.openFirst && !$.mobile;
     this.templateId = item.template;
     this.hasTemplate = this.templateId != null;
     this.items = [];
@@ -12,8 +13,9 @@
 
     this._processItems = function (newItems) {
         var items = [];
-        newItems.run(function (puItem) {
-            var pui = new ProgramUnitItem(puItem);
+        var self = this;
+        newItems.forEach(function (puItem) {
+            var pui = new ProgramUnitItem(puItem, self);
             var group = puItem.group;
 
             if (group != null) {
@@ -38,20 +40,34 @@ ProgramUnit.prototype.createElement = function () {
     var a = $.createElement("a");
     var self = this;
 
-    var href = "#!/";
-    href += app.getUrlForProgramUnit(this);
+    var href = "#!/" + app.getUrlForProgramUnit(this);
+    a.attr({ href: href }).text(this.title);
 
-    a.attr({ href: href, onclick: "return false;" }).text(this.title);
+    var isDefaultIndicator = $.createElement("div").addClass("isDefaultIndicator");
+    if (app.userSettings.defaultProgramUnit == this.name)
+        isDefaultIndicator.addClass("isDefault");
 
-    this._liElement = this.selector = $.createElement("li", this).addClass("programUnit").append(a);
+    isDefaultIndicator.on("click", function () {
+        self._liElement.parent().find(".isDefaultIndicator.isDefault").removeClass("isDefault");
+        app.setDefaultProgramUnit(self);
+        isDefaultIndicator.addClass("isDefault");
+
+        if (app.programUnits.selectedItem() != self)
+            app.programUnits.selectedItem(self);
+    });
+
+    this._liElement = this.selector = $.createElement("li", this).addClass("programUnit").append(isDefaultIndicator).append(a);
     
     if (href == hasher.getHash())
         li.addClass("programUnitItemSelected");
 
-
-    this._liElement.click(function () {
+    a.on("click", function (e) {
         if (app.programUnits.selectedItem() != self)
             app.programUnits.selectedItem(self);
+        else
+            self._redirect();
+
+        e.preventDefault();
     });
 
     return this._liElement;
@@ -72,23 +88,32 @@ ProgramUnit.prototype.openTemplate = function () {
     $content.empty();
     $content.dataContext(this);
 
-    if (!this.hasTemplate)
-        return;
+    if (this.hasTemplate) {
+        var templateCreator = app.templates[this.templateId];
+        if (templateCreator == null || typeof (templateCreator.data) != "function")
+            return;
 
-    var templateCreator = app.templates[this.templateId];
-    if (templateCreator == null || typeof (templateCreator.data) != "function")
-        return;
+        var template = templateCreator.data(this);
 
-    var template = templateCreator.data(this);
-
-    if ($content.dataContext() == this)
-        $content.append(template);
+        if ($content.dataContext() == this)
+            $content.append(template);
+    }
+    else if (this.openFirst && this.items.length > 0) {
+        var item = this.items[0];
+        var filterName = undefined;
+        if (item.subItems != null && item.subItems.length > 0)
+            item = item.subItems[0];
+        if (item.filters != null && item.filters.length > 0)
+            filterName = item.filters[0];
+        
+        item.open(filterName, true);
+    }
 };
 
 ProgramUnit.prototype._addItem = function () {
     var self = this;
     app.gateway.getQuery("5a4ed5c7-b843-4a1b-88f7-14bd1747458b", null, function (query) {
-        var select = new SelectReferenceDialogActions(query, 1, function (selectedItems) {
+        var select = new SelectReferenceDialogActions(query, -1, function (selectedItems) {
             app.gateway.executeAction("Query.AddQueriesToProgramUnit", null, query, selectedItems, { Id: self.id }, function (result) {
                 if (result.notification != null) {
                     app.showException(result.notification);
@@ -123,11 +148,11 @@ ProgramUnit.prototype._openItems = function () {
 
     var self = this;
     if (!$.mobile && this.hasTemplate) {
-        var spanContainer = $("<li>").on("click", function () { self._redirect(); }).addClass("programUnitTemplate");
+        var spanContainer = $("<li>").on("click", function () { self._redirect(); }).addClass("programUnitTemplate").html("&nbsp;");
         ul.append(spanContainer);
     }
 
-    this.items.run(function (pui) {
+    this.items.forEach(function (pui) {
         pui.createElement(ul);
     });
 
@@ -139,8 +164,19 @@ ProgramUnit.prototype._openItems = function () {
 };
 
 ProgramUnit.prototype._redirect = function () {
-    var path = app.getUrlForProgramUnit(this);
+    if (this.hasTemplate || !this.openFirst || this.items.length == 0) {
+        var path = app.getUrlForProgramUnit(this);
+        app.pageObjects[path] = this;
+        app.navigate(path);
+    }
+    else {
+        var item = this.items[0];
+        var filterName = undefined;
+        if (item.subItems != null && item.subItems.length > 0)
+            item = item.subItems[0];
+        if (item.filters != null && item.filters.length > 0)
+            filterName = item.filters[0];
 
-    app.pageObjects[path] = this;
-    hasher.setHash(path);
+        item.open(filterName);
+    }
 };

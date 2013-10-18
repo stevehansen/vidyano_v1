@@ -8,113 +8,114 @@
 /// <reference path="ServiceGateway.js" />
 /// <reference path="Controls/Filter.js" />
 /// <reference path="Controls/QueryViewer.js" />
-/// <reference path="~/Scripts/jquery-1.9.1.min.js" />
+/// <reference path="~/Scripts/jquery-2.0.0.min.js" />
 
-function Query(query, parent, asLookup) {
+function Query(query, parent, asLookup, isCloning) {
     /// <summary>Describes a Query that gives access to a collection of Persistent Objects.</summary>
 
-    changePrototype(query, Query);
-
     /// <field name="id" type="String">The unique identifier of this Query's definition.</field>
+    this.id = query.id;
+    this.isSystem = !!query.isSystem;
     /// <field name="name" type="String">The name of this Query.</field>
+    this.name = query.name;
     /// <field name="label" type="String">The translated label of this Query.</field>
+    this.label = query.label;
+    this.singularLabel = null;
     /// <field name="parent" type="PersistentObject">The optional parent of this Query.</field>
-    query.parent = parent;
+    this.parent = parent;
     /// <field name="pageSize" type="Number">The number of items that should be queried per page (or null to use the application defaults).</field>
-    if (query.pageSize == null) query.pageSize = null;
+    this.pageSize = query.pageSize;
     /// <field name="canRead" type="Boolean">Indicates whether items on this Query can be opened (i.e.: if the current user has Read rights).</field>
-    if (query.canRead == null) query.canRead = false;
+    this.canRead = !!query.canRead;
     /// <field name="autoQuery" type="Boolean">Indicates whether the Query should be queried when opened.</field>
-    if (query.autoQuery == null) query.autoQuery = false;
-    if (query.offset == null) query.offset = 0;
-    query.totalPages = -1;
-    query.currentPage = -1;
+    this.autoQuery = !!query.autoQuery;
+    this.isHidden = !!query.isHidden;
+    this.offset = query.offset || 0;
+    this.notification = query.notification;
+    this.notificationType = query.notificationType;
     /// <field name="totalItems" type="Number">The total number of items for this Query.</field>
-    query.totalItems = -1;
-    query.filterDisplayName = null;
-    query.filterChanged = false;
-    /// <field name="canSearch" type="Boolean">Indicates whether the Search method can be used at the moment, is disabled during searches.</field>
-    query.canSearch = true;
-    /// <field name="hasSearched" type="Boolean">Indicates whether the Search has been called at least once.</field>
-    query.hasSearched = false;
+    this.totalItems = query.totalItems;
+    this.filterDisplayName = query.filterDisplayName;
     /// <field name="persistentObject" type="PersistentObject">The Persistent Object that is used for the items on this Query.</field>
-    query.persistentObject = new PersistentObject(query.persistentObject);
+    this.persistentObject = query.persistentObject instanceof PersistentObject ? query.persistentObject : new PersistentObject(query.persistentObject);
     /// <field name="sortOptions" type="String">The sort options that should be used for the Query.</field>
-    query.sortOptions = isNullOrWhiteSpace(query.sortOptions) ? "" : query.sortOptions;
-    query.isReference = false;
+    this.sortOptions = query.sortOptions || "";
     /// <field name="actionNames" type="Array" elementType="String">Contains the names of the actions that were allowed for this instance.</field>
-    query.actionNames = query.actions;
+    this.actionNames = query.actionNames || query.actions;
     /// <field name="actions" type="Array" elementType="ActionBase">Contains the actions for this instance.</field>
-    query.actions = Actions.getActions(query.actionNames, query);
-    query.container = null;
-    query.target = null;
-    query.filterTarget = null;
-    query.spinnerTarget = null;
-    /// <field name="options">Contains the options that can be set for this Query.</field>
-    query.options = {};
-    query.queriedPages = [];
-    /// <field name="items" type="Array" elementType="QueryResultItem">Contains the items for this instance.</field>
-    query.items = [].toSelector();
-    query.items.onSelectedItemsChanged(function (selectedItems) {
-        query.updateActions(selectedItems);
-
-        if (query.target != null && query.target.length > 0)
-            query.target.trigger("selectedItemsChanged", [query]);
-    });
-    query.totalItem = null;
-    query.hasTotalItem = false;
-    query.semanticZoomOwner = null;
-
+    this.actions = Actions.getActions(this.actionNames, this);
     /// <field name="columns" type="Array" elementType="QueryColumn">Contains the columns for this instance.</field>
-    query.updateColumns(query.columns);
+    this._columnsByName = {};
+    this.columns = query.columns ? query.columns.map(function (c) { return new QueryColumn(c, this); }, this).sort(function (c1, c2) { return c1.offset - c2.offset; }) : [];
+    this.skip = query.skip;
+    this.top = query.top;
+    this.itemPanelTemplateKey = query.itemPanelTemplateKey;
+    this.itemTemplateKey = query.itemTemplateKey;
+    this.textSearch = query.textSearch;
 
-    if (query.result != null)
-        query.setResult(query.result);
+    /// <field name="canSearch" type="Boolean">Indicates whether the Search method can be used at the moment, is disabled during searches.</field>
+    this.canSearch = true;
+    this.isReference = false;
+    this.container = null;
+    this.target = null;
+    this.filterTarget = null;
+    this.spinnerTarget = null;
+    this.notificationTarget = null;
+    this.titleTarget = null;
+    this._persistentObjectSelectedNavigationTabElement = null;
+    /// <field name="options">Contains the options that can be set for this Query.</field>
+    this.options = {
+        hideSemanticZoom: true,
+        hideManagement: false,
+        hideSelector: !this.actions.some(function (a) { return a.isVisible() && a.hasSelectionRule; }),
+        hideInlineActions: false,
+        allowSelectAll: this.isSystem,
+    };
+    this.queriedPages = [];
+    /// <field name="hasSearched" type="Boolean">Indicates whether the Search has been called at least once.</field>
+    this.hasSearched = false;
+    /// <field name="items" type="Array" elementType="QueryResultItem">Contains the items for this instance.</field>
+    this.items = null;
+    this.allSelected = false;
+    this.updateItems([], true);
+    this.totalItem = null;
+    this.hasTotalItem = false;
+    this.semanticZoomOwner = null;
+
+    this.result = query.result;
+    if (this.result != null)
+        this.setResult(this.result);
 
     /// <field name="filter" type="QueryFilter">The filter used for this Query.</field>
-    query.filter = new QueryFilter(query);
-    if (!asLookup && query.actionNames != null && query.actionNames.contains("Filter"))
-        query.filter.openDefaultFilter();
+    this.filter = new QueryFilter(this);
+    if (!$.mobile && !isCloning && !asLookup && this.actionNames != null && this.actionNames.contains("Filter"))
+        this.filter.openDefaultFilter();
 
-    if (!query.isSystem) {
-        var onPo = app.onPersistentObject[query.persistentObject.type];
-        if (onPo != null) {
-            try {
-                if (onPo.onConstructQuery != null)
-                    onPo.onConstructQuery(query);
-                else if (onPo.receiveQuery != null)
-                    onPo.receiveQuery(query);
-            }
-            catch (e) {
-                app.showException(e.message || e);
-            }
-        }
-    }
+    // Exception for MemberOf
+    if (this.isSystem && (this.id == "b4e1ed7d-a8c8-4193-b24a-df2e9d6c643a" || this.id == "b9632a39-2625-44b0-8828-757e04cf396d"))
+        this.singularLabel = this.label;
 
-    return query;
+    app._onConstructQuery(this);
 }
 
 Query.prototype.clone = function (isReference) {
     /// <summary>Creates a clone of this instance.</summary>
     /// <param name="isReference">specifies if the close is for a Persistent Object Attribute or a Persistent Object Attribute with Reference.</param>
+    /// <returns type="Query" />
 
-    if (isReference == null)
-        isReference = false;
-
-    var clone = jQuery.extend({ actions: [], columns: null, items: null }, this);
-
-    var q = this;
-    clone.columns = this.columns.select(function (col) { return col.clone(q); });
-    clone.isReference = isReference;
-
+    var clone = new Query(this, this.parent, isReference, true);
+    clone.isReference = isReference || false;
     return clone;
 };
+
+Query.prototype.getAction = PersistentObject.prototype.getAction;
 
 Query.prototype.getColumn = function (name) {
     /// <summary>Gets the column by name.</summary>
     /// <param name="name">the name of the column.</param>
+    /// <returns type="QueryColumn" />
 
-    return this.columns.firstOrDefault(function (c) { return c.name == name; });
+    return this._columnsByName[name];
 };
 
 Query.prototype.getItems = function (start, length, onComplete, onError) {
@@ -168,12 +169,29 @@ Query.prototype.getItems = function (start, length, onComplete, onError) {
         this.queriedPages.push(p);
 
     clonedQuery.search(function (result) {
+        var isChanged = self.isChanged(result);
+        if (isChanged) {
+            // NOTE: Query has changed (items added/deleted) so remove old data
+            self.queriedPages.clear();
+            for (var i = startPage; i <= endPage; i++)
+                self.queriedPages.push(i);
+
+            self.items.clear();
+            self.items.selectedItems([]);
+
+            self.totalItems = result.totalItems;
+            self.updateTitle();
+        }
+
         for (var n = 0; n < clonedQuery.top && (clonedQuery.skip + n < clonedQuery.totalItems) ; n++) {
             if (self.items[clonedQuery.skip + n] == null)
                 self.items[clonedQuery.skip + n] = new QueryResultItem(result.items[n], self);
         }
 
-        onComplete(start, length);
+        if (isChanged)
+            self.getItems(start, length, onComplete, onError);
+        else
+            onComplete(start, length);
     }, onError, true);
 };
 
@@ -194,21 +212,43 @@ Query.prototype.getObjectIdByIndex = function (index, continueWith) {
         this.getItems(index, 1, function () { continueWith(q.items[index].id); });
 };
 
+Query.prototype.getTitle = function () {
+    return (this.totalItems != null ? this.totalItems + " " : "") + (this.totalItems != 1 ? this.label : (this.singularLabel || this.persistentObject.label || this.persistentObject.type));
+};
+
 Query.prototype.hasItems = function () {
     /// <summary>Checkes if the Query has any Items.</summary>
+    /// <returns type="Boolean" />
 
     return this.items != null && this.items.length > 0;
+};
+
+Query.prototype.hasSelection = function () {
+    /// <summary>Checkes if the Query has any selected items.</summary>
+    /// <returns type="Boolean" />
+
+    return this.allSelected || (this.items != null && this.items.selectedItems() != null && this.items.selectedItems().length > 0);
 };
 
 Query.prototype.hasVisibleActions = function () {
     /// <summary>Returns a value indicating if the Query should have any visible actions.</summary>
     /// <returns type="Boolean" />
 
-    return this.actions.where(function (a) { return a.name != "Filter" && a.name != "RefreshQuery" && a.isVisible(); }).length > 0;
+    return this.actions.filter(function (a) { return a.name != "Filter" && a.name != "RefreshQuery" && a.isVisible(); }).length > 0;
+};
+
+Query.prototype.isChanged = function (result) {
+    /// <summary>Returns a value indicating if the Query has changed since the last result so that any existing items are invalid.</summary>
+    /// <param name="result">The Query instance received from the service, used to update the values of the Query.</param>
+    /// <returns type="Boolean" />
+
+    return this.pageSize > 0 && this.totalItems != result.totalItems;
 };
 
 Query.prototype.onItemClicked = function (selectedItem, selectedColumn) {
     /// <summary>Is called when an item is clicked in a Query.</summary>
+    /// <param name="selectedItem" type="QueryResultItem">The item that was clicked on.</param>
+    /// <param name="selectedColumn" type="QueryColumn" optional="true">The column that was clicked on, or null if the items was clicked from somewhere else.</param>
 
     if (!this.canRead)
         return;
@@ -236,18 +276,22 @@ Query.prototype.open = function (container, persistentObjectContainer, persisten
     if (this.container == null) {
         // Query has been opened as full page query view
 
-        this.container = $("#content");
+        this.container = $("<div id='content'></div>");
+        $("#content").replaceWith(this.container);
         this.container.html($($.mobile ? "#query_mobile_template" : "#query_template").html());
+        $.unhookElements();
 
         this.container.dataContext(this);
         var containerContent = this.container.find(".resultContent");
         containerContent.addClass("-vi-" + this.persistentObject.type);
-        containerContent.queryViewer(this, this.options);
+        containerContent.queryViewer(this);
         this.container.actionBarExpander();
+
+        this.titleTarget = this.container.find(".resultTitle");
     }
     else {
         this.container.dataContext(this);
-        this.container.queryViewer(this, this.options);
+        this.container.queryViewer(this);
     }
 
     this.showNotification(this.notification, this.notificationType);
@@ -259,7 +303,7 @@ Query.prototype.open = function (container, persistentObjectContainer, persisten
     if (this.hasVisibleActions()) {
 
         resultPanel.removeClass("noQueryActions");
-        Actions.showActions(this.actions.where(function (a) { return a.name != "Filter"; }), persistentObjectActionsContainer);
+        Actions.showActions(this.actions.filter(function (a) { return a.name != "Filter"; }), persistentObjectActionsContainer);
     }
     else {
         resultPanel.addClass("noQueryActions");
@@ -291,11 +335,8 @@ Query.prototype.open = function (container, persistentObjectContainer, persisten
 
 Query.prototype.postRender = function () {
     var code = app.code[this.id];
-    if (code != null) {
-        var postRenderCode = code["postRender"];
-        if (postRenderCode != null)
-            postRenderCode(this.container, this);
-    }
+    if (code != null && typeof (code.postRender) == "function")
+        code.postRender(this.container, this);
 
     app.postQueryRender(this.container, this);
 };
@@ -315,13 +356,15 @@ Query.prototype.search = function (onCompleted, onError, skipSpin) {
 
             var q = this;
             onCompleted = function (result) {
-                q.spinnerTarget.spin(false);
+                if (q.spinnerTarget != null)
+                    q.spinnerTarget.spin(false);
 
                 if (oldOnCompleted != null)
                     oldOnCompleted(result);
             };
             onError = function (e) {
-                q.spinnerTarget.spin(false);
+                if (q.spinnerTarget != null)
+                    q.spinnerTarget.spin(false);
 
                 if (oldOnError != null)
                     oldOnError(e);
@@ -329,22 +372,46 @@ Query.prototype.search = function (onCompleted, onError, skipSpin) {
         }
 
         this.queriedPages = [];
+        this.updateItems([], true);
+
+        if (this.target != null)
+            this.target.trigger("itemsChanged", [this]);
 
         app.gateway.executeQuery(this.parent, this, this.filterDisplayName, this.isReference, onCompleted, onError);
     }
 };
 
 Query.prototype.selectAll = function () {
-    /// <summary>Selects all the items in the Query, will also load all items as a side-effect. WARNING: Do not call on big queries as it will query all items.</summary>
+    /// <summary>Selects all the items in the Query. Can only be used if options.allowSelectAll is true. WARNING: Not recommended on big (1000+) queries.</summary>
 
-    var self = this;
-    this.getItems(0, this.totalItems, function () { self.updateSelectedItems(self.items); });
+    if (!this.options.allowSelectAll)
+        return;
+
+    if (this.hasSearched && this.pageSize <= 0) {
+        var self = this;
+        this.getItems(0, this.totalItems, function () { self.updateSelectedItems(self.items); });
+    }
+    else {
+        // NOTE: Virtual selection
+        this.allSelected = true;
+        this.items._trigger("selectedItemsChanged", []);
+    }
 };
 
 Query.prototype.selectNone = function () {
     /// <summary>Selects no items in the Query.</summary>
 
+    this.allSelected = false;
     this.items.selectedItems([]);
+};
+
+Query.prototype.selectToggle = function () {
+    /// <summary>Toggles the selection. Selects all items if nothing is selected, otherwise any selection is cleared.</summary>
+
+    if (this.hasSelection())
+        this.selectNone();
+    else
+        this.selectAll();
 };
 
 Query.prototype.semanticZoom = function () {
@@ -353,7 +420,7 @@ Query.prototype.semanticZoom = function () {
     app.gateway.executeAction("QueryFilter.SemanticZoom", parent, this, null, null, function (result) {
         if (result != null) {
             if (result.queries != null)
-                result.queries.run(function (q) {
+                result.queries.forEach(function (q) {
                     q.parent = parent;
                     q.semanticZoomOwner = self;
                 });
@@ -368,14 +435,8 @@ Query.prototype.setResult = function (result) {
     /// <param name="result">The Query instance received from the service, used to update the values of the Query.</param>
 
     this.pageSize = result.pageSize || 0;
-    this.currentPage = result.currentPage || 0;
 
     if (this.pageSize > 0) {
-        this.totalPages = result.totalPages || 0;
-
-        if (this.totalPages < this.currentPage)
-            this.currentPage = Math.max(this.totalPages, 1);
-
         this.totalItems = result.totalItems || 0;
         this.queriedPages.push(Math.floor((this.skip || 0) / this.pageSize));
     }
@@ -383,23 +444,15 @@ Query.prototype.setResult = function (result) {
         this.totalItems = result.items.length;
 
     var q = this;
-    var newItems = result.items.select(function (item) { return new QueryResultItem(item, q); });
+    var newItems = result.items.map(function (item) { return new QueryResultItem(item, q); });
 
     this.updateColumns(result.columns);
 
-    this.items = newItems.toSelector();
-    this.updateActions(this.items.selectedItems());
-    this.items.onSelectedItemsChanged(function (selectedItems) {
-        q.updateActions(selectedItems);
-
-        if (q.target != null && q.target.length > 0)
-            q.target.trigger("selectedItemsChanged", [q]);
-    });
+    this.updateItems(newItems);
 
     this.totalItem = result.totalItem != null ? new QueryResultItem(result.totalItem, this) : null;
     this.hasTotalItem = this.totalItem != null;
 
-    this.filterChanged = false;
     this.hasSearched = true;
 
     this.showNotification(result.notification, result.notificationType);
@@ -426,31 +479,56 @@ Query.prototype.showNotification = function (notification, type) {
 
 Query.prototype.toServiceObject = function () {
     /// <summary>Creates an optimized copy that can be sent to the service.</summary>
-    /// <returns type="Query">Returns a copy of the Query that is optimized to send to the service.</returns>
+    /// <returns type="Object">Returns a copy of the Query that is optimized to send to the service.</returns>
 
-    var result = copyProperties(this, ["id", "name", "label", "pageSize", "skip", "top", "sortOptions", "textSearch"]);
+    var result = copyProperties(this, ["id", "name", "label", "pageSize", "skip", "top", "sortOptions", "textSearch", "allSelected", "isSystem"]);
 
     result.persistentObject = this.persistentObject.toServiceObject();
     if (this.columns != null)
-        result.columns = this.columns.select(function (c) { return c.toServiceObject(); });
+        result.columns = this.columns.map(function (c) { return c.toServiceObject(); });
 
     return result;
+};
+
+Query.prototype.toString = function () {
+    return "Query " + this.name;
 };
 
 Query.prototype.updateActions = function (selectedItems) {
     /// <summary>Enables or disables the canExecute of all the actions on the Query.</summary>
 
-    var length = selectedItems == null ? 0 : selectedItems.length;
-    this.actions.run(function (a) { a.canExecute(a.selectionRule(length)); });
+    var length = this.allSelected ? this.totalItems : (selectedItems == null ? 0 : selectedItems.length);
+    this.actions.forEach(function (a) { a.canExecute(a.selectionRule(length)); });
 };
 
 Query.prototype.updateColumns = function (columns) {
     if (columns != null && columns.length > 0) {
         var self = this;
-        this.columns = columns.select(function (c) { return new QueryColumn(c, self); }).sort(function (c1, c2) { return c1.offset - c2.offset; });
+        this.columns = this.columns.filter(function (c1) { return columns.firstOrDefault(function (c2) { return c1.name == c2.name; }) != null; });
+        columns.filter(function (c1) { return self.columns.firstOrDefault(function (c2) { return c1.name == c2.name; }) == null; }).forEach(function (c) {
+            self.columns.push(new QueryColumn(c, self));
+        });
+        this.columns = this.columns.sort(function (c1, c2) { return c1.offset - c2.offset; });
     }
     else
         this.columns = [];
+};
+
+Query.prototype.updateItems = function (items, reset) {
+    this.items = items.toSelector();
+    this.allSelected = false;
+    this.updateActions([]);
+
+    var self = this;
+    this.items.onSelectedItemsChanged(function (selectedItems) {
+        self.updateActions(selectedItems);
+
+        if (self.target != null && self.target.length > 0)
+            self.target.trigger("selectedItemsChanged", [self]);
+    });
+
+    if (reset)
+        this.hasSearched = false;
 };
 
 Query.prototype.updateSelectedItems = function (items) {
@@ -468,12 +546,6 @@ Query.prototype.updateSelectedItems = function (items) {
 Query.prototype.updateTitle = function () {
     /// <summary>Update the title with the data of the Query.</summary>
 
-    if (this.container == null)
-        return;
-
-    var objTitle = this.container.find(".resultTitle");
-    if (objTitle.length > 0 && objTitle.dataContext() == this) {
-        objTitle.empty();
-        objTitle.append((this.hasSearched ? this.totalItems + " " : "") + (this.totalItems != 1 ? this.label : (this.persistentObject.label || this.persistentObject.type)));
-    }
+    if (this.titleTarget != null && this.titleTarget.length > 0 && this.titleTarget.dataContext() == this)
+        this.titleTarget.text(this.getTitle());
 };

@@ -26,36 +26,38 @@
             }
         };
 
+        var searchInputContainer = $.createElement("div").addClass("searchInputContainer");
         var input = $.createInput("text")
-           .on("keypress", eventMethods.onKeyPress)
+            .on("keypress", eventMethods.onKeyPress)
             .val(query.textSearch || "")
             .attr("placeholder", app.getTranslatedMessage("FilterSearchHint"));
-        var search = $.createElement("button").button()
+        var search = $.createElement("div")
             .addClass("searchButton")
             .on("click", eventMethods.onSearchClick);
 
-        container.append(input).append(search);
+        container.append(searchInputContainer.append(input).append(search));
         if (query.parent == null || !query.parent.isMasterDetail() || query.focusSearch) {
             input[0].selectionStart = input.val().length;
             delete query.focusSearch;
         }
 
-        if (!$.mobile && query.actionNames.contains("Filter") && !asLookup) {
-            var filter = $.createElement("button").button().addClass("filterButton");
+        if (!$.mobile && query.actionNames.contains("Filter") && !asLookup && !query.options.noDataFilter) {
+            var filter = $.createElement("div").addClass("filterButton");
             container.append(filter);
 
             if (query.filter.currentFilter != null) {
                 query.filter.createFilter(query.filterTarget);
             }
 
-            var filterMenu = $.createElement("div").addClass("queryFilterMenu subMenu");
-            container.append(filterMenu);
+            var filterMenu = $.createElement("div").addClass("queryFilterMenu");
+            filter.append(filterMenu);
 
-            filter.on("click", function (e) {
-                query.filter.openPopup(filterMenu);
-                e.stopPropagation();
-                e.preventDefault();
+            filter.subMenu(filterMenu, {
+                onOpen: function () { query.filter.openPopup(filterMenu); }
             });
         }
+
+        if ($.mobile)
+            input.blur();
     };
 })(jQuery);

@@ -1,17 +1,17 @@
 ﻿(function ($) {
     $.fn.vidyanoDateEdit = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var attribute = root.dataContext();
 
             var date = ServiceGateway.fromServiceString(attribute.value, attribute.type);
             var datePicker = root.find(".persistentObjectAttributeEditDateInput").vidyanoDatePicker(date, {
-                onDateSelected: function (selectedDate) {
+                onDateSelected: function (selectedDate, lostFocus) {
                     if (attribute.type == "Date" && selectedDate == null) {
                         datePicker.setDate(ServiceGateway.fromServiceString(attribute.value, attribute.type));
                     }
                     else {
-                        attribute.setValue(selectedDate);
+                        attribute.onChanged({ value: selectedDate }, lostFocus);
 
                         if (selectedDate == null)
                             clearButton.hide();
@@ -29,7 +29,7 @@
     };
 
     $.fn.vidyanoTimeEdit = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var attribute = root.dataContext();
 
@@ -48,12 +48,12 @@
             }
 
             var timePicker = $(".persistentObjectAttributeEditTime", root).vidyanoTimePicker(value, {
-                onTimeSelected: function (selectedTime) {
+                onTimeSelected: function (selectedTime, lostFocus) {
                     if (attribute.type == "Time" && selectedTime == null) {
                         timePicker.setTime(ServiceGateway.fromServiceString(selectedTime, attribute.type));
                     }
                     else {
-                        attribute.setValue(selectedTime);
+                        attribute.onChanged({ value: selectedTime }, lostFocus);
 
                         if (selectedTime == null)
                             clearButton.hide();
@@ -71,43 +71,49 @@
     };
 
     $.fn.vidyanoDateTimeEdit = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var isClearing = false;
             var attribute = root.dataContext();
 
-            function updateDateTime() {
+            function updateDateTime(lostFocus) {
                 if (isClearing)
                     return;
 
                 var now = new Date();
 
-                if (isNullOrWhiteSpace(selectedDate) && !isNullOrWhiteSpace(selectedTime))
+                if (isNullOrEmpty(selectedDate) && !isNullOrEmpty(selectedTime))
                     datePicker.setDate(now);
-                else if (!isNullOrWhiteSpace(selectedDate) && isNullOrWhiteSpace(selectedTime))
+                if (!isNullOrEmpty(selectedDate) && isNullOrEmpty(selectedTime))
                     timePicker.setTime(now.format("HH:mm"));
-                else if (!isNullOrWhiteSpace(selectedDate) && !isNullOrWhiteSpace(selectedTime))
-                    attribute.setValue(selectedDate + " " + selectedTime);
 
-                clearButton.show();
+                if (!isNullOrEmpty(selectedDate) && !isNullOrEmpty(selectedTime))
+                    attribute.onChanged({ value: selectedDate + " " + selectedTime }, lostFocus);
+
+                if (attribute.value)
+                    clearButton.show();
+                else
+                    clearButton.hide();
             }
 
             var dateTime = ServiceGateway.fromServiceString(attribute.value, attribute.type);
             var selectedDate = dateTime != null ? dateTime.format("MM/dd/yyyy") : null;
             var selectedTime = dateTime != null ? dateTime.format("HH:mm") : null;
-            var datePicker = $(".persistentObjectAttributeEditDateInput", root).vidyanoDatePicker(selectedDate, {
-                onDateSelected: function (value) {
+            var datePicker = $(".persistentObjectAttributeEditDateInput", root).vidyanoDatePicker(dateTime, {
+                onDateSelected: function (value, lostFocus) {
                     if (value == null)
                         selectedDate = null;
                     else
                         selectedDate = value.format("MM/dd/yyyy");
-                    updateDateTime();
+
+                    updateDateTime(lostFocus);
                 }
             });
-            var timePicker = $("select.persistentObjectAttributeEditTime", root).vidyanoTimePicker(selectedTime, {
-                onTimeSelected: function (value) {
+            var timePicker = $(".persistentObjectAttributeEditTime", root).vidyanoTimePicker(selectedTime, {
+                onTimeSelected: function (value, lostFocus) {
                     selectedTime = value;
-                    updateDateTime();
+
+                    updateDateTime(lostFocus);
                 }
             });
 
@@ -129,53 +135,59 @@
     };
 
     $.fn.vidyanoDateTimeOffset = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var isClearing = false;
             var attribute = root.dataContext();
 
-            function updateDateTime() {
+            function updateDateTime(lostFocus) {
                 if (isClearing)
                     return;
 
                 var now = new Date();
 
-                if (isNullOrWhiteSpace(selectedOffset))
+                if (isNullOrEmpty(selectedOffset) && (!isNullOrEmpty(selectedDate) || !isNullOrEmpty(selectedTime)))
                     offsetPicker.setOffset("+00:00");
-
-                if (isNullOrWhiteSpace(selectedDate) && !isNullOrWhiteSpace(selectedTime))
+                if (isNullOrEmpty(selectedDate) && (!isNullOrEmpty(selectedTime) || !isNullOrEmpty(selectedOffset)))
                     datePicker.setDate(now);
-                else if (!isNullOrWhiteSpace(selectedDate) && isNullOrWhiteSpace(selectedTime))
+                if (isNullOrEmpty(selectedTime) && (!isNullOrEmpty(selectedDate) || !isNullOrEmpty(selectedOffset)))
                     timePicker.setTime(now.format("HH:mm"));
-                else if (!isNullOrWhiteSpace(selectedDate) && !isNullOrWhiteSpace(selectedTime))
-                    attribute.onChanged({ value: selectedDate + " " + selectedTime + " " + selectedOffset }, true);
 
-                clearButton.show();
+                if (!isNullOrEmpty(selectedDate) && !isNullOrEmpty(selectedTime) && !isNullOrEmpty(selectedOffset))
+                    attribute.onChanged({ value: selectedDate + " " + selectedTime + " " + selectedOffset }, lostFocus);
+
+                if (attribute.value)
+                    clearButton.show();
+                else
+                    clearButton.hide();
             }
 
             var dateTime = ServiceGateway.fromServiceString(attribute.value, attribute.type);
             var selectedDate = dateTime != null ? dateTime.format("MM/dd/yyyy") : null;
             var selectedTime = dateTime != null ? dateTime.format("HH:mm") : null;
             var selectedOffset = dateTime != null ? dateTime.netOffset() : null;
-            var datePicker = $(".persistentObjectAttributeEditDateInput", root).vidyanoDatePicker(selectedDate, {
-                onDateSelected: function (value) {
+            var datePicker = $(".persistentObjectAttributeEditDateInput", root).vidyanoDatePicker(dateTime, {
+                onDateSelected: function (value, lostFocus) {
                     if (value == null)
                         selectedDate = null;
                     else
                         selectedDate = value.format("MM/dd/yyyy");
-                    updateDateTime();
+
+                    updateDateTime(lostFocus);
                 }
             });
-            var timePicker = $("select.persistentObjectAttributeEditTime", root).vidyanoTimePicker(selectedTime, {
-                onTimeSelected: function (value) {
+            var timePicker = $(".persistentObjectAttributeEditTime", root).vidyanoTimePicker(selectedTime, {
+                onTimeSelected: function (value, lostFocus) {
                     selectedTime = value;
-                    updateDateTime();
+
+                    updateDateTime(lostFocus);
                 }
             });
             var offsetPicker = $(".persistentObjectAttributeEditOffset", root).vidyanoOffsetPicker(selectedOffset, {
                 onOffsetSelected: function (value) {
                     selectedOffset = value;
-                    updateDateTime();
+
+                    updateDateTime(true);
                 }
             });
 
@@ -198,7 +210,7 @@
     };
 
     $.fn.vidyanoNumeric = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var numericTextBox = root.find("input");
             var attribute = root.dataContext();
@@ -303,78 +315,85 @@
     };
 
     $.fn.vidyanoTranslatedString = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var attribute = root.dataContext();
-            var isNew = attribute.parent.isNew;
             var options = attribute.options;
-            var headers = $.parseJSON(options[2]);
-            var contents = $.parseJSON(options[0]);
+            var contents = JSON.parse(options[0]);
+            var currentLanguage = options[1];
+            var headers = JSON.parse(options[2]);
+            
             var contentInput = root.find("input");
-            var mainInput = root.find("input[type='text']");
+            contentInput.val(attribute.value);
+            var languagesContainer = root.find(".persistentObjectAttributeEditLanguages").hide();
+            var currentLanguageInput = null;
 
-            function triggerDataContextChanged(triggersRefresh) {
-                if (!isNew) {
-                    $("input", languagesContainer).each(function () {
-                        contents[$(this).dataContext()] = $(this).val();
+            function triggerDataContextChanged(skipContent) {
+                languagesContainer.find("input").each(function () {
+                    var $this = $(this);
+                    var val = $this.val();
+
+                    contents[$this.dataContext()] = val;
+
+                    if (skipContent !== true && this == currentLanguageInput[0])
+                        contentInput.val(val);
+                });
+
+                options[0] = JSON.stringify(contents);
+                
+                attribute.value = currentLanguageInput.val();
+                attribute.isValueChanged = true;
+                attribute.parent.isDirty(true);
+            }
+
+            contentInput
+                .on("keyup change", function () {
+                    currentLanguageInput.val($(this).val());
+
+                    triggerDataContextChanged(true);
+                });
+
+            var languageCount = 0;
+            for (var prop in contents) {
+                languageCount++;
+
+                var label = $.createElement("label");
+                var input = $.createInput("text", prop);
+
+                if (prop == currentLanguage) {
+                    currentLanguageInput = input;
+                    label.addClass("currentLanguage");
+                }
+
+                label.text(headers[prop] + ":");
+                input.val(contents[prop]);
+                languagesContainer.append(label).append(input);
+            }
+
+            if (languageCount > 1) {
+                contentInput
+                    .on("click", function () {
+                        languagesContainer.show("fast");
                     });
+                root.find(".editButton").button()
+                    .on("click", function () {
+                        if (languagesContainer.css("display") == "none") {
+                            languagesContainer.show("fast");
 
-                    options[0] = JSON.stringify(contents);
-
-                    attribute.isValueChanged = true;
-                    attribute.parent.isDirty(true);
-                }
-                else
-                    attribute.onChanged({ value: mainInput.val() }, triggersRefresh);
+                            contentInput[0].selectionStart = contentInput.val().length;
+                        }
+                        else
+                            languagesContainer.hide("fast");
+                    });
+                languagesContainer.on("keyup change", "input", triggerDataContextChanged);
             }
-
-            function onEditButtonClick() {
-                if (languagesContainer.css("display") == "none") {
-                    var firstInput = languagesContainer.find("input[type='text']").first();
-                    languagesContainer.show("fast");
-                    firstInput[0].selectionStart = firstInput.val().length;
-                }
-                else
-                    languagesContainer.hide("fast");
-            }
-
-            function onInputChange() {
-                triggerDataContextChanged(true);
-            }
-
-            function onInputKeyDown() {
-                triggerDataContextChanged(false);
-            }
-
-            var languagesContainer = root.find(".persistentObjectAttributeEditLanguages");
-            languagesContainer.hide();
-            if (isNew) {
+            else
                 root.find(".editButton").hide();
-                mainInput
-                    .on("keydown", onInputKeyDown)
-                    .on("change", onInputChange);
-            }
-            else {
-                mainInput.attr("readonly", "readonly");
-                contentInput.on("click", onEditButtonClick);
-                root.find(".editButton").button().on("click", onEditButtonClick);
-
-                for (var prop in contents) {
-                    var label = $(document.createElement("label"));
-                    var input = $.createInput("text", prop);
-
-                    label.text(headers[prop] + ":");
-                    input.val(contents[prop])
-                        .on("keydown", onInputKeyDown)
-                        .on("change", onInputChange);
-                    languagesContainer.append(label).append(input);
-                }
-            }
         });
     };
 
     $.fn.vidyanoFlagsEnum = function () {
-        $(this).each(function () {
+        this.each(function () {
             var _enumValue;
             var _isUpdatingValues = false;
 
@@ -398,13 +417,12 @@
 
                 onHeaderClick: function (e) {
                     if (optionsDiv.css("display") == "none") {
-
                         optionsDiv.show()
                             .width(root.width() - 2)
                             .css("top", $(this).height() + this.offsetTop + 3);
-                    } else {
-                        optionsDiv.hide();
                     }
+                    else
+                        optionsDiv.hide();
 
                     e.stopPropagation();
                 }
@@ -422,12 +440,12 @@
 
                 getSelectedItemsFromEnumValue: function () {
                     if (_enumValue == 0) {
-                        $("input", optionsDiv).each(function () {
+                        optionsDiv.find("input").each(function () {
                             $(this).prop("checked", $(this).dataContext().val == 0);
                         });
                         return;
                     }
-                    $("input", optionsDiv).each(function () {
+                    optionsDiv.find("input").each(function () {
                         var currentVal = $(this).dataContext().val;
                         $(this).prop("checked", currentVal != 0 && (_enumValue & currentVal) == currentVal);
                     });
@@ -443,7 +461,7 @@
                         });
                     }
                     else {
-                        var selectedInputs = optionsDiv.find("input").select(function (item) { return $(item).dataContext(); });
+                        var selectedInputs = $.makeArray(optionsDiv.find("input")).map(function (item) { return $(item).dataContext(); });
                         var sortedInputs = selectedInputs.sort(function (item1, item2) {
                             return item2.val - item1.val;
                         });
@@ -451,37 +469,30 @@
                             var ctx = sortedInputs[i];
                             if (ctx.val != 0 && (temp & ctx.val) == ctx.val) {
                                 temp = temp & ~ctx.val;
-                                if (value != "") {
+                                if (value != "")
                                     value = ", " + value;
-                                }
                                 value = ctx.name + value;
                             }
                         }
                     }
 
-                    $("label", headerDiv).text(value);
+                    headerDiv.find("label").text(value);
                     attribute.onChanged({ value: value }, true);
 
                     functions.getSelectedItemsFromValue(value);
                 },
 
                 getSelectedItemsFromValue: function (value) {
-                    if (value == null) {
+                    if (value == null)
                         return;
-                    }
 
                     _isUpdatingValues = true;
 
-                    $("input:checked", optionsDiv).each(function () {
+                    optionsDiv.find("input:checked").each(function () {
                         _enumValue |= $(this).dataContext().val;
                     });
                     functions.getSelectedItemsFromEnumValue();
                     _isUpdatingValues = false;
-                },
-
-                createSelectWrapper: function () {
-                    functions.createWrapperHeader();
-                    functions.createWrapperDropDown();
                 },
 
                 createWrapperHeader: function () {
@@ -500,6 +511,7 @@
                         .addClass("persistentObjectAttributeEditSelectWrapperDropDown")
                         .hide();
 
+                    _enumValue = 0;
                     options.each(function () {
                         var div = $.createElement("div");
                         var checkbox = $.createInput("checkbox");
@@ -507,8 +519,12 @@
                         var val = $(this).val();
                         var name = val.substring(val.indexOf("=") + 1, val.length);
                         var intVal = parseInt(val.substring(0, val.indexOf("=")), 10);
+                        var isChecked = values.contains(name);
+                        if (isChecked)
+                            _enumValue |= intVal;
 
                         checkbox.dataContext({ name: name, val: intVal })
+                            .prop("checked", isChecked)
                             .on("change", eventFunctions.onCheckBoxChange)
                             .on("click", function (e) { e.stopPropagation(); });
                         label.text(name);
@@ -516,21 +532,28 @@
                             .append(label)
                             .on("click", eventFunctions.onCheckDivClick);
                         optionsDiv.append(div);
-                        if (values.contains(name)) {
-                            checkbox.prop("checked", true);
-                            checkbox.change();
-                        }
-
                     });
+
+                    try {
+                        _isUpdatingValues = true;
+
+                        optionsDiv.find("input").each(function () {
+                            var currentVal = $(this).dataContext().val;
+                            if (currentVal != 0 && (_enumValue & currentVal) == currentVal)
+                                $(this).prop("checked", true);
+                        });
+                    }
+                    finally {
+                        _isUpdatingValues = false;
+                    }
 
                     root.append(optionsDiv);
                 },
 
                 deselectAll: function () {
-                    $("input:checked", optionsDiv).each(function () {
-                        if ($(this).dataContext().val != 0) {
+                    optionsDiv.find("input:checked").each(function () {
+                        if ($(this).dataContext().val != 0)
                             $(this).prop("checked", false);
-                        }
                     });
                 },
 
@@ -551,8 +574,8 @@
             };
 
             var root = $(this);
-            var sourceSelect = $(".persistentObjectAttributeEditSelect", root);
-            var options = $("option", sourceSelect);
+            var sourceSelect = root.find(".persistentObjectAttributeEditSelect");
+            var options = sourceSelect.find("option");
             var attribute = root.dataContext();
             var headerDiv;
             var optionsDiv;
@@ -562,19 +585,24 @@
             else
                 values = attribute.value.split(", ");
             sourceSelect.hide();
-            functions.createSelectWrapper();
+            functions.createWrapperHeader();
+            functions.createWrapperDropDown();
             $(document).off("click.flaggedComboBox", eventFunctions.onDocumentClick);
             $(document).on("click.flaggedComboBox", eventFunctions.onDocumentClick);
         });
     };
 
     $.fn.vidyanoEditableSelect = function () {
-        $(this).each(function () {
-            var select = $(this);
-            var attribute = select.dataContext();
+        this.each(function () {
+            var root = $(this);
+            var attribute = root.dataContext();
+
+            var select = root.find("select");
+            if (select.length == 0)
+                select = root;
+
             select.editableSelect({
                 selectedValue: attribute.value,
-                bg_iframe: false,
                 onSelect: function (value) { attribute.setValue(value); },
                 case_sensitive: false,
                 items_then_scroll: 10
@@ -583,14 +611,14 @@
     };
 
     $.fn.vidyanoSelect = function () {
-        $(this).each(function () {
+        this.each(function () {
             var select = $(this).find("select");
             var attribute = select.dataContext();
             select.on("change", function (e) { attribute.setValue(e.target.value); });
 
             if (attribute.type == "KeyValueList") {
                 var options = attribute.selectInPlaceOptions();
-                options.run(function (option) {
+                options.forEach(function (option) {
                     select.append("<option value='" + option.key + "'" + (attribute.value == option.key ? ' selected="selected"' : "") + ">" + option.value + "</option>");
                 });
 
@@ -603,7 +631,7 @@
                 if (!attribute.isRequired && attribute.type != "Enum" && (attribute.options == null || !attribute.options.contains(null)))
                     select.append("<option" + (attribute.value == null ? ' selected="selected"' : "") + "></option>");
 
-                attribute.options.run(function (option) {
+                attribute.options.forEach(function (option) {
                     select.append("<option" + (attribute.value == option ? ' selected="selected"' : "") + ">" + option + "</option>");
                 });
 
@@ -616,10 +644,10 @@
     };
 
     $.fn.vidyanoTriState = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
-            var inputs = $('input', root);
-            var labels = $('label', root);
+            var inputs = root.find('input');
+            var labels = root.find('label');
             var attribute = root.dataContext();
             var value = ServiceGateway.fromServiceString(attribute.value, attribute.type);
 
@@ -644,7 +672,7 @@
     };
 
     $.fn.vidyanoString = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var attribute = root.dataContext();
             var charCasing = attribute.getTypeHint("CharacterCasing", "Normal");
@@ -657,13 +685,12 @@
                 if (keyCode == 16 || keyCode == 17 || keyCode == 40 || keyCode == 39 || keyCode == 38 || keyCode == 37)
                     return;
 
-                var textBox = $(this);
                 var carretStartIndex = 0, carretEndIndex = 0;
 
                 if (changeCasing) {
                     carretStartIndex = this.selectionStart;
                     carretEndIndex = this.selectionEnd;
-                    textBox.val(methods.toCharCase(textBox.val(), charCasing));
+                    input.val(methods.toCharCase(input.val(), charCasing));
                 }
 
                 attribute.onChanged(this, false);
@@ -673,20 +700,225 @@
                     this.selectionEnd = carretEndIndex;
                 }
             });
-            input.on("blur", function () {
+            input.on("blur change", function () {
                 if (changeCasing) {
                     var textBox = $(this);
                     textBox.val(methods.toCharCase(textBox.val(), charCasing));
                 }
                 attribute.onChanged(this, true);
             });
+
+            var suggestButton = root.find(".suggestButton");
+            var suggestionsSeparator = attribute.getTypeHint("SuggestionsSeparator");
+            if (suggestionsSeparator != null && attribute.options != null && attribute.options.length > 0) {
+                suggestButton.text("...");
+
+                var optionsList = $.createElement("ul");
+                attribute.options.forEach(function (option) {
+                    if (attribute.value != null && attribute.value.contains(option))
+                        return;
+
+                    var optionSelector = $.createElement("li");
+                    optionSelector.text(option);
+                    optionSelector.click(function () {
+                        attribute.setValue(isNullOrEmpty(attribute.value) ? option : (attribute.value.endsWith(suggestionsSeparator) ? attribute.value + option : attribute.value + suggestionsSeparator + option));
+                        input.val(attribute.value);
+
+                        optionSelector.remove();
+
+                        if (optionsList.find("li").length == 0) {
+                            optionsList.remove();
+                            suggestButton.hide();
+                        }
+                    });
+
+                    optionsList.append(optionSelector);
+                });
+
+                if (optionsList.find("li").length > 0) {
+                    suggestButton.subMenu(optionsList);
+                    suggestButton.show();
+                }
+                else
+                    suggestButton.hide();
+            }
+            else
+                suggestButton.hide();
+        });
+    };
+
+    $.fn.vidyanoDetailReference = function () {
+        this.each(function () {
+            var root = $(this);
+            var attribute = root.dataContext();
+            var columns = attribute.lookup.columns.filter(function (c) { return !c.isHidden && c.width != "0"; }).orderBy("offset");
+            var deleteAction = attribute.lookup.getAction("Delete");
+
+            var calculateWidths = function () {
+                var width = root.width();
+
+                if (deleteAction != null)
+                    width -= 24;
+
+                columns.forEach(function (c) { c._detailColumnWidth = null; });
+
+                var remainingWidth = width;
+                columns.filter(function (c) { return c.width != null && !c.width.endsWith('%'); }).forEach(function (c) {
+                    var intWidth = parseInt(c.width, 10);
+                    if (!isNaN(intWidth)) {
+                        c._detailColumnWidth = intWidth + "px";
+                        remainingWidth -= intWidth;
+                    }
+                });
+
+                var percentagesRemainingWidth = remainingWidth;
+                columns.filter(function (c) { return c.width != null && c.width.endsWith('%'); }).forEach(function (c) {
+                    var intWidthPercentage = parseInt(c.width, 10);
+                    if (!isNaN(intWidthPercentage)) {
+                        var intWidth = Math.floor(percentagesRemainingWidth * intWidthPercentage / 100);
+                        c._detailColumnWidth = intWidth + "px";
+                        remainingWidth -= intWidth;
+                    }
+                });
+
+                var columnsWithoutWidth = columns.filter(function (c) { return c._detailColumnWidth == null; });
+                var remainingColumnWidth = Math.floor(remainingWidth / columnsWithoutWidth.length) + "px";
+                columnsWithoutWidth.forEach(function (c) {
+                    c._detailColumnWidth = remainingColumnWidth;
+                });
+            };
+
+            calculateWidths();
+
+            var inEdit = attribute.parent.inEdit;
+            var container = $.createElement("div").addClass("detailContainer");
+            if (inEdit)
+                container.addClass("inEdit");
+
+            var table = $.createElement("table").appendTo(container);
+
+            var hasHeader = attribute.getTypeHint("IncludeHeader", "False") == "True";
+            if (hasHeader) {
+                var thead = $.createElement("thead").appendTo(table);
+                var headRow = $.createElement("tr").appendTo(thead);
+
+                columns.forEach(function (c) {
+                    c._detailTd = $.createElement("td", c).css("width", c._detailColumnWidth)
+                        .text(c.label).appendTo(headRow);
+                });
+
+                if (deleteAction != null)
+                    $.createElement("td").addClass("deleteDetail").appendTo(headRow);
+            }
+
+            var tbody = $.createElement("tbody").appendTo(table);
+            var renderObject = function (obj) {
+                if (obj._isDeleted)
+                    return;
+
+                var tr = $.createElement("tr", obj).addClass("detail " + (obj.isNew ? "new" : "existing"));
+                tbody.append(tr);
+
+                if (inEdit)
+                    obj.beginEdit();
+                else
+                    obj.cancelEdit();
+
+                columns.forEach(function (c) {
+                    var td = $.createElement("td");
+                    if (!hasHeader && tbody.find("tr").length == 1) {
+                        c._detailTd = td;
+                        td.css("width", c._detailColumnWidth);
+                    }
+
+                    var attr = obj.getAttribute(c.name);
+                    if (attr != null) {
+                        var attrDiv = attr._createControl();
+                        attrDiv.dataContext(attr);
+                        attrDiv.html(attr._getTemplate());
+                        td.append(attrDiv);
+                    }
+
+                    tr.append(td);
+                });
+
+                if (deleteAction != null) {
+                    var tdDelete = $.createElement("td").addClass("deleteDetail");
+                    if (inEdit) {
+                        tdDelete.append($.createElement("div").html("&nbsp;").addClass(deleteAction.iconClass)).on("click", function () {
+                            tr.remove();
+                            obj.target = null;
+
+                            if (!obj.isNew) {
+                                obj._isDeleted = true;
+
+                                attribute.parent.isDirty(true);
+                            } else
+                                attribute.objects.remove(obj);
+                        });
+                    }
+                    tr.append(tdDelete);
+                }
+
+                obj.target = tr;
+                obj._postAttributeRender(tr);
+            };
+
+            attribute.objects.forEach(renderObject);
+
+            root.append(container);
+
+            if (inEdit) {
+                var newAction = attribute.lookup.getAction("New");
+                if (newAction != null) {
+                    var lookupAttribute = attribute.displayAttribute;
+
+                    $.createElement("button").addClass("newButton").text(newAction.displayName).button().on("click", function () {
+                        app.gateway.executeAction("Query.New", attribute.parent, attribute.lookup, null, null, function (newObj) {
+                            newObj.ownerDetailAttribute = attribute;
+
+                            var addObject = function () {
+                                attribute.objects.push(newObj);
+
+                                renderObject(newObj);
+
+                                attribute.parent.isDirty(true);
+                            };
+
+                            if (!String.isNullOrEmpty(lookupAttribute)) {
+                                var lookupAttr = newObj.getAttribute(lookupAttribute);
+                                if (lookupAttr != null && typeof (lookupAttr.browseReference) == "function") {
+                                    lookupAttr.browseReference(addObject);
+                                    return;
+                                }
+                            }
+
+                            addObject();
+                        }, function (ex) {
+                            attribute.parent.showNotification(ex);
+                        });
+                    }).appendTo(container);
+                }
+            }
+
+            root.on("resize", function () {
+                calculateWidths();
+                columns.forEach(function (c) {
+                    c._detailTd.css("width", c._detailColumnWidth);
+                });
+            });
         });
     };
 
     $.fn.vidyanoReference = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var attribute = root.dataContext();
+            if (attribute.asDetail) {
+                root.vidyanoDetailReference();
+                return;
+            }
+
             var clearButton = root.find('.clearButton');
             var addButton = root.find('.addReferenceButton');
             var browseButton = root.find('.browseReferenceButton');
@@ -699,12 +931,10 @@
                 browseReference: function () {
                     var inputBox = root.find('input:first');
                     var input = inputBox.val();
-
-                    if (!isNull(input) && input != "" && attribute.value != input) {
+                    if (input != null && input != "" && attribute.value != input)
                         attribute.onChanged(inputBox.get()[0], true, functions.onBrowseReferenceCompleted);
-                    } else {
+                    else
                         attribute.browseReference(functions.onBrowseReferenceCompleted, false);
-                    }
                 },
 
                 clearReference: function () {
@@ -727,12 +957,12 @@
                     var selectBox = root.find('select:first');
 
                     selectBox.val(attribute.objectId);
-                    selectBox.on("change", function() {
+                    selectBox.on("change", function () {
                         var val = selectBox.val();
                         if (isNullOrEmpty(val))
                             functions.clearReference();
                         else
-                            attribute.changeReference([{ id: val, toServiceObject: function () { return { id: val }; } }], null);
+                            attribute.changeReference([{ id: val, breadcrumb: selectBox.find("option:selected").text(), toServiceObject: function () { return { id: val }; } }], null);
                     });
                 },
 
@@ -744,7 +974,7 @@
                     clearButton.hide();
                 },
 
-                onRootLostFocus: function (e) {
+                onRootLostFocus: function () {
                     var inputBox = root.find('input:first');
                     var input = inputBox.val();
 
@@ -784,7 +1014,7 @@
     };
 
     $.fn.vidyanoEditImage = function () {
-        $(this).each(function () {
+        this.each(function () {
             var events = {
                 clearImage: function () {
                     attribute.onChanged({ value: null }, true);
@@ -837,7 +1067,7 @@
     };
 
     $.fn.vidyanoEditTemplate = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var po = root.dataContext();
 
@@ -958,12 +1188,16 @@
     };
 
     $.fn.vidyanoEditBinaryFile = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var attribute = root.dataContext();
             var po = attribute.parent;
             var fileInput = root.find('.persistentObjectAttributefileInput');
             var displayInput, browseButton;
+
+            var accept = attribute.getTypeHint("Accept");
+            if (accept != null)
+                fileInput.attr("accept", accept);
 
             var functions = {
                 createControl: function () {
@@ -1016,7 +1250,7 @@
     };
 
     $.fn.vidyanoBrowseCertificate = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var po = root.dataContext();
             var attribute = po.getAttribute("CertificateAsBase64");
@@ -1074,14 +1308,14 @@
     };
 
     $.fn.vidyanoMultiLineString = function (inEdit) {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var attribute = root.dataContext();
             var language = attribute.getTypeHint("Language");
             if (!isNullOrWhiteSpace(language)) {
                 if (!inEdit) {
                     var parent = root.parent();
-                    root.replaceWith("<div class='persistentObjectAttribute_MultiLineString'><textarea style='width: 100%'>" + (attribute.value || "") + "</textarea></div>");
+                    root.replaceWith("<div class='persistentObjectAttribute_MultiLineString'><textarea>" + (attribute.value || "") + "</textarea></div>");
                     root = parent.find(".persistentObjectAttribute_MultiLineString");
                 }
 
@@ -1089,9 +1323,6 @@
 
                 // Check if language is supported
                 if (language in CodeMirror.modes || language in CodeMirror.mimeModes) {
-                    if (!isNullOrWhiteSpace(attribute.toolTip))
-                        root.find(".toolTip").text(attribute.toolTip);
-
                     var textArea = root.find('textarea');
                     if (textArea.length > 0) {
                         var options = {
@@ -1131,7 +1362,7 @@
     };
 
     $.fn.vidyanoUserRightResource = function () {
-        $(this).each(function () {
+        this.each(function () {
             var root = $(this);
             var attribute = root.dataContext();
 
@@ -1157,7 +1388,7 @@
 
             var actions = attribute.options[0].split(';');
             var schemasInfo = {};
-            attribute.options[1].split(';').select(function (si) { return si.split('='); }).run(function (si) { schemasInfo[si[0]] = si[1].split('|'); });
+            attribute.options[1].split(';').map(function (si) { return si.split('='); }).forEach(function (si) { schemasInfo[si[0]] = si[1].split('|'); });
             var attributes = attribute.options[2].split(';');
             var selectedAction = null, selectedSchema = null, selectedPersistentObject = null, selectedAttribute = null;
 
@@ -1169,7 +1400,7 @@
                     updateValue();
                 }
             });
-            actions.run(function (option) {
+            actions.forEach(function (option) {
                 actionsSelect.append("<option" + (selectedAction == option ? ' selected="selected"' : "") + ">" + option + "</option>");
             });
 
@@ -1218,7 +1449,9 @@
                 }
                 else {
                     persistentObjectsSelect.append("<option" + (isNullOrEmpty(selectedPersistentObject) ? ' selected="selected"' : "") + "></option>");
-                    schemasInfo[selectedSchema].run(function (po) { persistentObjectsSelect.append("<option" + (selectedPersistentObject == po ? ' selected="selected"' : "") + ">" + po + "</option>"); });
+                    var schemaInfo = schemasInfo[selectedSchema];
+                    if (schemaInfo != null)
+                        schemaInfo.forEach(function (po) { persistentObjectsSelect.append("<option" + (selectedPersistentObject == po ? ' selected="selected"' : "") + ">" + po + "</option>"); });
                     persistentObjectsSelect.val(selectedPersistentObject);
                     persistentObjectsSelect.removeAttr("disabled");
                 }
@@ -1228,7 +1461,7 @@
 
             function addAttributesOptions() {
                 attributesSelect.append("<option" + (isNullOrEmpty(selectedAttribute) ? ' selected="selected"' : "") + "></option>");
-                attributes.run(function (attr) { attributesSelect.append("<option" + (selectedAttribute == attr ? ' selected="selected"' : "") + ">" + attr + "</option>"); });
+                attributes.forEach(function (attr) { attributesSelect.append("<option" + (selectedAttribute == attr ? ' selected="selected"' : "") + ">" + attr + "</option>"); });
                 attributesSelect.val(selectedAttribute);
                 attributesSelect.removeAttr("disabled");
             }
@@ -1346,7 +1579,8 @@
         "ReadEditNew",
         "New",
         "Edit",
-        "EditNew"
+        "EditNew",
+        "EditNewDelete"
     ];
     var methods = {
         toCharCase: function (value, casing) {

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge,chrome=1">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Vidyano</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -13,24 +13,24 @@
                 document.location = "?safemode";
         };
     </script>
+    <style></style>
     <link href="reset.css" type="text/css" rel="stylesheet" />
     <link href="jquery-ui-1.10.0.custom.css" type="text/css" rel="stylesheet" />
     <link href="codemirror.css" type="text/css" rel="stylesheet" />
     <link href="simple-hint.css" type="text/css" rel="stylesheet" />
     <link href="Vidyano.css" type="text/css" rel="stylesheet" />
-    <script src="Scripts/jquery-1.9.1.min.js" type="text/javascript"></script>
+    <script src="Scripts/jquery-2.0.0.min.js" type="text/javascript"></script>
     <script src="Scripts/jquery-ui-1.10.0.custom.min.js" type="text/javascript"></script>
     <script src="Scripts/jquery.base64.min.js" type="text/javascript"></script>
     <script src="Scripts/jquery.ba-resize.min.js" type="text/javascript"></script>
     <script src="Scripts/jquery.rule.js" type="text/javascript"></script>
-    <script src="Scripts/json2.js" type="text/javascript"></script>
     <script src="Scripts/signals.min.js" type="text/javascript"></script>
     <script src="Scripts/crossroads.min.js" type="text/javascript"></script>
     <script src="Scripts/hasher.min.js" type="text/javascript"></script>
     <script src="Scripts/underscore-min.js" type="text/javascript"></script>
     <script src="Scripts/spin.min.js" type="text/javascript"></script>
-    <script src="Scripts/prefixfree.min.js" type="text/javascript"></script>
     <script src="Scripts/shortcut.js" type="text/javascript"></script>
+    <script src="Scripts/masked_input_1.2.2.js" type="text/javascript"></script>
     <script src="Scripts/CodeMirror/codemirror.js" type="text/javascript"></script>
     <script src="Scripts/CodeMirror/javascript.js" type="text/javascript"></script>
     <script src="Scripts/CodeMirror/css.js" type="text/javascript"></script>
@@ -71,6 +71,8 @@
     <script src="Scripts/Vidyano/Controls/QueryViewer.js" type="text/javascript"></script>
     <script src="Scripts/Vidyano/Controls/QueryList.js" type="text/javascript"></script>
     <script src="Scripts/Vidyano/Controls/QueryGrid.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/JsonGrid.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/ToolTip.js" type="text/javascript"></script>
     <script src="Scripts/Vidyano/Controls/QueryPaging.js" type="text/javascript"></script>
     <script src="Scripts/Vidyano/Controls/Search.js" type="text/javascript"></script>
     <script src="Scripts/Vidyano/Controls/DatePicker.js" type="text/javascript"></script>
@@ -78,51 +80,62 @@
     <script src="Scripts/Vidyano/Controls/OffsetPicker.js" type="text/javascript"></script>
     <script src="Scripts/Vidyano/Controls/SubMenu.js" type="text/javascript"></script>
     <script src="Scripts/Vidyano/Controls/WeekScheduler.js" type="text/javascript"></script>
+    <script src="Scripts/Vidyano/Controls/Profiler.js" type="text/javascript"></script>
     
     <script type="text/html" id="home_template">
         <header>
-            <table style="width: 100%; table-layout: auto">
-                <tr>
-                    <td>
-                        <div class="programUnits" style="overflow: hidden" />
-                        <div class="programUnitItems" />
-                    </td>
-                    <td style="width: 1px; white-space: nowrap; overflow: hidden; vertical-align: top">
-                        <div id="applicationSignIn" data-vidyano-visibility-states="SignedIn">
-                            <input id="globalSearch" type="text" />
-                            <div id="signInOut" tabindex="-1"></div>
-                        </div>
-                    </td>
-                </tr>
-            </table>
+            <div>
+                <div class="programUnits">
+                    <img class="logo" alt="" height="40" src="data:image/gif;base64,R0lGODdhAgACAIAAAAAAAP///ywAAAAAAgACAAACAoRRADs="><div class="activeProgramUnit" tabindex="-1"></div>
+                    <ul class="list"></ul>
+                </div>
+            </div>
+            <div class="programUnitItems"></div>
+            <div>
+                <div id="applicationSignIn" data-vidyano-visibility-states="SignedIn">
+                    <div id="globalSearchContainer">
+                        <input id="globalSearch" type="text" /><div id="globalSearchButton"></div>
+                    </div>
+                    <div class="profilerButton"></div>
+                    <div id="signInOut" tabindex="-1"></div>
+                </div>
+            </div>
         </header>
+        <div id="profiler"></div>
         <div id="content"></div>
     </script>
     <script type="text/html" id="home_mobile_template">
         <header id="applicationSignIn" data-vidyano-visibility-states="SignedIn">
             <button id="home" tabindex="-1"></button>
             <button id="signInOut" tabindex="-1"></button>
-            <input id="globalSearch" type="text" />
+            <div id="globalSearchContainer"><input id="globalSearch" type="text" /></div>
         </header>
         <ul class="programUnits"></ul>
         <div id="content"></div>
     </script>
     <script type="text/html" id="signin_template">
         <div id="signInBox">
-            <div id="signInBoxApplicationTitle"></div>
+            <div id="signInBoxApplicationTitle">Sign in using</div>
             <div id="signInBoxItemsContainer">
-                <label for="userName" class="signInLabel">User name</label>
-                <input id="userName" type="text" />
-                <label for="userPass" class="signInLabel">Password</label>
-                <input id="userPass" type="password" />
-                <div class="signInBottom">
-                    <button id="signIn" class="signInButton">Sign in</button>
-                    <div class="staySignedInContainer">
-                        <input id="staySignedIn" type="checkbox" />
-                        <label for="staySignedIn">Stay signed in</label>
+                <div id="vidyanoProvider">
+                    <label for="userName" class="signInLabel">User name</label>
+                    <input id="userName" type="text" />
+                    <label for="userPass" class="signInLabel">Password</label>
+                    <input id="userPass" type="password" />
+                    <div class="signInBottom">
+                        <button id="signIn" class="signInButton">Sign in</button>
+                        <div class="staySignedInContainer">
+                            <input id="staySignedIn" type="checkbox" />
+                            <label for="staySignedIn">Stay signed in</label>
+                        </div>
+                        <div id="signInSpinner">&nbsp;</div>
                     </div>
-                    <div id="signInSpinner">&nbsp;</div>
                 </div>
+                <div id="mixedSignInMode" style="text-align: center; line-height: 0; padding: 18px 0 12px 0;">
+                    <div style="border-top: 1px solid #AAAAAA;"></div>
+                    <div style="display: inline; padding: 0 10px; background: WhiteSmoke;">Or</div>
+                </div>
+                <div id="oAuthProviders"></div>
                 <div id="signInNotification"></div>
             </div>
             <div class="poweredByVidyano">Powered by Vidyano™</div>
@@ -238,7 +251,10 @@
     </script>
 </head>
 <body>
-    <!--[if lt IE 9]><p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to experience this site.</p><![endif]-->
-    <div id="rootContainer"></div>
+    <div id="rootContainer">
+        <div style="text-align: center; width: 300px; height: 30px; position: absolute; top:0; bottom: 0; left: 0; right: 0; margin: auto; font-size: 24px; font-family: Segoe UI,Lucida Sans Unicode,Verdana,Arial,Helvetica,sans-serif; color: #333">
+            <span>Initializing application...</span>
+        </div>
+    </div>
 </body>
 </html>

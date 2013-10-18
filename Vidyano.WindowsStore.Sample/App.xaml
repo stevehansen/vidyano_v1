@@ -1,0 +1,191 @@
+﻿<vi:Client x:Class="Vidyano.WindowsStore.Sample.App"
+           xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+           xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+           xmlns:vi="using:Vidyano"
+           xmlns:viView="using:Vidyano.View"
+           
+           RequestedTheme="Light">
+
+    <vi:Client.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="VidyanoStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <vi:Service x:Key="☁" Uri="https://vidyano.azurewebsites.net/" />
+
+            <!--
+            
+            The Settings object is used to customize the available options for the Windows Store client.
+            
+            * AppName: 
+                Is used as the application name on the Home Page and in the Info flyout. (e.g.: My Vidyano Application)
+            * NormalActionsAlignment:
+                Determines if the normal Vidyano actions (New, Edit, Delete, ...) should be aligned Left or Right. For touch devices it is recommended to align them on the Right.
+            * StartupPageType:
+                Determines which page should be opened when the application is started. Valid values are HomePage, PersistentObjectPage and QueryPage.
+            * StartupPageArgument:
+                Contains the argument for when the StartupPageType is PersistentObjectPage or QueryPage. (e.g.: SchemaName.Customer for PersistentObjectPage or Customers for QueryPage)
+            * Flyouts:
+                Contains a list of extra Flyouts that will be shown in the Settings charm.
+            
+            -->
+
+            <vi:Settings x:Key="⚙"
+                         AppName="Vidyano"
+                         NormalActionsAlignment="Right"
+                         ProgramUnitItemImage="/Assets/ProgramUnitItem.png"
+                         CompanyLogo="/Assets/CompanyLogo.png"
+                         >
+
+                <!--  Custom Settings Flyouts  -->
+
+                <vi:Settings.Flyouts>
+                    <vi:SettingsFlyout LabelMessageKey="Privacy">
+                        <DataTemplate>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" VerticalScrollMode="Enabled" HorizontalScrollMode="Disabled">
+                                <RichTextBlock FontFamily="Segoe UI" FontSize="14" Padding="20, 20, 20, 0">
+                                    <Paragraph>
+                                        <Bold Foreground="{StaticResource ApplicationAccentBrush}" FontSize="18">PRIVACY POLICY</Bold>
+                                        <LineBreak />
+                                    </Paragraph>
+                                    <Paragraph>
+                                        This privacy policy explains our privacy practices for Vidyano and all other services provided by 2sky NV ("2sky"). Please read the following to learn more about our privacy policy, and how we treat personally identifiable information collected from using this app. Your use of the Vidyano app indicates your agreement to the Privacy Policy laid out below.
+                                        <LineBreak />
+                                    </Paragraph>
+                                    <Paragraph>
+                                        <Bold>INFORMATION COLLECTED AND RECEIVED</Bold>
+                                        <LineBreak />
+                                        2sky automatically records your name and email address after you give your consent to sign in using Windows Live Connect. This information is stored in our system, allowing us to provide you with the necessary security rights. By signing in using Windows Live Connect, you consent to the use of your Personal Information as indicated in this policy.
+                                        <LineBreak />
+                                        <LineBreak />
+                                        We do not log crash reports on your device, nor do we collect any information about the use of the Vidyano app.
+                                        <LineBreak />
+                                    </Paragraph>
+                                    <Paragraph>
+                                        <Bold>DISCLOSING YOUR PERSONAL INFORMATION</Bold>
+                                        2sky will not sell or disclose your name, email address or other personal information to third parties without your explicit consent. 2sky uses the information described in this policy for the sole purpose of personalizing your experience when using the Vidyano app. 2sky will not give, sell or exchange any personal information about you to a third party unless required to do so by law.
+                                        <LineBreak />
+                                    </Paragraph>
+                                    <Paragraph>
+                                        <InlineUIContainer>
+                                            <HyperlinkButton NavigateUri="http://www.vidyano.com/#!/WebPage/Privacy">Online Privacy Policy</HyperlinkButton>
+                                        </InlineUIContainer>
+                                    </Paragraph>
+                                </RichTextBlock>
+                            </ScrollViewer>
+                        </DataTemplate>
+                    </vi:SettingsFlyout>
+                    <vi:SettingsFlyout LabelMessageKey="Info">
+                        <DataTemplate>
+                            <StackPanel Margin="20">
+                                <TextBlock Margin="0, 0, 0, 6"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           Text="{Binding Settings.AppName}" />
+                                <TextBlock FontSize="16" Text="By 2sky" />
+                                <TextBlock FontSize="16" Text="{Binding Settings.Version, Converter={StaticResource stringFormatConverter}, ConverterParameter='Version {0}'}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </vi:SettingsFlyout>
+                </vi:Settings.Flyouts>
+
+                <!--  =======================  -->
+            </vi:Settings>
+
+            <!--  Custom Templates  -->
+
+            <DataTemplate x:Key="ProgramUnitItemTemplate.Customers">
+                <TextBlock Text="" />
+            </DataTemplate>
+            <DataTemplate x:Key="ProgramUnitItemTemplate.Products">
+                <Path Data="M0,19.599001L64,19.599001 64,63.225 0,63.225z M36.098,0L52.15377,0 64,11.737 36.098,11.737z M11.959515,0L28.014,0 28.014,11.737 0,11.737z" Stretch="Uniform" Fill="#FFFFFFFF" Width="96" Height="96" Margin="0,0,0,0" RenderTransformOrigin="0.5,0.5" />
+            </DataTemplate>
+            <DataTemplate x:Key="ProgramUnitItemTemplate.Pei">
+                <Path Data="M13.958583,24.422L16.442997,24.422C17.933706,25.484518,19.638317,26.243532,21.458628,26.711039L24.260645,30.713706C24.327045,30.782708,24.414345,30.817809,24.492447,30.867411L20.11072,40.341469C19.866117,40.760777,19.777418,41.211285,20.11072,41.54199L24.526247,45.956165C24.85965,46.29077,25.394651,46.29077,25.727953,45.956165L30.143478,41.54199C30.472881,41.211285,30.472881,40.673475,30.143478,40.341469L25.763355,30.867411C25.844055,30.817809,25.923254,30.782708,25.993855,30.713706L28.794373,26.711039C30.616182,26.243532,32.316589,25.484518,33.810303,24.422L36.294418,24.422C44.002964,24.422,50.253002,30.673306,50.253002,38.380437L50.253002,40.232069 50.253002,43.880529 50.253002,45.323353C50.253002,46.864979,49.002995,48.115,47.461182,48.115L2.7917666,48.115C1.2500074,48.115,0,46.864979,0,45.323353L0,43.880529 0,40.232069 0,38.380437C0,30.673306,6.2500372,24.422,13.958583,24.422z M25.1161,0C31.860701,0 37.327,5.4660378 37.327,12.208251 37.327,18.958224 31.860701,24.423001 25.1161,24.423001 18.3713,24.423001 12.905001,18.958224 12.905001,12.208251 12.905001,5.4660378 18.3713,0 25.1161,0z" Stretch="Uniform" Fill="#FFFFFFFF" Width="96" Height="96" Margin="0,0,0,0" RenderTransformOrigin="0.5,0.5" />
+            </DataTemplate>
+
+            <DataTemplate x:Key="QueryItemTemplate.Customer">
+                <Border Width="320" Padding="12">
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <TextBlock FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                           FontSize="42"
+                                           Text="" />
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <StackPanel Margin="12, 0, 0, 0" Orientation="Horizontal">
+                                <TextBlock FontSize="20" Text="{Binding [FirstName]}" />
+                                <TextBlock Margin="12, 0, 0, 0"
+                                                   FontSize="20"
+                                                   Text="{Binding [LastName]}" />
+                            </StackPanel>
+                            <TextBlock Grid.Row="1"
+                                               Margin="12, 0, 0, 0"
+                                               FontSize="16"
+                                               Opacity="0.7"
+                                               Foreground="{StaticResource ApplicationContrastBrush}"
+                                               Text="{Binding [CompanyName]}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+            <DataTemplate x:Key="QueryItemTemplate.Product">
+                <Border Width="320" Padding="12">
+                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                        <Image Source="{Binding [Photo]}" Stretch="Uniform" Height="48" Width="48" />
+                        <StackPanel>
+                            <TextBlock Margin="12, 0, 0, 0"
+                                                   FontSize="20"
+                                                   Text="{Binding [Name]}" />
+                            <TextBlock 
+                                               Margin="12, 0, 0, 0"
+                                               FontSize="16"
+                                               Opacity="0.7"
+                                               Foreground="Red"
+                                               Text="{Binding [ListPrice], Converter={StaticResource stringFormatConverter}, ConverterParameter='${0:N2}'}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
+
+            <!--<DataTemplate x:Key="QueryTemplate.Customer">
+                <Grid Margin="116,136,116,96">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.5*" />
+                        <ColumnDefinition Width="0.5*" />
+                    </Grid.ColumnDefinitions>
+
+                    <ListView AutomationProperties.AutomationId="ItemsGridView"
+                                      AutomationProperties.Name="Items"
+                                      DataFetchSize="1"
+                                      IncrementalLoadingTrigger="Edge"
+                                      IsItemClickEnabled="True"
+                                      ItemContainerStyle="{StaticResource queryListViewItemStyle}"
+                                      ItemTemplateSelector="{StaticResource queryItemTemplateSelector}"
+                                      ItemsSource="{Binding Query.Items}"
+                                      SelectionMode="Extended"
+                                      TabIndex="1"
+                                      Padding="0, 0, 20, 0"
+                                      viView:QueryEx.AutoLoadItemsAsync="True"
+                                      viView:QueryEx.SyncSelectedItems="True">
+
+                        <viCommon:Events.Bindings>
+                            <viCommon:EventBinding Event="ItemClick" Method="QueryResultItemClick" />
+                        </viCommon:Events.Bindings>
+                    </ListView>
+
+                    <Border Padding="12, 0, 0, 0" Grid.Column="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
+                        <WebView Source="http://www.vidyano.com" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+                    </Border>
+                </Grid>
+            </DataTemplate>-->
+
+            <!--  ================  -->
+
+        </ResourceDictionary>
+
+    </vi:Client.Resources>
+</vi:Client>

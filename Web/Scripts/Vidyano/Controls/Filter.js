@@ -1,4 +1,4 @@
-﻿/// <reference path="/Scripts/jquery-1.9.1.min.js"/>
+﻿/// <reference path="/Scripts/jquery-2.0.0.min.js"/>
 /// <reference path="../Common.js" />
 /// <reference path="../Application.js"/>
 
@@ -8,13 +8,6 @@ function QueryFilterItem(item) {
         this.header = "";
         this.isDefault = false;
         this.autoOpen = true;
-    }
-    else if (item.Columns) {
-        // Convert old casing
-        this.columns = item.Columns.select(function (c) { return { name: c.Name, includes: c.Includes, excludes: c.Excludes }; });
-        this.header = item.Header;
-        this.isDefault = item.IsDefault;
-        this.autoOpen = item.AutoOpen;
     }
     else {
         this.columns = item.columns;
@@ -45,8 +38,15 @@ QueryFilter.prototype.openPopup = function (menu) {
 
     var filters = this._loadFilters();
     var self = this;
-    filters.run(function (f) {
+    filters.forEach(function (f) {
         var filterContainer = $.createElement("div").addClass("queryFilterMenuItem");
+
+        var filterName = $.createElement("div").addClass("filterName");
+        filterName.text(f.header);
+        filterContainer.append(filterName);
+
+        var filterEdit = $.createElement("div").addClass("editFilter");
+        filterContainer.append(filterEdit);
 
         var filterDelete = $.createElement("div").addClass("deleteFilter");
         filterContainer.append(filterDelete);
@@ -73,17 +73,8 @@ QueryFilter.prototype.openPopup = function (menu) {
             dialog.dialog("open");
         });
 
-        var filterEdit = $.createElement("div").addClass("editFilter");
-        filterContainer.append(filterEdit);
-
-        var filterName = $.createElement("div").addClass("filterName");
-        filterName.text(f.header);
-        filterContainer.append(filterName);
-
         if (f.isDefault)
             filterName.addClass("isDefault");
-
-        filterContainer.append($.createElement("div").addClass("clearFloat"));
 
         menu.append(filterContainer);
 
@@ -110,21 +101,12 @@ QueryFilter.prototype.openPopup = function (menu) {
         self.query.textSearch = "";
         self._refreshQueryFilterColumns();
     });
-
-    var doc = $("body");
-    var closeMenu = function () {
-        menu.hide();
-        doc.off("click", closeMenu);
-    };
-    doc.on("click", closeMenu);
-
-    menu.show();
 };
 
 QueryFilter.prototype.openDefaultFilter = function () {
     var defaultFilter = this._loadFilters().firstOrDefault(function (f) { return f.isDefault; });
     if (defaultFilter != null) {
-        this._loadFilter(defaultFilter);
+        this._loadFilter(defaultFilter, true);
         this._updateQueryFilterColumns();
     }
 };
@@ -271,7 +253,7 @@ QueryFilter.prototype.createFilter = function (rootContainer) {
         this._toggleExpanded(this.query.filter.currentFilter.autoOpen);
 
     if (this.filterColumns.length > 0) {
-        this.filterColumns.run(function (c) {
+        this.filterColumns.forEach(function (c) {
             self._addFilterColumn(c);
         });
 
@@ -290,19 +272,16 @@ QueryFilter.prototype._toggleExpanded = function (expanded) {
 
     this._isExpanded = expanded;
     var rootContainer = $(".queryFilter");
-    if (expanded) {
-        rootContainer.find(".queryFilterContent").show();
-        rootContainer.find(".queryFilterActionsContainer").show();
-    } else {
-        rootContainer.find(".queryFilterContent").hide();
-        rootContainer.find(".queryFilterActionsContainer").hide();
-    }
+    if (expanded)
+        rootContainer.removeClass("collapsed");
+    else
+        rootContainer.addClass("collapsed");
 };
 
-QueryFilter.prototype._loadFilter = function (filter) {
+QueryFilter.prototype._loadFilter = function (filter, skipReset) {
     var self = this;
-    filter.columns.run(function (c) {
-        var column = self._getColumn(c.name);
+    filter.columns.forEach(function (c) {
+        var column = self.query.getColumn(c.name);
         if (column != null) {
             column.includes = c.includes;
             column.excludes = c.excludes;
@@ -317,9 +296,10 @@ QueryFilter.prototype._loadFilter = function (filter) {
     this.isVisible = filter.autoOpen;
     this.currentFilter = filter;
 
-    this.query.items = [];
-    this.query.textSearch = null;
-    this.query.hasSearched = false;
+    if (!skipReset) {
+        this.query.updateItems([], true);
+        this.query.textSearch = null;
+    }
 };
 
 QueryFilter.prototype._clearFilter = function (skipRefresh) {
@@ -327,8 +307,8 @@ QueryFilter.prototype._clearFilter = function (skipRefresh) {
         this._container.find(".queryFilterColumn").remove();
 
     var self = this;
-    this.filterColumns.run(function (columnName) {
-        var column = self._getColumn(columnName);
+    this.filterColumns.forEach(function (columnName) {
+        var column = self.query.getColumn(columnName);
         column.includes = [];
         column.excludes = [];
         column.isNegated = false;
@@ -341,15 +321,15 @@ QueryFilter.prototype._clearFilter = function (skipRefresh) {
 };
 
 QueryFilter.prototype._deleteFilter = function (filter) {
-    this._saveFilters(this._loadFilters().where(function (f) { return f.header != filter.header; }));
+    this._saveFilters(this._loadFilters().filter(function (f) { return f.header != filter.header; }));
 };
 
 QueryFilter.prototype._loadFilters = function () {
-    var currentFilters = localStorage.getItem("Filters_" + this.query.id);
+    var currentFilters = app.userSettings["Filters_" + this.query.id];
     if (currentFilters == null)
         currentFilters = [];
     else {
-        currentFilters = JSON.parse(currentFilters).select(function (f) {
+        currentFilters = JSON.parse(currentFilters).map(function (f) {
             return new QueryFilterItem(f);
         });
     }
@@ -364,8 +344,8 @@ QueryFilter.prototype._saveCurrentFilter = function (name, isDefault, autoOpen) 
     newItem.autoOpen = autoOpen;
 
     var self = this;
-    this.filterColumns.run(function (columnName) {
-        var column = self.query.columns.firstOrDefault(function (c) { return c.name == columnName; });
+    this.filterColumns.forEach(function (columnName) {
+        var column = self.query.getColumn(columnName);
         if (column != null) {
             newItem.columns.push({
                 name: column.name,
@@ -376,9 +356,9 @@ QueryFilter.prototype._saveCurrentFilter = function (name, isDefault, autoOpen) 
     });
 
     var filters = this._loadFilters();
-    filters = filters.where(function (f) { return f.header != newItem.header && (self.currentFilter == null || self.currentFilter.originalHeader() != f.header); });
+    filters = filters.filter(function (f) { return f.header != newItem.header && (self.currentFilter == null || self.currentFilter.originalHeader() != f.header); });
     if (newItem.isDefault)
-        filters.run(function (f) { f.isDefault = false; });
+        filters.forEach(function (f) { f.isDefault = false; });
 
     filters.push(newItem);
     this._saveFilters(filters);
@@ -388,26 +368,23 @@ QueryFilter.prototype._saveCurrentFilter = function (name, isDefault, autoOpen) 
 };
 
 QueryFilter.prototype._saveFilters = function (filters) {
-    localStorage.setItem("Filters_" + this.query.id, JSON.stringify(filters));
-};
-
-QueryFilter.prototype._getColumn = function (name) {
-    return this.query.columns.firstOrDefault(function (c) { return c.name == name; });
+    app.userSettings["Filters_" + this.query.id] = JSON.stringify(filters);
+    app.saveUserSettings();
 };
 
 QueryFilter.prototype._addFilterColumn = function (columnName) {
-    var column = this._getColumn(columnName);
+    var column = this.query.getColumn(columnName);
     if (column == null)
         return;
 
-    var filterColumn = $.createElement("div", columnName).addClass("queryFilterColumn").attr("id", columnName);
+    var filterColumn = $.createElement("div", columnName).addClass("queryFilterColumn").attr("id", columnName.replace(/\./g, "_"));
     filterColumn.append($.createElement("label").text(column.label));
 
     var text = $.createInput("text");
     var self = this;
     text.on("keypress", function (e) {
         if ((e.keyCode || e.which) == 13) {
-            self._includeDistinct(self._getColumn(columnName), "1|@" + text.val());
+            self._includeDistinct(self.query.getColumn(columnName), "1|@" + text.val());
             text.val("");
             e.stopPropagation();
             e.preventDefault();
@@ -427,7 +404,7 @@ QueryFilter.prototype._addFilterColumn = function (columnName) {
         filterColumn.addClass("negated");
 
     notBox.on("click", function () {
-        var c = self._getColumn(columnName);
+        var c = self.query.getColumn(columnName);
         c.isNegated = !c.isNegated;
 
         if (c.invertIncludesAndExcludes())
@@ -448,7 +425,7 @@ QueryFilter.prototype._addFilterColumn = function (columnName) {
         self._updatePicker();
 
         self.filterColumns.remove(columnName);
-        var c = self._getColumn(columnName);
+        var c = self.query.getColumn(columnName);
         c.includes = [];
         c.excludes = [];
         c.isNegated = false;
@@ -467,17 +444,17 @@ QueryFilter.prototype._renderColumnDistincts = function (columnName, column) {
         return;
 
     if (column == null)
-        column = this._getColumn(columnName);
+        column = this.query.getColumn(columnName);
 
     if (column == null)
         return;
 
-    var distinctsContainer = this._container.find("#" + column.name + " .queryFilterDistinctsContainer");
+    var distinctsContainer = this._container.find("#" + column.name.replace(/\./g, "_") + " .queryFilterDistinctsContainer");
     distinctsContainer.empty();
 
     var self = this;
     if (column.includes != null) {
-        column.includes.run(function (inc) {
+        column.includes.forEach(function (inc) {
             var incDiv = $.createElement("div").addClass("includeDistinct");
             incDiv.text(self._getRealDistinctValue(inc));
             distinctsContainer.append(incDiv);
@@ -486,7 +463,7 @@ QueryFilter.prototype._renderColumnDistincts = function (columnName, column) {
     }
 
     if (column.excludes != null) {
-        column.excludes.run(function (inc) {
+        column.excludes.forEach(function (inc) {
             var exclDiv = $.createElement("div").addClass("excludeDistinct");
             exclDiv.text(self._getRealDistinctValue(inc));
             distinctsContainer.append(exclDiv);
@@ -494,14 +471,14 @@ QueryFilter.prototype._renderColumnDistincts = function (columnName, column) {
         });
     }
 
-    column.matchingDistincts.run(function (md) {
+    column.matchingDistincts.forEach(function (md) {
         var mdDiv = $.createElement("div");
         mdDiv.text(self._getRealDistinctValue(md));
         distinctsContainer.append(mdDiv);
         mdDiv.on("click", function () { self._includeDistinct(column, md); });
     });
 
-    column.remainingDistincts.run(function (rd) {
+    column.remainingDistincts.forEach(function (rd) {
         var rdDiv = $.createElement("div").addClass("remainingDistinct");
         rdDiv.text(self._getRealDistinctValue(rd));
         distinctsContainer.append(rdDiv);
@@ -511,11 +488,11 @@ QueryFilter.prototype._renderColumnDistincts = function (columnName, column) {
 
 QueryFilter.prototype._updateQueryFilterColumns = function (skipRefreshColumn) {
     var self = this;
-    this.filterColumns.run(function (columnName) {
+    this.filterColumns.forEach(function (columnName) {
         if (!skipRefreshColumn) {
             var parameters = [{ ColumnName: columnName }];
             app.gateway.executeAction("QueryFilter.RefreshColumn", self.query.parent, self.query, null, parameters, function (result) {
-                var column = self._getColumn(columnName);
+                var column = self.query.getColumn(columnName);
 
                 column.matchingDistincts = result.getAttribute("MatchingDistincts").options;
                 column.remainingDistincts = result.getAttribute("RemainingDistincts").options;
@@ -545,7 +522,7 @@ QueryFilter.prototype._refreshQueryFilterColumns = function () {
     this.query.search(function () {
         self._updateQueryFilterColumns();
     }, function () {
-        self.filterColumns.run(function (columnName) {
+        self.filterColumns.forEach(function (columnName) {
             self._renderColumnDistincts(columnName);
         });
     });
@@ -571,7 +548,7 @@ QueryFilter.prototype._createPicker = function () {
 
     var self = this;
     columnSelector.on("change", function (c) {
-        var column = self.query.columns.firstOrDefault(function (col) { return c.target.value == col.name; });
+        var column = self.query.getColumn(c.target.value);
         if (column != null) {
             picker.remove();
 
@@ -594,7 +571,7 @@ QueryFilter.prototype._updatePicker = function () {
     select.html($.createElement("option").text(""));
 
     var addedFilterColumns = this._container.find(".queryFilterColumn");
-    this.query.columns.where(function (c) { return c.disableSort != true && c.canFilter; }).run(function (c) {
+    this.query.columns.filter(function (c) { return c.disableSort != true && c.canFilter; }).forEach(function (c) {
         var alreadyAdded = addedFilterColumns.firstOrDefault(function (addedCol) { return c.name == $(addedCol).dataContext(); });
         if (alreadyAdded != null)
             return;

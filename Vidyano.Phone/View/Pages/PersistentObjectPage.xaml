@@ -1,0 +1,46 @@
+﻿<phone:PhoneApplicationPage
+    x:Class="Vidyano.View.Pages.PersistentObjectPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+    xmlns:phoneControls="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone.Controls.Toolkit"
+    xmlns:shell="clr-namespace:Microsoft.Phone.Shell;assembly=Microsoft.Phone"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viControls="clr-namespace:Vidyano.View.Controls;assembly=Vidyano.Phone"
+    xmlns:viTs="clr-namespace:Vidyano.View.TemplateSelectors;assembly=Vidyano.Phone"
+    mc:Ignorable="d"
+    FontFamily="{StaticResource PhoneFontFamilyNormal}"
+    FontSize="{StaticResource PhoneFontSizeNormal}"
+    Foreground="{StaticResource PhoneForegroundBrush}"
+    SupportedOrientations="PortraitOrLandscape"  Orientation="Portrait"
+    shell:SystemTray.IsVisible="True"
+    shell:SystemTray.BackgroundColor="{StaticResource PhoneBackgroundColor}">
+
+    <phoneControls:TransitionService.NavigationInTransition>
+        <phoneControls:NavigationInTransition>
+            <phoneControls:NavigationInTransition.Backward>
+                <phoneControls:TurnstileTransition Mode="BackwardIn" />
+            </phoneControls:NavigationInTransition.Backward>
+            <phoneControls:NavigationInTransition.Forward>
+                <phoneControls:TurnstileTransition Mode="ForwardIn" />
+            </phoneControls:NavigationInTransition.Forward>
+        </phoneControls:NavigationInTransition>
+    </phoneControls:TransitionService.NavigationInTransition>
+    <phoneControls:TransitionService.NavigationOutTransition>
+        <phoneControls:NavigationOutTransition>
+            <phoneControls:NavigationOutTransition.Backward>
+                <phoneControls:TurnstileTransition Mode="BackwardOut" />
+            </phoneControls:NavigationOutTransition.Backward>
+            <phoneControls:NavigationOutTransition.Forward>
+                <phoneControls:TurnstileTransition Mode="ForwardOut" />
+            </phoneControls:NavigationOutTransition.Forward>
+        </phoneControls:NavigationOutTransition>
+    </phoneControls:TransitionService.NavigationOutTransition>
+
+    <Grid>
+        <ContentControl Content="{Binding}" ContentTemplate="{Binding Template}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" x:Name="content" />
+        <viControls:Search VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+    </Grid>
+    
+</phone:PhoneApplicationPage>

@@ -4,83 +4,215 @@
 /// <reference path="PersistentObjectAttribute.js" />
 /// <reference path="Query.js" />
 /// <reference path="~/Scripts/underscore-min.js" />
-/// <reference path="~/Scripts/jquery-1.9.1.min.js" />
+/// <reference path="~/Scripts/jquery-2.0.0.min.js" />
 
 function PersistentObject(po) {
     /// <summary>Describes a Persistent Object that defines a single entity and its metadata.</summary>
 
-    changePrototype(po, PersistentObject);
-
     /// <field name="id" type="String">The unique identifier of this Persistent Object's definition.</field>
+    this.id = po.id;
+    this.isSystem = !!po.isSystem;
     /// <field name="type" type="String">The type name of this Persistent Object.</field>
+    this.type = po.type;
     /// <field name="label" type="String">The translated label of this Persistent Object.</field>
+    this.label = po.label;
     /// <field name="fullTypeName" type="String">The full type name including the schema of this Persistent Object.</field>
+    this.fullTypeName = po.fullTypeName;
     /// <field name="queryLayoutMode" type="String">The layout mode used for Queries inside this Persistent Object, can be "MasterDetail" or "FullPage".</field>
+    this.queryLayoutMode = po.queryLayoutMode;
     /// <field name="objectId" type="String">The optional identifier of the specific instance of this Persistent Object.</field>
+    this.objectId = po.objectId;
     /// <field name="breadcrumb" type="String">The optional describing breadcrumb of the specific instance of this Persistent Object.</field>
+    this.breadcrumb = po.breadcrumb;
     /// <field name="notification" type="String">The optional notification for this instance.</field>
+    this.notification = po.notification;
     /// <field name="notificationType" type="String">The optional notification type for this instance. Can be "Error", "Notice" or "OK".</field>
+    this.notificationType = po.notificationType;
     /// <field name="isNew" type="Boolean">Determines if the current Persistent Object is a new or existing instance.</field>
-    if (po.isNew == null) po.isNew = false;
+    this.isNew = !!po.isNew;
+    this.newOptions = po.newOptions;
     /// <field name="isReadOnly" type="Boolean">Determines if the current Persistent Object is a read only instance.</field>
-    if (po.isReadOnly == null) po.isReadOnly = false;
-    /// <field name="isHidden" type="Boolean">Determines if the current Persistent Object's tab will be shown or not.</field>
-    if (po.isHidden == null) po.isHidden = false;
-
+    this.isReadOnly = !!po.isReadOnly;
+    /// <field name="isHidden" type="Boolean">Determines if the current Persistent Object's tabs will be shown or not.</field>
+    this.isHidden = !!po.isHidden;
+    this.ignoreCheckRules = !!po.ignoreCheckRules;
+    this.stateBehavior = po.stateBehavior || "None";
+    this.tabs = [];
+    this.columnCount = null;
+    this.maxAttributesPerGroup = null;
     /// <field name="inEdit" type="Boolean">Determines if the current Persistent Object is in edit mode or not. Use the editMode(val) method to change this property.</field>
-    po.inEdit = false;
-    po.target = null;
-    po.targets = {};
+    this.inEdit = false;
+    this.target = null;
     /// <field name="actionNames" type="Array" elementType="String">Contains the names of the actions that were allowed for this instance.</field>
-    po.actionNames = po.actions;
+    this.actionNames = po.actions;
     /// <field name="actions" type="Array" elementType="ActionBase">Contains the actions for this instance.</field>
+    this.actions = Actions.getActions(this.actionNames, this);
     /// <field name="attributes" type="Array" elementType="PersistentObjectAttribute">Contains the attributes for this instance.</field>
+    this.attributes = po.attributes;
     /// <field name="queries" type="Array" elementType="Query">Contains the queries for this instance.</field>
+    this.queries = po.queries;
+    this.securityToken = po.securityToken;
+    this.bulkObjectIds = po.bulkObjectIds;
+    this.queriesToRefresh = po.queriesToRefresh;
+    this.parent = po.parent != null ? new PersistentObject(po.parent) : null;
+    this.ownerDetailAttribute = null;
+    this.ownerAttributeWithReference = null;
+    this.ownerPersistentObject = null;
+    this.ownerQuery = null;
 
-    po._sortedAttributes = [];
-    po._isDirty = false;
-    po._selectedNavigationTabElement = null;
-    po._inputs = [];
-    po._backupSecurityToken = null;
+    this._attributesByName = {};
+    this._sortedAttributes = [];
+    this._isDirty = false;
+    this._isDeleted = false;
+    this._selectedNavigationTabElement = null;
+    this._inputs = [];
+    this._backupSecurityToken = null;
+    this._isAttributeRefreshing = false;
+    this._queueSave = null;
+    this._isSaving = false;
 
-    po._initialize();
+    this._initialize(po);
 
-    if (!po.isSystem) {
-        var onPo = app.onPersistentObject[po.type];
-        if (onPo != null && onPo.onConstruct != null) {
-            try {
-                onPo.onConstruct(po);
-            }
-            catch (e) {
-                app.showException(e.message || e);
-            }
-        }
-    }
-
-    return po;
+    app._onConstructPersistentObject(this, po);
 }
 
-PersistentObject.prototype.cancelEdit = function () {
-    /// <summary>Cancels the current object and set it back in read mode. Does nothing when the Persistent Object is not in edit mode. </summary>
+PersistentObject.prototype.beginEdit = function () {
+    /// <summary>Sets the current object in edit mode. Does nothing when the Persistent Object is already in edit mode.</summary>
 
-    if (this.inEdit) {
+    this.editMode(true);
+};
+
+PersistentObject.prototype.cancelEdit = function () {
+    /// <summary>Cancels the current object and set it back in read mode. Does nothing when the Persistent Object is not in edit mode.</summary>
+
+    if (this.inEdit && !this._isSaving && !this._isAttributeRefreshing) {
         this.securityToken = this._backupSecurityToken;
-        this.attributes.run(function (attr) { attr.restoreEditBackup(); });
+        this.attributes.forEach(function (attr) { attr.restoreEditBackup(); });
+        this._sortedAttributes = this.attributes.filter(function (item) { return item.isVisible(); });
         this.showNotification();
 
         var stayInEdit = this.stateBehavior == "StayInEdit" || this.stateBehavior.contains("StayInEdit");
         this.editMode(stayInEdit);
         if (stayInEdit) {
-            this._updateAttributes(this.attributes);
+            this._updateAttributes(this.attributes, true);
             this.isDirty(false);
         }
     }
 };
 
-PersistentObject.prototype.editMode = function (val) {
-    /// <summary>Changes the edit mode of the Persistent Object.</summary>
-    /// <param name="val" type="Boolean">The new value for the edit mode.</param>
+PersistentObject.prototype.checkRules = function () {
+    /// <summary>Tries to check the business rules on the Persistent Object's attributes.</summary>
+    /// <returns type="Boolean">Returns true if all rules passed, false if any failed or null if not all rules could be checked.</returns>
 
+    if (this.ignoreCheckRules)
+        return null;
+
+    var isInBulkEditMode = this.isInBulkEditMode();
+    var attributesWithRules = this.attributes.filter(function (a) { return (!isInBulkEditMode || a.isValueChanged) && !a.isReadOnly && !String.isNullOrEmpty(a.rules); });
+    if (attributesWithRules.length == 0)
+        return true;
+
+    if (PersistentObject._rules == null) {
+        // Initialize rules
+        PersistentObject._rules = {
+            "MaxLength": function (attr, length) {
+                return attr.value != null && attr.value.length > length ? app.getTranslatedMessage("AttributeMaximumLengthRule") : null;
+            },
+            "MinValue": function (attr, minimum) {
+                return parseFloat(attr.value) < minimum ? app.getTranslatedMessage("AttributeMinimumValueRule") : null;
+            },
+            "MaxValue": function (attr, maximum) {
+                return parseFloat(attr.value) > maximum ? app.getTranslatedMessage("AttributeMaximumValueRule") : null;
+            },
+            "IsWord": function (attr, allowDot) {
+                return String.isNullOrEmpty(attr.value) || (allowDot ? /^(\w|\.)+$/.test(attr.value) : /^\w+$/.test(attr.value)) ? null : app.getTranslatedMessage(allowDot ? "IsWordRule" : "IsWordWithDotRule");
+            },
+            "NotEmpty": function (attr) {
+                return String.isNullOrWhiteSpace(attr.value) ? app.getTranslatedMessage("AttributeNotEmptyRule") : null;
+            },
+            "Required": function (attr) {
+                return attr.value == null ? app.getTranslatedMessage("AttributeIsRequiredRule") : null;
+            },
+            "MustBeInlineJavaScript": function (attr) {
+                var value = attr.value;
+                if (String.isNullOrWhiteSpace(value))
+                    return null;
+
+                value = value.trim(" ").trim("\t").trim("\n");
+                return !value.startsWith("//") && !value.startsWith("/*") && !value.startsWith("function") ? app.getTranslatedMessage("InvalidJavaScriptCode") : null;
+            },
+            "IsEmail": function (attr) {
+                return String.isNullOrEmpty(attr.value) || /^((([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+(\.([a-z]|\d|[!#\$%&'\*\+\-\/=\?\^_`{\|}~]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])+)*)|((\x22)((((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(([\x01-\x08\x0b\x0c\x0e-\x1f\x7f]|\x21|[\x23-\x5b]|[\x5d-\x7e]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(\\([\x01-\x09\x0b\x0c\x0d-\x7f]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF]))))*(((\x20|\x09)*(\x0d\x0a))?(\x20|\x09)+)?(\x22)))@((([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|\d|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.)+(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])|(([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])([a-z]|\d|-|\.|_|~|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])*([a-z]|[\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF])))\.?$/.test(attr.value) ? null : app.getTranslatedMessage("IsValidEmailRule");
+            },
+        };
+        PersistentObject._rules["IsRequired"] = PersistentObject._rules["Required"];
+        PersistentObject._rules["IsNotEmpty"] = PersistentObject._rules["NotEmpty"];
+        PersistentObject._rules["IsValidEmail"] = PersistentObject._rules["IsEmail"];
+        PersistentObject._rules["IsWordCharacter"] = PersistentObject._rules["IsWord"];
+    }
+
+    try {
+        var failedAttrs = [];
+        for (var i = 0; i < attributesWithRules.length; i++) {
+            var attribute = attributesWithRules[i];
+            attribute.validationError = null;
+
+            var rules = attribute.rules.split(";").map(function (r) { return r.trim(); });
+            for (var j = 0; j < rules.length; j++) {
+                var rule = rules[j];
+                var ruleName = rule;
+                if (String.isNullOrEmpty(ruleName))
+                    continue;
+
+                var arguments;
+                var index = ruleName.indexOf("(");
+                if (index > 0) {
+                    var args = ruleName.substr(index + 1, ruleName.length - index - 2);
+                    ruleName = ruleName.substr(0, index).trim();
+
+                    arguments = JSON.parse("{\"a\":[" + args + "]}")["a"];
+                    arguments.splice(0, 0, attribute);
+                }
+                else
+                    arguments = [attribute];
+
+                var ruleMethod = PersistentObject._rules[ruleName];
+                if (ruleMethod == null)
+                    return null; // Failed to find rule, delegate to service-side
+
+                var result = ruleMethod.apply(null, arguments);
+                if (!String.isNullOrEmpty(result)) {
+                    // Converts arguments to: format, label, extraArg1, extraArgN
+                    arguments.splice(0, 1, result, attribute.label);
+                    var error = String.format.apply(this, arguments);
+                    if (attribute.validationError == null) {
+                        attribute.validationError = error;
+                        failedAttrs.push(attribute);
+                    }
+                    else
+                        attribute.validationError += "\n" + error;
+                }
+            }
+        }
+
+        if (failedAttrs.length > 0) {
+            var targetFocus = this._updateAttributes(failedAttrs, true);
+            if (targetFocus != null)
+                targetFocus.focus();
+
+            this.showNotification(app.getTranslatedMessage("ValidationRulesFailed"));
+            return false;
+        }
+
+        return true;
+    }
+    catch (e) {
+        // Let service handle the logic if client side fails
+        return null;
+    }
+};
+
+PersistentObject.prototype.editMode = function (val) {
     if (this.inEdit != val) {
         this.inEdit = val;
 
@@ -90,7 +222,7 @@ PersistentObject.prototype.editMode = function (val) {
 
         if (this.inEdit) {
             this._backupSecurityToken = this.securityToken;
-            this.attributes.run(function (attr) { attr.backupBeforeEdit(); });
+            this.attributes.forEach(function (attr) { attr.backupBeforeEdit(); });
 
             if (cancelEdit != null)
                 cancelEdit.canExecute(true);
@@ -110,23 +242,32 @@ PersistentObject.prototype.editMode = function (val) {
                 endEdit.isVisible(false);
 
             if (this.target != null) {
-                this.target.find("select").editableSelectInstances().run(function (es) {
-                    if (es != null && typeof (es.hideList) == "function")
-                        es.hideList();
+                this.target.find("select").editableSelectInstances().forEach(function (es) {
+                    if (es != null && es.wrapper != null)
+                        es.wrapper.remove();
                 });
             }
         }
 
-        this._updateAttributes(this.attributes);
+        this._updateAttributes(this.attributes, true);
     }
 };
+
+PersistentObject.prototype.getAction = function (name) {
+    /// <summary>Gets the action with the specified name.</summary>
+    /// <param name="name" type="String">The name of the action.</param>
+    /// <returns type="ActionBase">Returns the action with the specified name, or null when none is found.</returns>
+
+    return this.actions.firstOrDefault(function (a) { return a.name == name; });
+};
+
 
 PersistentObject.prototype.getAttribute = function (name) {
     /// <summary>Gets the attribute with the specified name.</summary>
     /// <param name="name" type="String">The name of the attribute.</param>
     /// <returns type="PersistentObjectAttribute">Returns the attribute with the specified name, or null when none is found.</returns>
 
-    return this.attributes.firstOrDefault(function (a) { return a.name == name; });
+    return this._attributesByName[name];
 };
 
 PersistentObject.prototype.getAttributeValue = function (name) {
@@ -140,6 +281,7 @@ PersistentObject.prototype.getAttributeValue = function (name) {
 
 PersistentObject.prototype.getDynamicColumCount = function (attributesTarget) {
     /// <summary>Calculates the count of columns based on the current width of the browser window.</summary>
+    /// <returns type="Integer" />
 
     if ($.mobile)
         return 1;
@@ -192,6 +334,9 @@ PersistentObject.prototype.isDirty = function (val) {
         var endEditAction = this.actions["EndEdit"];
         if (endEditAction != null)
             endEditAction.canExecute(val);
+
+        if (this.ownerDetailAttribute != null && val)
+            this.parent.isDirty(true);
     }
 
     return this;
@@ -215,7 +360,7 @@ PersistentObject.prototype.refreshFromResult = function (result) {
         };
 
         var isInBulkEditMode = this.isInBulkEditMode();
-        this.attributes.run(function (attr) {
+        this.attributes.forEach(function (attr) {
             var serviceAttribute = result.attributes.firstOrDefault(function (a) { return a.id == attr.id; });
             if (serviceAttribute != null) {
                 syncAttrValue(attr, serviceAttribute, "options");
@@ -232,6 +377,15 @@ PersistentObject.prototype.refreshFromResult = function (result) {
                 }
                 attr._refreshValue = undefined;
 
+                if (attr.objects != null && serviceAttribute.objects != null) {
+                    attr.objects = serviceAttribute.objects.map(function (obj) {
+                        obj.parent = attr.parent;
+                        obj.ownerDetailAttribute = attr;
+                        return obj;
+                    });
+                    changedAttrs.push(attr);
+                }
+
                 attr.triggersRefresh = serviceAttribute.triggersRefresh;
                 attr.isValueChanged = serviceAttribute.isValueChanged;
 
@@ -239,7 +393,7 @@ PersistentObject.prototype.refreshFromResult = function (result) {
                     attr.bulkEditCheckbox.prop("checked", attr.isValueChanged);
             }
         });
-        this._sortedAttributes = this.attributes.where(function (item) { return item.isVisible(); });
+        this._sortedAttributes = this.attributes.filter(function (item) { return item.isVisible(); });
 
         if (this.isNew) {
             this.objectId = result.objectId;
@@ -254,11 +408,11 @@ PersistentObject.prototype.refreshFromResult = function (result) {
                 this.target.find(".resultTitle").text(this.breadcrumb);
         }
 
-        this.isDirty(this.attributes.where(function (attr) { return attr.isValueChanged; }).length > 0);
+        this.isDirty(this.attributes.filter(function (attr) { return attr.isValueChanged; }).length > 0);
 
         if (result.queriesToRefresh != null && this.queries != null) {
             var self = this;
-            result.queriesToRefresh.run(function (id) {
+            result.queriesToRefresh.forEach(function (id) {
                 var query = self.queries.firstOrDefault(function (q) { return q.id == id; }) || self.queries.firstOrDefault(function (q) { return q.name == id; });
                 if (query != null && query.hasSearched)
                     query.search();
@@ -278,13 +432,13 @@ PersistentObject.prototype.hasVisibleActions = function () {
     /// <summary>Gets a value indicating that the Persistent Object has any visibile actions.</summary>
     /// <returns type="Boolean" />
 
-    var actionCount = !this.isHidden && this.actions.where(function (a) { return a.name != "Filter" && a.name != "RefreshQuery" && a.isVisible(); }).length > 0;
+    var actionCount = !this.isHidden && this.actions.filter(function (a) { return a.name != "Filter" && a.name != "RefreshQuery" && a.isVisible(); }).length > 0;
     if (actionCount > 0)
         return true;
 
     if (this.isHidden && this.queries != null) {
-        this.queries.run(function (q) {
-            actionCount += q.actions.where(function (a) { return a.name != "Filter" && a.name != "RefreshQuery"; }).length;
+        this.queries.filter(function (q) { return !q.isHidden; }).forEach(function (q) {
+            actionCount += q.actions.filter(function (a) { return a.name != "Filter" && a.name != "RefreshQuery"; }).length;
         });
     }
 
@@ -302,7 +456,7 @@ PersistentObject.prototype.isMasterDetail = function () {
     /// <summary>Gets a value indicating that the Persistent Object is being shown is master-detail mode.</summary>
     /// <returns type="Boolean" />
 
-    return !$.mobile && this.queryLayoutMode == "MasterDetail" && this.queries != null && this.queries.length > 0;
+    return !$.mobile && this.queryLayoutMode == "MasterDetail" && this.queries != null && this.queries.filter(function (q) { return !q.isHidden; }).length > 0;
 };
 
 PersistentObject.prototype.open = function (target) {
@@ -310,24 +464,29 @@ PersistentObject.prototype.open = function (target) {
     /// <param name="target" type="jQuery">The jQuery object to render the persistent object on.</param>
 
     this.target = target;
-    if (this.target == null && !app.isCore)
-        this.target = $("#content");
+    if (this.target == null && !app.isCore) {
+        this.target = $("<div id='content'></div>");
+        $("#content").replaceWith(this.target);
+    }
 
     //reset page content
-    if (this.isNew || (this.stateBehavior != null && (this.stateBehavior == "OpenInEdit" || this.stateBehavior.contains("OpenInEdit") || this.stateBehavior == "StayInEdit" || this.stateBehavior.contains("StayInEdit")))) {
-        this.editMode(true);
-    }
+    if (this.isNew || (this.stateBehavior != null && (this.stateBehavior == "OpenInEdit" || this.stateBehavior.contains("OpenInEdit") || this.stateBehavior == "StayInEdit" || this.stateBehavior.contains("StayInEdit"))))
+        this.beginEdit();
 
     if (app.isCore)
         return; // NOTE: No rendering on core
 
     this.target.html($($.mobile ? "#persistentObject_mobile_template" : !this.isMasterDetail() ? "#persistentObject_template" : "#persistentObject_masterDetailTemplate").html());
     this.target.dataContext(this);
+    
+    $.unhookElements();
 
     this.target.actionBarExpander();
 
     var objTitle = this.target.find(".resultTitle");
     objTitle.text(this.breadcrumb);
+
+    var visibleQueries = this.queries.filter(function (q) { return !q.isHidden; });
 
     var self = this;
     if (!$.mobile) {
@@ -340,8 +499,11 @@ PersistentObject.prototype.open = function (target) {
         if (this.isHidden)
             this.target.find(".resultPanel").addClass("noPersistentObjectActions");
 
-        if (this.tabs.length == 1 && this.queries.length == 0) {
+        if (this.tabs.length <= 1 && visibleQueries.length == 0) {
             this.target.find(".resultPanel").addClass("noNavigation");
+            
+            if (this.tabs.length == 0)
+                this.target.find(".resultContent").append($("<div class='notificationTarget'></div>"));
         }
         else {
             if (this.tabs.length > 0) {
@@ -360,7 +522,7 @@ PersistentObject.prototype.open = function (target) {
             else
                 persistenObjectNavigationAttributes.hide();
 
-            if (this.queries.length > 0) {
+            if (visibleQueries.length > 0) {
                 var queryNavigationTabs = $("<ul>").addClass("persistentObjectNavigationTabs");
                 this._renderQueryTabs(queryNavigationTabs);
 
@@ -392,11 +554,15 @@ PersistentObject.prototype.open = function (target) {
                     var contentPoAttributes = resultPanel.find(".resultContent.persistentObjectAttributes");
                     var contentQueries = resultPanel.find(".resultContent.persistentObjectQueries");
                     if (contentPoAttributes.length > 0 && contentQueries.length > 0) {
-                        var masterDetailSettings = localStorage.getItem("MasterDetailSettings");
-                        if (masterDetailSettings == null)
+                        var masterDetailSettings = app.userSettings["MasterDetailSettings"];
+                        if (masterDetailSettings == null) {
                             masterDetailSettings = {};
-                        else
+                            app.userSettings["MasterDetailSettings"] = masterDetailSettings;
+                        }
+                        else if (typeof (masterDetailSettings) == "string") {
                             masterDetailSettings = JSON.parse(masterDetailSettings);
+                            app.userSettings["MasterDetailSettings"] = masterDetailSettings;
+                        }
 
                         var leftPctg = masterDetailSettings[this.id];
                         if (leftPctg == null)
@@ -419,21 +585,21 @@ PersistentObject.prototype.open = function (target) {
                             return pctg;
                         };
 
-                        splitter.bind("mousedown", function () {
+                        splitter.on("mousedown", function () {
                             var onselectstartBackup = document.documentElement;
                             document.documentElement.onselectstart = function () { return false; };
 
                             var width = splitter.css("width");
-                            splitter.css({ left: "0px", right: "0px", width: "auto" });
+                            splitter.css({ left: "0", right: "0", width: "auto" });
 
                             $(document).one("mouseup", function (eUp) {
-                                splitter.unbind("mousemove");
+                                splitter.off("mousemove");
                                 document.documentElement.onselectstart = onselectstartBackup;
                                 eUp = $.fixFireFoxOffset(eUp);
 
                                 var percentage = applyPercentages(eUp);
                                 masterDetailSettings[self.id] = percentage;
-                                localStorage.setItem("MasterDetailSettings", JSON.stringify(masterDetailSettings));
+                                app.saveUserSettings();
 
                                 splitter.css({ left: percentage + "%", right: "auto", width: width });
                             });
@@ -442,7 +608,7 @@ PersistentObject.prototype.open = function (target) {
                                 eMove = $.fixFireFoxOffset(eMove);
                                 applyPercentages(eMove);
                             }, 25);
-                            splitter.bind("mousemove", throttleMove);
+                            splitter.on("mousemove", throttleMove);
                         });
                     }
                 }
@@ -454,32 +620,30 @@ PersistentObject.prototype.open = function (target) {
 
         selector.on("change", function () {
             var dataContext = $(this).find("option:selected").dataContext();
-            if (dataContext.constructor == Query)
+            if (dataContext instanceof Query)
                 self.queries.selectedItem(dataContext);
             else
                 self.tabs.selectedItem(dataContext);
         });
 
-        if ((this.queries != null && this.queries.length > 0) || this.tabs.length > 1) {
+        if (visibleQueries.length > 0 || this.tabs.length > 1) {
             // show attribute tabs
             if (this.tabs.length > 0) {
-                this.tabs.run(function (tab) {
-                    var option = $.createElement('option', tab).append(tab.label);
-                    selector.append(option);
+                this.tabs.forEach(function (tab) {
+                    selector.append($.createElement('option', tab).append(tab.label));
                 });
             }
 
             // show queries
-            if (this.queries != null && this.queries.length > 0) {
+            if (visibleQueries.length > 0) {
                 var queryTarget = selector;
                 if (this.tabs.length > 0) {
                     queryTarget = $.createElement("optGroup").attr("label", app.getTranslatedMessage("Related"));
                     selector.append(queryTarget);
                 }
 
-                this.queries.run(function (query) {
-                    var option = $.createElement('option', query).append(query.label);
-                    queryTarget.append(option);
+                visibleQueries.forEach(function (query) {
+                    queryTarget.append($.createElement('option', query).append(query.label));
                 });
             }
         }
@@ -493,8 +657,8 @@ PersistentObject.prototype.open = function (target) {
         if (this.tabs.length > 0)
             this.tabs.selectFirst();
 
-        if (this.isMasterDetail() || (this.tabs.length == 0 && this.queries.length > 0))
-            this.queries.selectFirst();
+        if (this.isMasterDetail() || (this.tabs.length == 0 && visibleQueries.length > 0))
+            this.queries.selectedItem(visibleQueries[0]);
     }
     else {
         if (selectedTab != null) {
@@ -505,6 +669,12 @@ PersistentObject.prototype.open = function (target) {
         if (this.isMasterDetail() || (selectedTab == null && selectedQuery != null)) {
             this._showQuery(selectedQuery);
             this._updateSelectedNavigationTab(selectedQuery._persistentObjectSelectedNavigationTabElement);
+        }
+
+        if ($.mobile) {
+            var option = selector.find("option").firstOrDefault(function (o) { return $(o).dataContext() == selectedQuery || $(o).dataContext() == selectedTab; });
+            if (option != null)
+                $(option).prop("selected", true);
         }
     }
 
@@ -521,13 +691,64 @@ PersistentObject.prototype.save = function (onCompleted, onError) {
     /// <param name="onCompleted" type="Function">The optional function that should be called when the operation completed.</param>
     /// <param name="onError" type="Function">The optional function that should be called when the operation returned an error.</param>
 
+    if (this._isSaving)
+        return;
+
+    // If an attribute is currently handling an trigger refresh we'll queue this save for after the refresh
+    if (this._isAttributeRefreshing) {
+        this._queueSave = function (e) {
+            this._queueSave = null;
+
+            if (e != null)
+                onError(e);
+            else
+                this.save(onCompleted, onError);
+        };
+        return;
+    }
+
+    var self = this;
+
+    // Check if attributes still have to be refreshed, if so, do that first and queue save for after the refresh
+    var attributesToRefresh = this.attributes.filter(function (attr) { return attr._queueTriggersRefresh; });
+    attributesToRefresh.forEach(function (attr) { attr._queueTriggersRefresh = false; });
+    if (attributesToRefresh.length > 0) {
+        var idx = 0;
+        var doNext = function () {
+            if (idx < attributesToRefresh.length) {
+                attributesToRefresh[idx].triggerRefresh(function () {
+                    idx++;
+                    doNext();
+                }, onError);
+            }
+            else
+                self.save(onCompleted, onError);
+        };
+        doNext();
+
+        return;
+    }
+
     this.showNotification();
+
+    // Do quick client side check
+    if (this.checkRules() == false) {
+        if (typeof (onError) == "function")
+            onError(this.notification);
+
+        return;
+    }
+
     var handler = app.onAction["Save"];
     var poHandler = app.onPersistentObject[this.type];
     var poHooks = poHandler != null && poHandler.onAction != null ? poHandler.onAction["Save"] : null;
 
-    var self = this;
     var executeAction = function () {
+        if (self._isSaving)
+            return;
+        self._isSaving = true;
+
+        var wasNew = self.isNew;
         app.gateway.executeAction("PersistentObject.Save", self, null, null, null, function (result) {
             var refreshWindow = false;
             if (self.id == app.userSettingsId) {
@@ -546,6 +767,8 @@ PersistentObject.prototype.save = function (onCompleted, onError) {
             }
             self.refreshFromResult(result);
 
+            self._isSaving = false;
+
             if (isNullOrWhiteSpace(self.notification) || self.notificationType != "Error") {
                 if (refreshWindow) {
                     app.pageObjects = {};
@@ -557,22 +780,23 @@ PersistentObject.prototype.save = function (onCompleted, onError) {
                     window.history.back();
                     return;
                 }
-
                 self.isDirty(false);
-                self.editMode(self.stateBehavior == "StayInEdit" || self.stateBehavior.contains("StayInEdit"));
-
+                if (!wasNew) {
+                    //skip setting editmode = false when a new po is saved. This makes sure the po isn't redrawn into read mode before closing
+                    self.editMode(self.stateBehavior == "StayInEdit" || self.stateBehavior.contains("StayInEdit"));
+                }
                 if (self.ownerAttributeWithReference != null) {
                     if (self.ownerAttributeWithReference.objectId != self.objectId) {
-                        self.ownerAttributeWithReference.parent.editMode(true);
+                        var parent = self.ownerAttributeWithReference.parent;
+                        if (parent.ownerDetailAttribute != null)
+                            parent = parent.ownerDetailAttribute.parent;
+                        parent.beginEdit();
 
                         var queryResultItem = { id: result.objectId };
                         queryResultItem.toServiceObject = function () { return { id: result.objectId }; };
 
-                        var selectedItems = [];
-                        selectedItems.push(queryResultItem);
-
-                        self.ownerAttributeWithReference.changeReference(selectedItems, function () {
-                            self.ownerAttributeWithReference.parent.open();
+                        self.ownerAttributeWithReference.changeReference([queryResultItem], function () {
+                            parent.open();
                         });
                     }
                 }
@@ -591,7 +815,7 @@ PersistentObject.prototype.save = function (onCompleted, onError) {
             if (poCompleted != null) {
                 if (hookCompleted != null) {
                     var genericCompleted = hookCompleted;
-                    hookCompleted = function (po, h, action) { poCompleted(this, function () { genericCompleted(po, h, action); }, action); };
+                    hookCompleted = function (po, h, action) { poCompleted(po, function () { genericCompleted(po, h, action); }, action); };
                 }
                 else
                     hookCompleted = poCompleted;
@@ -619,6 +843,8 @@ PersistentObject.prototype.save = function (onCompleted, onError) {
                 hookError(error, onError || function () { }, result);
             else if (onError != null)
                 onError(error, result);
+
+            self._isSaving = false;
         });
     };
 
@@ -640,7 +866,7 @@ PersistentObject.prototype.save = function (onCompleted, onError) {
 };
 
 PersistentObject.prototype.setAttributeValue = function (name, value) {
-    /// <summary>Sets the value of the attribute with specified name.</summary>
+    /// <summary>Sets the value of the attribute with specified name or does nothing if the attribute doesn't exist.</summary>
     /// <param name="name" type="String">The name of the attribute.</param>
 
     var attr = this.getAttribute(name);
@@ -668,23 +894,28 @@ PersistentObject.prototype.showNotification = function (notification, type) {
     }
 };
 
-PersistentObject.prototype.toServiceObject = function () {
+PersistentObject.prototype.toServiceObject = function (skipParent) {
     /// <summary>Creates an optimized copy that can be sent to the service.</summary>
-    /// <returns type="PersistentObject">Returns the copy of the PersistentObject that is optimized to be sent to the service.</returns>
+    /// <param name="skipParent" type="Boolean">Can be used to skip the parent.</param>
+    /// <returns type="Object">Returns the copy of the PersistentObject that is optimized to be sent to the service.</returns>
 
-    var result = copyProperties(this, ["id", "type", "objectId", "isNew", "isHidden", "bulkObjectIds", "securityToken"]);
+    var result = copyProperties(this, ["id", "type", "objectId", "isNew", "isHidden", "bulkObjectIds", "securityToken", "isSystem"]);
 
-    if (this.parent != null)
+    if (this.parent != null && !skipParent)
         result.parent = this.parent.toServiceObject();
     if (this.attributes != null)
-        result.attributes = this.attributes.select(function (attr) { return attr.toServiceObject(); });
+        result.attributes = this.attributes.map(function (attr) { return attr.toServiceObject(); });
 
     return result;
 };
 
+PersistentObject.prototype.toString = function () {
+    return "PersistentObject " + this.type;
+};
+
 PersistentObject.prototype._renderAttributeTabs = function (target) {
     var self = this;
-    this.tabs.run(function (tab) {
+    this.tabs.forEach(function (tab) {
         var span = $.createElement('span').append(tab.label);
         span.click(function () {
             if (self.tabs.selectedItem() == tab)
@@ -706,9 +937,11 @@ PersistentObject.prototype._renderAttributeTabs = function (target) {
 
 PersistentObject.prototype._renderQueryTabs = function (target) {
     var self = this;
-    this.queries.run(function (query) {
-        var span = $.createElement('span').append(query.label);
-        span.click(function () {
+    this.queries.filter(function (q) { return !q.isHidden; }).forEach(function (query) {
+        var span = $.createElement('span', query).text(self.id != app.globalSearchId ? query.getTitle() : query.label);
+        var li = $.createElement('li').addClass("persistentObjectNavigationTab").append(span);
+
+        li.on("click", function () {
             if (self.queries.selectedItem() == query)
                 return;
 
@@ -721,28 +954,26 @@ PersistentObject.prototype._renderQueryTabs = function (target) {
             self.queries.selectedItem(query);
         });
 
-        var li = $.createElement('li').addClass("persistentObjectNavigationTab").append(span);
+        if (self.id != app.globalSearchId)
+            query.titleTarget = span;
+
         target.append(li);
         query._persistentObjectSelectedNavigationTabElement = li;
     });
 };
 
-PersistentObject.prototype._initialize = function () {
+PersistentObject.prototype._initialize = function (po) {
     var self = this;
-    this.actions = Actions.getActions(this.actionNames, this);
 
     if (this.attributes == null)
         this.attributes = [];
     else
-        this.attributes = this.attributes.select(function (attr) { return new PersistentObjectAttribute(attr, self); }).sort(function (item1, item2) { return item1.offset - item2.offset; });
+        this.attributes = this.attributes.map(function (attr) { return new PersistentObjectAttribute(attr, self); }).sort(function (item1, item2) { return item1.offset - item2.offset; });
 
-    this._sortedAttributes = this.attributes.where(function (item) { return item.isVisible(); });
-
-    if (this.parent != null)
-        this.parent = new PersistentObject(this.parent);
+    this._sortedAttributes = this.attributes.filter(function (item) { return item.isVisible(); });
 
     if (this.queries != null) {
-        this.queries = this.queries.select(function (q) { return new Query(q, self); }).sort(function (q1, q2) { return q1.offset - q2.offset; }).toSelector();
+        this.queries = this.queries.map(function (q) { return new Query(q, self); }).sort(function (q1, q2) { return q1.offset - q2.offset; }).toSelector();
         this.queries.onSelectedItemChanged(function (query) {
             if (query != null) {
                 self._showQuery(query);
@@ -759,26 +990,31 @@ PersistentObject.prototype._initialize = function () {
 
     if (!this.isHidden) {
         if (this._sortedAttributes.length > 0) {
-            this.tabs = this._sortedAttributes.distinct(function (attr) { return attr.tab; }).select(function (tab) {
-                var newTab = self.tabs[tab] || { columnCount: 0 };
-                newTab.label = tab || self.label || self.type;
-                newTab.key = tab;
+            this.tabs = this._sortedAttributes.distinct(function (attr) { return attr.tab; }).map(function (tab) {
+                var newTab = po.tabs[tab] || {};
+                newTab.key = newTab.label = tab;
 
                 return newTab;
             }).toSelector();
         }
         else {
             var tabs = [];
-            for (var tabName in this.tabs) {
-                var t = this.tabs[tabName];
-                if (t.columnCount == null)
-                    t.columnCount = 0;
-                if (t.label == null)
-                    t.label = self.label || self.type;
+            for (var tabName in po.tabs) {
+                var t = po.tabs[tabName];
+                t.key = t.label = tabName;
                 tabs.push(t);
             }
             this.tabs = tabs.toSelector();
         }
+
+        this.tabs.forEach(function (tab) {
+            if (tab.columnCount == null)
+                tab.columnCount = 0;
+            else if (typeof (tab.columnCount) == "string")
+                tab.columnCount = parseInt(tab.columnCount, 10);
+            if (isNullOrEmpty(tab.label))
+                tab.label = self.label || self.type;
+        });
     }
     else
         this.tabs = [].toSelector();
@@ -802,7 +1038,7 @@ PersistentObject.prototype._showQuery = function (query) {
     var selectedTabContainer = this.target.find(".resultContentContainer .resultContent" + (this.isMasterDetail() ? ".persistentObjectQueries" : ""));
     selectedTabContainer.empty();
 
-    selectedTabContainer.attr('class').split(/\s+/).where(function (c) { return c.startsWith("-vi-"); }).run(function (c) { selectedTabContainer.removeClass(c); });
+    selectedTabContainer.attr('class').split(/\s+/).filter(function (c) { return c.startsWith("-vi-"); }).forEach(function (c) { selectedTabContainer.removeClass(c); });
     selectedTabContainer.addClass("-vi-" + query.persistentObject.type);
 
     this.target.find(".resultPanel").removeClass("searchActive pagingActive");
@@ -820,18 +1056,35 @@ PersistentObject.prototype._updateAttributes = function (attrs, requiresRerender
     if (this.target == null)
         return null;
 
+    if (attrs === true && requiresRerender == null) {
+        attrs = [];
+        requiresRerender = true;
+    }
+
     var targetFocus = null;
 
-    var container = this.target.find(".resultContentContainer .resultContent" + (this.isMasterDetail() ? ".persistentObjectAttributes" : ""));
+    var container = this.ownerDetailAttribute == null ? this.target.find(".resultContentContainer .resultContent" + (this.isMasterDetail() ? ".persistentObjectAttributes" : "")) : this.target;
     if (container.dataContext() == this) {
+        var lastFocusedElement = container.find("*:focus");
+        var index = -1;
+        var lastFocusedAttribute = null;
+        if (lastFocusedElement.length > 0) {
+            var focusedDataContext = lastFocusedElement.dataContext();
+            lastFocusedAttribute = focusedDataContext instanceof PersistentObjectAttribute ? focusedDataContext : null;
+            if (lastFocusedAttribute != null) {
+                var parent = lastFocusedElement.closest("div[data-vidyano-attribute=\"" + lastFocusedAttribute.name + "\"]");
+                index = Array.prototype.indexOf.call(parent.find(lastFocusedElement[0].tagName), lastFocusedElement[0]);
+            }
+        }
+
         var tab = this.tabs.selectedItem();
-        if (!isNullOrEmpty(tab.newTemplateKey) && this.isNew == true) {
+        if (tab != null && !isNullOrEmpty(tab.newTemplateKey) && this.isNew == true) {
             container.empty();
             container.append($("<div class='notificationTarget'></div>"));
             this._showTabWithTemplate(tab.newTemplateKey, container);
             this._attributeRender(container);
         }
-        else if (!isNullOrEmpty(tab.templateKey)) {
+        else if (tab != null && !isNullOrEmpty(tab.templateKey) && this.isNew == false) {
             container.empty();
             container.append($("<div class='notificationTarget'></div>"));
             this._showTabWithTemplate(tab.templateKey, container);
@@ -841,18 +1094,12 @@ PersistentObject.prototype._updateAttributes = function (attrs, requiresRerender
             this._showAttributes();
         }
         else {
-            attrs.run(function (attr) {
+            if (attrs instanceof PersistentObjectAttribute)
+                attrs = [attrs];
+
+            attrs.forEach(function (attr) {
                 container.find("div[data-vidyano-attribute=\"" + attr.name + "\"]").each(function () {
-                    var $this = $(this);
-                    var lastFocusedElement = $this.find("*:focus");
-
-                    attr.updateControlElement($this, true);
-
-                    if (lastFocusedElement.length > 0) {
-                        var candidates = $this.find(lastFocusedElement[0].tagName);
-                        if (candidates.length > 0)
-                            targetFocus = candidates.firstOrDefault(function (c) { return c.tabIndex == lastFocusedElement[0].tabIndex; }) || candidates[0];
-                    }
+                    attr.updateControlElement($(this), true);
                 });
 
                 container.find("label[data-vidyano-attribute=\"" + attr.name + "\"]").each(function () {
@@ -862,6 +1109,15 @@ PersistentObject.prototype._updateAttributes = function (attrs, requiresRerender
         }
 
         this._postPersistentObjectRender(container, false);
+
+        if (lastFocusedAttribute != null) {
+            var targetFocusElement = container.find("div[data-vidyano-attribute=\"" + lastFocusedAttribute.name + "\"]");
+            if (targetFocusElement.length > 0) {
+                var candidates = targetFocusElement.find(lastFocusedElement[0].tagName);
+                if (candidates.length > 0)
+                    targetFocus = candidates[index] || candidates[0];
+            }
+        }
     }
 
     return targetFocus;
@@ -874,7 +1130,8 @@ PersistentObject.prototype._showAttributes = function () {
     if (this.target == null || this.target.length == 0 || this.target.dataContext() != this)
         return;
 
-    this.target.find(".resultContentContainer .resultContent" + (this.isMasterDetail() ? ".persistentObjectAttributes" : "")).dataContext(this);
+    var selectedTabContainer = this.ownerDetailAttribute == null ? this.target.find(".resultContentContainer .resultContent" + (this.isMasterDetail() ? ".persistentObjectAttributes" : "")) : this.target;
+    selectedTabContainer.dataContext(this);
 
     if (!this.isMasterDetail())
         this.target.find(".resultPanel").removeClass("searchActive");
@@ -885,17 +1142,16 @@ PersistentObject.prototype._showAttributes = function () {
     } else
         this.target.find(".resultPanel").addClass("noPersistentObjectActions");
 
-    var selectedTabContainer = this.target.find(".resultContentContainer .resultContent" + (this.isMasterDetail() ? ".persistentObjectAttributes" : ""));
     selectedTabContainer.empty();
 
-    selectedTabContainer.attr('class').split(/\s+/).where(function (c) { return c.startsWith("-vi-"); }).run(function (c) { selectedTabContainer.removeClass(c); });
+    selectedTabContainer.attr('class').split(/\s+/).filter(function (c) { return c.startsWith("-vi-"); }).forEach(function (c) { selectedTabContainer.removeClass(c); });
     selectedTabContainer.addClass("-vi-" + this.type);
 
     selectedTabContainer.append($("<div class='notificationTarget'></div>"));
 
     var self = this;
-    selectedTabContainer.unbind("resize");
-    selectedTabContainer.bind("resize", function () {
+    selectedTabContainer.off("resize");
+    selectedTabContainer.on("resize", function () {
         var selectedItem = self.tabs.selectedItem();
         if (selectedItem != null && (selectedItem.newTemplateKey == null || !self.isNew) && (selectedItem.templateKey == null || self.isNew) && self.columnCount != self.getDynamicColumCount($(this)))
             self._showAttributes();
@@ -908,13 +1164,13 @@ PersistentObject.prototype._showAttributes = function () {
         this._showTabWithTemplate(tab.templateKey, selectedTabContainer);
     } else {
         var columnCount = $.mobile ? 1 : parseInt(tab.columnCount, 10);
-        var groups = this._sortedAttributes.where(function (attr) { return attr.tab == tab.key; }).distinct(function (attr) { return attr.group; });
+        var groups = this._sortedAttributes.filter(function (attr) { return attr.tab == tab.key; }).distinct(function (attr) { return attr.group; });
 
         if (isNaN(columnCount) || columnCount == 0) {
             this.maxAttributesPerGroup = 0;
 
             for (var groupIdx = 0; groupIdx < groups.length; groupIdx++) {
-                var groupAttributes = this._sortedAttributes.where(function (attr) { return attr.group == groups[groupIdx] && attr.tab == tab.key; });
+                var groupAttributes = this._sortedAttributes.filter(function (attr) { return attr.group == groups[groupIdx] && attr.tab == tab.key; });
                 this.maxAttributesPerGroup = Math.max(this.maxAttributesPerGroup, groupAttributes.length);
             }
 
@@ -933,7 +1189,7 @@ PersistentObject.prototype._showAttributes = function () {
 
             var colIndex = 0;
             var increasedRowIndex = true;
-            var attributesForGroup = this._sortedAttributes.where(function (attr) {
+            var attributesForGroup = this._sortedAttributes.filter(function (attr) {
                 return attr.group == group && attr.tab == tab.key;
             });
 
@@ -997,7 +1253,7 @@ PersistentObject.prototype._showAttributes = function () {
 };
 
 PersistentObject.prototype._attributeRender = function (container) {
-    this.attributes.run(function (attr) {
+    this.attributes.forEach(function (attr) {
         container.find("div[data-vidyano-attribute=\"" + attr.name + "\"]").each(function () {
             attr.updateControlElement($(this));
         });
@@ -1045,6 +1301,7 @@ PersistentObject.prototype._postAttributeRender = function (container) {
         container.find('.persistentObjectAttribute_Edit_BinaryFile').vidyanoEditBinaryFile();
         container.find('.persistentObjectAttribute_Edit_MultiLineString').vidyanoMultiLineString(true);
     } else {
+        container.find('.persistentObjectAttribute_Edit_Reference').vidyanoReference();
         container.find('.persistentObjectAttribute_MultiLineString').vidyanoMultiLineString();
     }
 
@@ -1063,11 +1320,8 @@ PersistentObject.prototype._postPersistentObjectRender = function (container, fo
         this._focusFirstAttribute(container);
 
     var code = app.code[this.id];
-    if (code != null) {
-        var postRenderCode = code["postRender"];
-        if (postRenderCode != null)
-            postRenderCode(container, this);
-    }
+    if (code != null && typeof (code.postRender) == "function")
+        code.postRender(container, this);
 
     app.postPersistentObjectRender(container, this);
 

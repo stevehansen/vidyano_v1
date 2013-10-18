@@ -1,40 +1,95 @@
 ﻿function PersistentObjectAttribute(attribute, parent) {
     /// <summary>Describes an Attribute of a Persistent Object.</summary>
 
-    changePrototype(attribute, PersistentObjectAttribute);
-
     /// <field name="id" type="String">The unique identifier of this Persistent Object Attribute's definition.</field>
+    this.id = attribute.id;
+    this.isSystem = !!attribute.isSystem;
+    this.group = attribute.group;
+    this.tab = attribute.tab;
     /// <field name="name" type="String">The name of this Persistent Object Attribute.</field>
+    this.name = attribute.name;
     /// <field name="label" type="String">The translated label of this Persistent Object Attribute.</field>
-
+    this.label = attribute.label;
     /// <field name="parent" type="PersistentObject">Gets the owner Persistent object for this instance.</field>
-    attribute.parent = parent;
-    attribute.persistentObject = parent; // Obsolete: might be removed in the future
+    this.parent = parent;
     /// <field name="isReadOnly" type="Boolean">Determines if the Persistent Object Attribute can be edited or not.</field>
-    if (attribute.isReadOnly == null) attribute.isReadOnly = false;
+    this.isReadOnly = !!attribute.isReadOnly;
     /// <field name="isRequired" type="Boolean">Determines if the Persistent Object Attribute is required.</field>
-    if (attribute.isRequired == null) attribute.isRequired = false;
-    if (attribute.isValueChanged == null) attribute.isValueChanged = false;
-    if (attribute.options == null) attribute.options = [];
+    this.isRequired = !!attribute.isRequired;
+    this.isValueChanged = !!attribute.isValueChanged;
+    this.options = attribute.options || [];
     /// <field name="offset" type="Number">Determines the position of this Persistent Object Attribute.</field>
-    if (attribute.offset == null) attribute.offset = 0;
+    this.offset = attribute.offset || 0;
+    this.type = attribute.type;
+    this.toolTip = attribute.toolTip;
+    this.rules = attribute.rules;
+    this.validationError = attribute.validationError;
+    this.visibility = attribute.visibility;
+    this.typeHints = attribute.typeHints || {};
+    this.value = attribute.value;
+    this.editTemplateKey = attribute.editTemplateKey;
+    this.templateKey = attribute.templateKey;
+    this.disableSort = !!attribute.disableSort;
+    this.triggersRefresh = !!attribute.triggersRefresh;
+    this.column = attribute.column;
+    this.columnSpan = attribute.columnSpan || 0;
 
-    attribute._backup = {};
-    attribute._refreshValue = undefined;
+    this._backup = {};
+    this._refreshValue = undefined;
+    this._queueTriggersRefresh = false;
 
-    if (attribute.lookup != null)
-        PersistentObjectAttributeWithReference(attribute);
+    if (attribute.lookup != null) {
+        this.lookup = attribute.lookup;
+        this.asDetail = !!attribute.asDetail;
+        this.objects = attribute.objects;
+        this.selectInPlace = !!attribute.selectInPlace;
+        this.objectId = attribute.objectId;
+        this.canAddNewReference = attribute.canAddNewReference;
+        this.displayAttribute = attribute.displayAttribute;
 
-    return attribute;
+        PersistentObjectAttributeWithReference(this);
+    }
+
+    if (parent != null)
+        parent._attributesByName[this.name] = this;
 }
 
 function PersistentObjectAttributeWithReference(attribute) {
     var isDialogOpen = false;
 
     attribute.lookup = new Query(attribute.lookup, attribute.parent, true);
-    attribute.lookupPersistentObjectId = attribute.lookup.persistentObject.id;
-    if (attribute.selectInPlace == null) attribute.selectInPlace = false;
-    if (attribute.objectId == null) attribute.objectId = null;
+
+    if (attribute.asDetail) {
+        if (attribute.objects != null) {
+            attribute.objects = attribute.objects.map(function (obj) {
+                var detailObj = new PersistentObject(obj);
+                detailObj.parent = attribute.parent;
+                detailObj.ownerDetailAttribute = attribute;
+
+                return detailObj;
+            });
+        }
+        else
+            attribute.objects = [];
+
+        attribute.backupBeforeEdit = function () {
+            this._backup = copyProperties(this, ["isReadOnly", "isValueChanged", "validationError", "visibility"], true);
+        };
+
+        attribute.restoreEditBackup = function () {
+            for (var name in this._backup)
+                this[name] = this._backup[name];
+
+            this._backup = {};
+
+            this.objects = this.objects.filter(function (obj) { return !obj.isNew; });
+            this.objects.forEach(function (obj) {
+                obj._isDeleted = false;
+            });
+        };
+
+        return attribute;
+    }
 
     attribute.isEditable = attribute.getTypeHint('IsEditable', 'False') == 'True';
 
@@ -46,22 +101,21 @@ function PersistentObjectAttributeWithReference(attribute) {
     };
 
     attribute.browseReference = function (onCompleted, useCurrentItems) {
-        var attr = this;
-
-        if (attr.isReadOnly || isDialogOpen)
+        if (this.isReadOnly || isDialogOpen)
             return;
 
-        attr.lookup.parent = attr.parent;
+        this.lookup.parent = this.parent;
         isDialogOpen = true;
 
-        attr._showDialog(attr.lookup, function (selectedItems) { attr.changeReference(selectedItems, onCompleted); }, useCurrentItems);
+        var self = this;
+        this._showDialog(this.lookup, function (selectedItems) { self.changeReference(selectedItems, onCompleted); }, useCurrentItems);
     };
 
     attribute.onChanged = function (obj, lostFocus, onBrowseReferenceCompleted) {
         if (lostFocus && this.isEditable && (this.value || "") != obj.value) {
             var attr = this;
             var onCompleted = function () {
-                var displayColumn = attr.lookup.columns.firstOrDefault(function (c) { return c.name == attr.displayAttribute; });
+                var displayColumn = attr.lookup.getColumn(attr.displayAttribute);
                 if (displayColumn != null) {
                     displayColumn.includes = ["1|@" + obj.value];
 
@@ -70,7 +124,7 @@ function PersistentObjectAttributeWithReference(attribute) {
                         if (attr.lookup.items.length != 1) {
                             var isZero = attr.lookup.items.length == 0;
                             if (isZero) {
-                                displayColumn = attr.lookup.columns.firstOrDefault(function (c) { return c.name == attr.displayAttribute; });
+                                displayColumn = attr.lookup.getColumn(attr.displayAttribute);
                                 if (displayColumn != null)
                                     displayColumn.includes = null;
                             }
@@ -94,13 +148,13 @@ function PersistentObjectAttributeWithReference(attribute) {
         /// <summary>Changes the reference value of the Persistent Object Attribute.</summary>
         /// <param name="onChanged" type="Function">A function that will be called when the value has been changed.</param>
 
-        isDialogOpen = false
+        isDialogOpen = false;
 
         if (this.isReadOnly)
             return;
 
         var self = this;
-        this.parent.attributes.where(function (a) { return a.id != self.id; }).run(function (a) { a._refreshValue = a.value; });
+        this.parent.attributes.filter(function (a) { return a.id != self.id; }).forEach(function (a) { a._refreshValue = a.value; });
         app.gateway.executeAction("PersistentObject.SelectReference", this.parent, this.lookup, selectedItems, [{ PersistentObjectAttributeId: this.id }],
             function (result) {
                 self.parent.refreshFromResult(result);
@@ -127,21 +181,19 @@ function PersistentObjectAttributeWithReference(attribute) {
             return;
 
         var self = this;
-        app.gateway.executeAction("Query.New", this.parent, this.lookup, [], [{ PersistentObjectAttributeId: this.id }],
+        app.gateway.executeAction("Query.New", this.parent, this.lookup, null, [{ PersistentObjectAttributeId: this.id }],
             function (po) {
                 po.ownerAttributeWithReference = self;
-                app.openPersistentObject(po);
+                app.openPersistentObject(po, true);
             },
             function (error) {
-                if (self.selectInPlace)
-                    self.parent.showNotification(error, "Error");
-                else
-                    self.lookup.showNotification(error, "Error");
+                self.parent.showNotification(error, "Error");
             });
     };
 
     attribute.navigateToReference = function () {
         /// <summary>Navigates the user interface to the value of the Persistent Object Attribute. Only usable on a Persistent Object Attribute with Reference.</summary>
+
         if (this.lookup.canRead)
             app.gateway.getPersistentObject(this.parent, this.lookup.persistentObject.id, this.objectId, function (result) {
                 app.openPersistentObject(result);
@@ -156,7 +208,19 @@ function PersistentObjectAttributeWithReference(attribute) {
     };
 
     attribute._showDialog = function (query, onSelectValue, useCurrentItems) {
+        var _this = this;
+
         var action = new SelectReferenceDialogActions(query, 1, onSelectValue, function () { isDialogOpen = false; });
+        if (this.canAddNewReference) {
+            var newAction = Actions.getAction("New", query);
+            newAction.isPinned = true;
+            newAction.onExecute = function() {
+                action.closeDialog();
+
+                _this.addNewReference();
+            };
+            query.actions.push(newAction);
+        }
         action.showDialog(useCurrentItems);
     };
 
@@ -164,7 +228,7 @@ function PersistentObjectAttributeWithReference(attribute) {
 }
 
 PersistentObjectAttribute.prototype.backupBeforeEdit = function () {
-    this._backup = copyProperties(this, ["value", "isReadOnly", "isValueChanged", "options", "objectId", "validationError"], true);
+    this._backup = copyProperties(this, ["value", "isReadOnly", "isValueChanged", "options", "objectId", "validationError", "visibility"], true);
 };
 
 PersistentObjectAttribute.prototype.binaryFileName = function () {
@@ -188,9 +252,17 @@ PersistentObjectAttribute.prototype.createElement = function (columnSpan, tabCol
 
     var div = $.createElement('div').addClass('persistenObjectAttributeSectionColumn').css("width", (1 / tabColumnCount) * columnSpan * 100 + '%');
     var label = $.createElement('label').addClass("persistentObjectAttributeLabel").attr("data-vidyano-attribute", this.name);
-    var control = this._createControl();
+    div.append(label);
 
-    div.append(label, control);
+    if (!isNullOrWhiteSpace(this.toolTip)) {
+        var tt = $.createElement('div').addClass("persistentObjectAttributeToolTip").html("&nbsp;");
+        div.append(tt);
+
+        tt.toolTip(this.toolTip, null, ".resultContent" + (this.parent.isMasterDetail() ? ".persistentObjectAttributes" : ""));
+    }
+
+    var control = this._createControl();
+    div.append(control);
 
     var options = {};
     var hasOptions = false;
@@ -224,8 +296,8 @@ PersistentObjectAttribute.prototype.displayValue = function () {
     else if (this.type == "YesNo")
         value = app.getTranslatedMessage(value ? this.getTypeHint("TrueKey", "Yes") : this.getTypeHint("FalseKey", "No"));
     else if (this.type == "KeyValueList") {
-        if (value != null && this.options != null && this.options.length > 0) {
-            var str = value + "=";
+        if (this.options != null && this.options.length > 0) {
+            var str = value != null ? value + "=" : "=";
             var option = this.options.firstOrDefault(function (o) { return o.startsWith(str); });
             if (option != null)
                 value = option.substring(str.length);
@@ -233,14 +305,12 @@ PersistentObjectAttribute.prototype.displayValue = function () {
                 value = "";
         }
     }
-    else if (this.type == "Time" || this.type == "NullableTime") {
-        if (value != null) {
-            value = value.trimEnd('0').trimEnd('.');
-            if (value.startsWith('0:'))
-                value = value.substr(2);
-            if (value.endsWith(':00'))
-                value = value.substr(0, value.length - 3);
-        }
+    else if (value != null && (this.type == "Time" || this.type == "NullableTime")) {
+        value = value.trimEnd('0').trimEnd('.');
+        if (value.startsWith('0:'))
+            value = value.substr(2);
+        if (value.endsWith(':00'))
+            value = value.substr(0, value.length - 3);
     }
 
     if (format == "{0}") {
@@ -250,12 +320,12 @@ PersistentObjectAttribute.prototype.displayValue = function () {
             format = "{0:" + CultureInfo.currentCulture.dateFormat.shortDatePattern + " " + CultureInfo.currentCulture.dateFormat.shortTimePattern + "}";
     }
 
-    var text = $.createElement("span").text(String.format(format, value)).html();
+    var text = $.createElement("span").text(value != null ? String.format(format, value) : "").html();
     if ((this.type == "String" || this.type == "MultiLineString" || this.type == "TranslatedString") && value != null) {
         if (this.getTypeHint("Language") != null)
             return "<pre>" + text + "</pre>";
 
-        text = text.replace(/\r?\n|\r/g, "<br/>").replace(/\s/g, "&nbsp;");
+        text = text.replace(/\r?\n|\r/g, "<br/>").replace(/\s(?=\s)/g, "&nbsp;");
     }
 
     return text;
@@ -329,7 +399,7 @@ PersistentObjectAttribute.prototype.onChanged = function (obj, lostFocus) {
 
     var currentServiceValue = this.value;
     if ((currentServiceValue == null && isNullOrEmpty(serviceString)) || this.value == serviceString || currentServiceValue == serviceString) {
-        if (lostFocus && this.queueTriggersRefresh)
+        if (lostFocus && this._queueTriggersRefresh)
             this.triggerRefresh();
 
         return obj.value;
@@ -345,7 +415,7 @@ PersistentObjectAttribute.prototype.onChanged = function (obj, lostFocus) {
         if (lostFocus)
             this.triggerRefresh();
         else
-            this.queueTriggersRefresh = true;
+            this._queueTriggersRefresh = true;
     }
 
     this.parent.isDirty(true);
@@ -355,16 +425,16 @@ PersistentObjectAttribute.prototype.onChanged = function (obj, lostFocus) {
 PersistentObjectAttribute.prototype.restoreEditBackup = function () {
     for (var name in this._backup)
         this[name] = this._backup[name];
-    
-    this.backup = {};
+
+    this._backup = {};
 };
 
 PersistentObjectAttribute.prototype.selectInPlaceOptions = function () {
     /// <summary>Returns all the possible options that can be used for the selectInPlace. This will include an empty item when the Peristent Object Attribute is not required.</summary>
-    /// <returns type="Array">Returns an array contains key/value objects for the options.</returns>
+    /// <returns type="Array">Returns an array containing key/value objects for the options.</returns>
 
     var result = !this.isRequired ? [{ key: null, value: "" }] : [];
-    return result.concat(this.options.select(function (o) {
+    return result.concat(this.options.map(function (o) {
         var parts = o.split("=", 2);
         return { key: parts[0], value: parts[1] };
     }));
@@ -372,27 +442,64 @@ PersistentObjectAttribute.prototype.selectInPlaceOptions = function () {
 
 PersistentObjectAttribute.prototype.setValue = function (value) {
     /// <summary>Sets the value of the Persistent Object Attribute.</summary>
-    /// <param name="value">Rhe value to set as the new value for the Persistent Object Attribute.</param>
+    /// <param name="value">The value to set as the new value for the Persistent Object Attribute.</param>
+    /// <returns>The new value.</returns>
 
     return this.onChanged({ value: value }, true);
 };
 
 PersistentObjectAttribute.prototype.toServiceObject = function () {
     /// <summary>Creates an optimized copy that can be sent to the service.</summary>
+    /// <returns type="Object" />
 
-    return copyProperties(this, ["id", "name", "value", "label", "options", "type", "isReadOnly", "triggersRefresh", "isRequired", "differsInBulkEditMode", "isValueChanged", "displayAttribute", "objectId", "visibility"]);
+    var result = copyProperties(this, ["id", "name", "value", "label", "options", "type", "isReadOnly", "triggersRefresh", "isRequired", "differsInBulkEditMode", "isValueChanged", "displayAttribute", "objectId", "visibility"]);
+
+    if (this.objects != null) {
+        result.asDetail = true;
+        result.objects = this.objects.map(function (obj) {
+            var detailObj = obj.toServiceObject(true);
+            if (obj._isDeleted)
+                detailObj.isDeleted = true;
+
+            return detailObj;
+        });
+    }
+
+    return result;
 };
 
-PersistentObjectAttribute.prototype.triggerRefresh = function () {
+PersistentObjectAttribute.prototype.toString = function () {
+    return "PersistentObjectAttribute " + this.name + "=" + ServiceGateway.fromServiceString(this.value, this.type);
+};
+
+PersistentObjectAttribute.prototype.triggerRefresh = function (onCompleted, onError) {
     /// <summary>Executing this method will call the Refresh function on the service. the Persistent Object will be refreshed with the new values.</summary>
 
     var parameters = [{ RefreshedPersistentObjectAttributeId: this.id }];
 
-    this.queueTriggersRefresh = false;
+    this._queueTriggersRefresh = false;
+    this.parent._isAttributeRefreshing = true;
     var self = this;
-    this.parent.attributes.where(function (a) { return a.id != self.id; }).run(function (a) { a._refreshValue = a.value; });
+    this.parent.attributes.filter(function (a) { return a.id != self.id; }).forEach(function (a) { a._refreshValue = a.value; });
     app.gateway.executeAction("PersistentObject.Refresh", this.parent, null, null, parameters, function (result) {
         self.parent.refreshFromResult(result);
+        self.parent._isAttributeRefreshing = false;
+
+        if (typeof (self.parent._queueSave) == "function")
+            self.parent._queueSave();
+
+        if (typeof (onCompleted) == "function")
+            onCompleted();
+    }, function (e) {
+        self.parent._isAttributeRefreshing = false;
+
+        if (typeof (self.parent._queueSave) == "function")
+            self.parent._queueSave(e);
+
+        if (typeof (onError) == "function")
+            onError(e);
+        else
+            self.parent.showNotification(e, "Error");
     });
 };
 

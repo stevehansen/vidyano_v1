@@ -29,9 +29,38 @@ var Vidyano = (function (window, $) {
         // The hasher or crossroads libraries will be used when available to provide a complete HTML5 client for the end-user.
         hasher.prependHash = "!/";
 
-        $(document).ready(function () {
+        $(function () {
             crossroads.addRoute("", function () { app.ensureInitialized(showHomePage, arguments); });
-            crossroads.addRoute("SignIn", signInPage);
+            crossroads.addRoute("SignIn", function () {
+                if (!app.clientData.isInitialized) {
+                    var tm = new TaskManager();
+                    tm.startTask(function (t) {
+                        app.gateway.getClientData(function (clientData) {
+                            clientData.isInitialized = true;
+                            app.clientData = clientData;
+
+                            tm.markDone(t);
+                        }, function (e) {
+                            if (!isNullOrEmpty(e.responseText)) {
+                                try {
+                                    var response = JSON.parse(e.responseText);
+                                    app.lastError = response["ExceptionMessage"] || response["Message"] || response.notification;
+                                } catch (e) {
+                                    app.lastError = e.message || e;
+                                }
+                            }
+                            else
+                                app.lastError = e.statusText;
+
+                            tm.markDone(t);
+                        });
+                    });
+
+                    tm.waitForAll(signInPage);
+                }
+                else
+                    signInPage();
+            });
             crossroads.addRoute("SignInWithToken/{user}/{token}", function (user, token) {
                 token = token.replace('_', '/');
                 app.userName = $.base64.decode(user.replace('_', '/'));
@@ -45,6 +74,14 @@ var Vidyano = (function (window, $) {
                 hasher.setHash(returnUrl != null ? returnUrl : "");
             });
 
+            crossroads.addRoute("{puName}/Query.{name}/:filterName:", function (puName, name, filterName) {
+                app._programUnitName = puName;
+                app.ensureInitialized(showQueryPage, [name, filterName]);
+            });
+            crossroads.addRoute("{puName}/PersistentObject.{name}/:objectId:", function (puName, name, objectId) {
+                app._programUnitName = puName;
+                app.ensureInitialized(showPersistentObject, [name, objectId]);
+            });
             crossroads.addRoute("Query/0/{id}/:filterName:", function () { app.ensureInitialized(showQueryPage, arguments); });
             crossroads.addRoute("Query.{name}/:filterName:", function () { app.ensureInitialized(showQueryPage, arguments); });
             crossroads.addRoute("PersistentObject/0/{id}/:objectId:", function () { app.ensureInitialized(showPersistentObject, arguments); });
@@ -116,6 +153,13 @@ var Vidyano = (function (window, $) {
         shortcut.add("esc", function () {
             return doAction("CancelEdit", "CancelSave");
         });
+        shortcut.add("ctrl+a", function () {
+            var currentPage = app.currentPage;
+            if (currentPage instanceof Query)
+                currentPage.selectToggle();
+
+            return false;
+        }, { 'disable_in_input': true })
 
         // CodeMirror handling
         if (codeMirror != null) {
@@ -128,8 +172,8 @@ var Vidyano = (function (window, $) {
 
         this.isCore = typeof (hasher) == "undefined" || typeof (crossroads) == "undefined";
 
-        var messages = {};
         var lastPageView = null;
+        var userSettingsObj = null;
 
         /// <field name="title" type="String">The title property is used a prefix when updating the document title.</field>
         this.title = document.title;
@@ -153,18 +197,21 @@ var Vidyano = (function (window, $) {
         this.isMobile = $.mobile;
         /// <field name="isTablet" type="Boolean">This field indicates whether the current application is running on a tablet browser.</field>
         this.isTablet = /(iPad|Android|BlackBerry|ARM)/.test(navigator.userAgent || navigator.vendor || window.opera);
-        /// <field name="settings">The settings property is used to override default Vidyano settings like useDefaultCredentials and defaultUserName/defaultPassword.</field>
-        this.settings =
-        {
+        /// <field name="settings">The settings property is used to override default Vidyano settings.</field>
+        this.settings = {
             defaultSpinnerOptions: { lines: 8, length: 0, width: 5, radius: 8, color: '#0c5d7d', speed: 1, trail: 70, shadow: false, hwaccel: true },
-            useDefaultCredentials: false,
-            defaultUserName: "Guest",
-            defaultPassword: "Guest",
-            applicationSpecificPersistentObjects: null,
             language: null
         };
-        this.languages = {};
+        this.clientData = {
+            languages: {},
+            providers: {},
+            defaultUser: null,
+            isInitialized: false
+        };
+        this.userSettings = {};
 
+        this.canProfile = false;
+        this.isProfiling = false;
         this.userId = null;
         this.feedbackId = null;
         this.userSettingsId = null;
@@ -177,20 +224,81 @@ var Vidyano = (function (window, $) {
         this.templates = null;
         this.icons = null;
         this.templateParser = typeof (_) != "undefined" ? _.template : null;
+        this.code = {};
+        this._messages = {};
 
         this.currentExceptionHandler = function () { };
+
+        this._getUnsavedChanges = function (target) {
+            var unsavedPos = [];
+            for (var propName in app.pageObjects) {
+                if (propName != target && this.pageObjects[propName].inEdit && this.pageObjects[propName]._isDirty)
+                    unsavedPos.push(app.pageObjects[propName]);
+            }
+            return this.onCheckForUnsavedChanges(unsavedPos);
+        };
+
+        this.hasUnsavedChanges = function (target) {
+            var unsavedPos = this._getUnsavedChanges(target);
+            return unsavedPos != null && unsavedPos.length > 0;
+        };
+
+        this.removeUnsavedChanges = function (target) {
+            var unsavedChanges = this._getUnsavedChanges(target);
+            for (var i = 0; i < unsavedChanges.length; i++) {
+                var po = unsavedChanges[i];
+                if (po.isNew)
+                    delete this.pageObjects[po.getPath()];
+                else
+                    po.cancelEdit();
+            }
+        };
 
         this.navigate = function (url, replace) {
             /// <summary>Navigates to the specified url.</summary>
             /// <param name="url" type="String">The url that should be navigated to.</param>
             /// <param name="replace" type="Boolean">Determines if the current history entry in the browser should be replaced, otherwise a new history entry will be added.</param>
 
-            setTimeout(function () {
-                if (replace)
-                    hasher.replaceHash(url);
-                else
-                    hasher.setHash(url);
-            }, 0);
+            var onNavigate = function () {
+                setTimeout(function () {
+                    if (replace)
+                        hasher.replaceHash(url);
+                    else
+                        hasher.setHash(url);
+
+                    app.isNavigating = false;
+                }, 0);
+            };
+
+            app.isNavigating = true;
+            if (app.hasUnsavedChanges(url) && (app.pageObjects[url] == null || app.pageObjects[url].ownerAttributeWithReference == null)) {
+                var d = $.createElement("div");
+                d.html(app.getTranslatedMessage("ConfirmLeavePage"));
+
+                var buttons = {};
+                buttons[app.getTranslatedMessage("StayOnThisPage")] = function () {
+                    $(this).dialog("close");
+                    d.remove();
+                    app.isNavigating = false;
+                };
+
+                buttons[app.getTranslatedMessage("LeaveThisPage")] = function () {
+                    $(this).dialog("close");
+                    d.remove();
+                    app.removeUnsavedChanges();
+                    onNavigate(url, replace);
+                };
+
+                d.dialog({
+                    title: app.getTranslatedMessage("PagesWithUnsavedChanges"),
+                    resizable: false,
+                    open: function () { $(".ui-dialog-titlebar-close").hide(); },
+                    modal: true,
+                    width: 400,
+                    buttons: buttons
+                });
+            } else
+                onNavigate(url, replace);
         };
 
         this.dispose = function () {
@@ -201,6 +309,8 @@ var Vidyano = (function (window, $) {
 
             Actions.showActions(null);
 
+            this.canProfile = false;
+            this.isProfiling = false;
             this.userId = null;
             this.feedbackId = null;
             this.userSettingsId = null;
@@ -212,19 +322,22 @@ var Vidyano = (function (window, $) {
             this.currentPage = null;
             this.currentPath = null;
             this.pageObjects = {};
+            this.userSettings = {};
+            this.code = {};
+            this._messages = {};
             this.setAuthToken(null);
             this.session = null;
             document.title = this.title;
 
-            messages = {};
             lastPageView = null;
+            userSettingsObj = null;
 
             for (var name in this.customRoutes)
                 crossroads.removeRoute(this.customRoutes[name].crossroadsRoute);
             this.customRoutes = {};
         };
 
-        this.staySignedIn = $.cookie("staySignedIn") == "true";
+        this.staySignedIn = $.cookie("staySignedIn", { force: true }) == "true";
 
         this.setAuthToken = function (token) {
             /// <summary>Sets the authentication token for the current user.</summary>
@@ -252,9 +365,9 @@ var Vidyano = (function (window, $) {
             /// <summary>Gets the authentication token for the current user.</summary>
             /// <returns type="String" />
 
-            var token = $.cookie("authToken");
+            var token = this.authToken;
             if (isNullOrWhiteSpace(token))
-                return this.authToken;
+                return $.cookie("authToken");
 
             return token;
         };
@@ -263,8 +376,9 @@ var Vidyano = (function (window, $) {
             /// <summary>Gets or sets the return url that should be used after sign in.</summary>
 
             if (typeof (value) == "undefined")
-                return $.cookie("returnUrl");
+                return app._returnUrl || $.cookie("returnUrl");
 
+            app._returnUrl = value;
             return $.cookie("returnUrl", value);
         };
 
@@ -296,15 +410,10 @@ var Vidyano = (function (window, $) {
             //close all open dialogs
             $(".ui-dialog").remove();
             $(".dialog-content").remove();
+            $(".editable-select-options").remove();
+            $("#persistentObjectAttributeToolTip").remove();
 
             var onCompleted = function (replace) {
-                if (!replace) {
-                    app.gateway.getLanguages(function(languages) {
-                        app.languages = languages;
-                    });
-                }
-
-                $("signOut").show();
                 if (f != null)
                     f.apply(null, Array.prototype.slice.call(args));
                 else {
@@ -328,18 +437,31 @@ var Vidyano = (function (window, $) {
 
                 app.returnUrl(hasher.getHash());
 
-                if ($.cookie("userName") != null && app.getAuthToken() != null)
-                    app.gateway.getApplication($.cookie("userName"), null, onCompleted, onError);
-                else if (app.settings.useDefaultCredentials) {
-                    $.cookie("authToken", null);
-                    app.staySignedIn = false;
-                    $.cookie("staySignedIn", null);
-                    $.cookie("userName", null);
+                var tm = new TaskManager();
+                tm.startTask(function (t) {
+                    app.gateway.getClientData(function (clientData) {
+                        clientData.isInitialized = true;
+                        app.clientData = clientData;
 
-                    app.gateway.getApplication(app.settings.defaultUserName, app.settings.defaultPassword, onCompleted, onError);
-                }
-                else
-                    app.navigate("SignIn");
+                        tm.markDone(t);
+                    }, function (e) {
+                        tm.markError(t, e);
+                    });
+                });
+
+                tm.waitForAll(function () {
+                    if ($.cookie("userName") != null && app.getAuthToken() != null)
+                        app.gateway.getApplication($.cookie("userName"), null, onCompleted, onError);
+                    else if (app.clientData.defaultUser != null) {
+                        $.cookie("authToken", null);
+                        app.staySignedIn = false;
+                        $.cookie("staySignedIn", null);
+                        $.cookie("userName", null);
+
+                        app.gateway.getApplication(app.clientData.defaultUser, null, onCompleted, onError);
+                    } else
+                        app.navigate("SignIn");
+                }, onError);
             }
             else
                 onCompleted(true);
@@ -351,6 +473,10 @@ var Vidyano = (function (window, $) {
             };
         }
 
+        this.oAuthSignIn = function (providerName) {
+            document.location = this.clientData.providers[providerName].parameters["requestUri"];
+        };
+
         this.signOut = function (usingDefaultUser) {
             /// <summary>Sign out the current user, if the application is using the default user it will go directly to the Sign in page.</summary>
             /// <param name="usingDefaultUser" type="Boolean" optional="true">A value indicating if the default user is currently used.</param>
@@ -358,8 +484,11 @@ var Vidyano = (function (window, $) {
             this.dispose();
 
             if (!this.isCore) {
-                $("#rootContainer").dataContext(null);
-                this.navigate(usingDefaultUser || !this.settings.useDefaultCredentials ? "SignIn" : "", true);
+                $("#rootContainer").dataContext(null).empty();
+                if (this.clientData.providers && Object.keys(this.clientData.providers).length == 1 && this.clientData.providers["Acs"] && !isNullOrEmpty(this.clientData.providers["Acs"].parameters.signOutUri))
+                    document.location = this.clientData.providers["Acs"].parameters.signOutUri;
+                else
+                    this.navigate(usingDefaultUser || this.clientData.defaultUser == null ? "SignIn" : "", true);
             }
         };
 
@@ -374,17 +503,24 @@ var Vidyano = (function (window, $) {
             /// <summary>Gets a value indicating that the default user is currently logged in.</summary>
             /// <returns type="Boolean" />
 
-            return this.settings.useDefaultCredentials && (this.userName == null || this.userName == this.settings.defaultUserName);
+            return this.clientData.defaultUser != null && (this.userName == null || this.userName == this.clientData.defaultUser);
         };
 
         this.redirectToSignIn = function () {
             /// <summary>Redirects the user to the sign in page and remember the current url for after sign in.</summary>
 
             if (this.isCore)
-                return;
+                return false;
 
-            this.returnUrl(hasher.getHash());
+            var returnUrl = hasher.getHash();
+            if (returnUrl == "SignIn") {
+                window.location.reload();
+                return true;
+            }
+
+            this.returnUrl(returnUrl);
             this.navigate("SignIn");
+            return true;
         };
 
         this.showException = function (e) {
@@ -408,17 +544,21 @@ var Vidyano = (function (window, $) {
             /// <summary>Sets the browser's title.</summary>
             /// <param name="title" type="String" optional="true">An optional extra title that will be appended.</param>
 
-            document.title = isNullOrEmpty(title) ? this.title : this.title + " - " + title;
+            document.title = isNullOrEmpty(title) || title == this.title ? this.title : this.title + " - " + title;
         };
 
-        this.getUrlForPersistentObject = function (po, objectId) {
+        this.getUrlForPersistentObject = function (po, objectId, programUnit) {
             /// <summary>Gets a value that represents an url for the specified Persistent Object, using custom routes if possible.</summary>
             /// <param name="po" type="PersistentObject">The Persistent Object that should be used to generate an url for.</param>
             /// <param name="objectId" type="String">The optional ObjectId that should be used to generate an url for, otherwise po.objectId will be tried.</param>
+            /// <param name="programUnit" type="ProgramUnit">The optional program unit that this url should be opened in.</param>
             /// <returns type="String" />
 
+            if (programUnit == null)
+                programUnit = this.programUnits.selectedItem();
+
             var customRoute = this.customRoutes[po.id];
-            var url = (customRoute != null ? customRoute.name : ("PersistentObject." + po.id));
+            var url = programUnit.name + "/" + (customRoute != null ? customRoute.name : ("PersistentObject." + po.id));
             if (objectId == null)
                 objectId = po.objectId;
             if (!isNullOrEmpty(objectId))
@@ -427,15 +567,19 @@ var Vidyano = (function (window, $) {
             return url;
         };
 
-        this.getUrlForQuery = function (query, filterName) {
+        this.getUrlForQuery = function (query, filterName, programUnit) {
             /// <summary>Gets a value that represents an url for the specified Query, using custom routes if possible.</summary>
             /// <param name="query" type="Query">The Query that should be used to generate an url for.</param>
             /// <param name="filterName" type="String" optional="true">The optional filter name for the query.</param>
+            /// <param name="programUnit" type="ProgramUnit">The optional program unit that this url should be opened in.</param>
             /// <returns type="String" />
+
+            if (programUnit == null)
+                programUnit = this.programUnits.selectedItem();
 
             var id = typeof (query) == "string" ? query : query.id;
             var customRoute = this.customRoutes[id];
-            var url = (customRoute != null ? customRoute.name : ("Query." + id));
+            var url = programUnit.name + "/" + (customRoute != null ? customRoute.name : ("Query." + id));
             if (!isNullOrEmpty(filterName))
                 url += "/" + escape(filterName);
 
@@ -447,6 +591,20 @@ var Vidyano = (function (window, $) {
             /// <param name="pu" type="ProgramUnit">The Program Unit that should be used to generate an url for.</param>
             /// <returns type="String" />
 
+            if (pu.openFirst && !pu.hasTemplate && pu.items.length > 0) {
+                var item = pu.items[0];
+                var filterName = undefined;
+                if (item.subItems != null && item.subItems.length > 0)
+                    item = item.subItems[0];
+                if (item.filters != null && item.filters.length > 0)
+                    filterName = item.filters[0];
+
+                if (item.query != null)
+                    return this.getUrlForQuery(item.query, filterName, pu);
+                if (item.persistentObject != null)
+                    return this.getUrlForPersistentObject(item.persistentObject, null, pu);
+            }
+
             var id = typeof (pu) == "string" ? pu : pu.id;
             var customRoute = this.customRoutes[id];
             return (customRoute != null ? customRoute.name : ("ProgramUnit." + id));
@@ -454,8 +612,9 @@ var Vidyano = (function (window, $) {
 
         this.updateMessages = function (messagesQuery) {
             // NOTE: Internal use only
-            messagesQuery.items.run(function (message) {
-                messages[message.getValue("Key")] = message.getValue("Value");
+            var self = this;
+            messagesQuery.items.forEach(function (message) {
+                self._messages[message.getValue("Key")] = message.getValue("Value");
             });
         };
 
@@ -466,20 +625,26 @@ var Vidyano = (function (window, $) {
 
             var self = this;
             this.hasManagement = programUnits.hasManagement;
-            this.programUnits = programUnits.units.select(function (item) { return new ProgramUnit(item, self.hasManagement); }).toSelector();
+            this.programUnits = programUnits.units.map(function (item) { return new ProgramUnit(item, self.hasManagement); }).toSelector();
 
             this.programUnits.onSelectedItemChanged(function (pu) {
-                self.programUnits.run(function (p) {
+                self.programUnits.forEach(function (p) {
                     if (p.selector != null)
                         p.selector.removeClass("selectedProgramUnit");
                 });
 
                 if (pu != null) {
                     pu.open();
+                    $(".activeProgramUnit").text(pu.title);
                     if (pu.selector != null)
                         pu.selector.addClass("selectedProgramUnit");
                 }
             });
+        };
+
+        this.setDefaultProgramUnit = function (pu) {
+            this.userSettings.defaultProgramUnit = pu != null ? pu.name : null;
+            this.saveUserSettings();
         };
 
         this.getTranslatedMessage = function (key) {
@@ -487,7 +652,7 @@ var Vidyano = (function (window, $) {
             /// <param name="key" type="String">The message key.</param>
             /// <returns type="String" />
 
-            var translated = messages[key] || key;
+            var translated = this._messages[key] || key;
 
             if (arguments.length > 1) {
                 var args = Array.prototype.slice.call(arguments);
@@ -506,7 +671,7 @@ var Vidyano = (function (window, $) {
 
             var templateParser = this.templateParser;
 
-            resourcesQuery.items.run(function (item) {
+            resourcesQuery.items.forEach(function (item) {
                 var resource = new Resource(item);
                 var type = item.getValue("Type");
                 if (type == "Icon") {
@@ -519,7 +684,7 @@ var Vidyano = (function (window, $) {
                         }
                         catch (e) {
                             if (window.console != null && window.console.log != null)
-                                window.console.log("Failed parsing template " + resource.key + ": " + (e.message || e));
+                                window.console.log("JavaScript: Failed parsing template " + resource.key + ": " + (e.message || e));
                         }
                     }
                 }
@@ -529,19 +694,24 @@ var Vidyano = (function (window, $) {
             this.templates = templates;
         };
 
-        this.openPersistentObject = function (obj, fromAction) {
+        this.openPersistentObject = function (obj, fromAction, pu, replace) {
             /// <summary>Open the Persistent Object on a new page.</summary>
             /// <param name="obj" type="PersistentObject">The Persistent Object that should be opened.</param>
             /// <param name="fromAction" type="Boolean" optional="true">Specifies if the Persistent Object was opened from an Action.</param>
+            /// <param name="pu" type="ProgramUnit" optional="true">Specifies what program unit should be used to open the Persistent Object in.</param>
+            /// <param name="replace" type="Boolean">Specifies if the current browser page should be replaced or not.</param>
 
             if (this.isCore)
                 return; // NOTE: Can't open pages
 
-            var path = fromAction ? "PersistentObjectFromAction/" + getRandom() : this.getUrlForPersistentObject(obj);
+            if (pu == null)
+                pu = this.programUnits.selectedItem();
+
+            var path = fromAction ? "PersistentObjectFromAction/" + getRandom() : this.getUrlForPersistentObject(obj, null, pu);
             obj.getPath = function () { return path; };
 
             this.pageObjects[path] = obj;
-            this.navigate(path);
+            this.navigate(path, replace);
         };
 
         this.postPersistentObjectAttributeRender = function (container, obj) {
@@ -574,7 +744,7 @@ var Vidyano = (function (window, $) {
                 this.onSessionUpdated(this.session);
             }
             catch (e) {
-                this.showException(e.message || e);
+                this.showException("JavaScript: " + (e.message || e));
             }
         };
 
@@ -585,6 +755,14 @@ var Vidyano = (function (window, $) {
         this.onSessionUpdated = function (session) {
             /// <summary>Is called when the Session is updated.</summary>
             /// <param name="session" type="PersistentObject">The current session instance, or null if no session is configured.</param>
+        };
+
+        this.onCheckForUnsavedChanges = function (persistentObjects) {
+            /// <summary>Is called when the application is checking for unsaved changes. By default, nothing is filtered, so all unsaved changes should be confirmed.</summary>
+            /// <param name="persistentObjects" type="Array">Array with the persistent objects that contain unsaved changes</param>
+            /// <returns type="Array">Array with the persistent objects that contain unsaved changes</returns>
+
+            return persistentObjects;
         };
 
         this.invokeGlobalSearch = function (searchText) {
@@ -618,49 +796,47 @@ var Vidyano = (function (window, $) {
             app.resetSelectedProgramUnitItem();
 
             var programUnit = app.programUnits.selectedItem();
-            var found = false;
-            if (programUnit != null) {
-                if (programUnit.items.length > 0) {
-                    var programUnitItem = findItem(programUnit);
-                    if (programUnitItem != null) {
-                        found = true;
 
-                        if (programUnitItem.element != null)
-                            programUnitItem.element.addClass("programUnitItemSelected");
-                    }
-                }
-                else
-                    programUnit = null;
+            var found = false;
+            var programUnitItem;
+            if (programUnit != null && programUnit.items.length > 0) {
+                programUnitItem = findItem(programUnit);
+                if (programUnitItem != null)
+                    found = true;
             }
 
             if (!found) {
-                app.programUnits.where(function (pu) { return pu != programUnit; }).run(function (pu) {
+                app.programUnits.filter(function (pu) { return pu != programUnit; }).forEach(function (pu) {
                     if (!found) {
                         programUnitItem = findItem(pu);
                         if (programUnitItem != null) {
                             found = true;
 
-                            app.returnUrl("DontShowTemplate");
-                            app.programUnits.selectedItem(pu);
-                            app.returnUrl(null);
-
-                            if (programUnitItem.element != null)
-                                programUnitItem.element.addClass("programUnitItemSelected");
+                            programUnit = pu;
                         }
                     }
                 });
             }
+
+            if (app.programUnits.selectedItem() != programUnit) {
+                app.returnUrl("DontShowTemplate");
+                app.programUnits.selectedItem(programUnit);
+                app.returnUrl(null);
+            }
+
+            if (found && programUnitItem.element != null)
+                programUnitItem.element.addClass("programUnitItemSelected");
         };
 
         this.resetSelectedProgramUnitItem = function () {
             var programUnit = this.programUnits.selectedItem();
             if (programUnit != null) {
-                programUnit.items.run(function (item) {
+                programUnit.items.forEach(function (item) {
                     if (item.element != null)
                         item.element.removeClass("programUnitItemSelected");
 
                     if (item.subItems != null)
-                        item.subItems.where(function (subItem) { return subItem.element != null; }).run(function (subItem) { subItem.element.removeClass("programUnitItemSelected"); });
+                        item.subItems.filter(function (subItem) { return subItem.element != null; }).forEach(function (subItem) { subItem.element.removeClass("programUnitItemSelected"); });
                 });
             }
         };
@@ -732,8 +908,11 @@ var Vidyano = (function (window, $) {
             }
         };
 
-        this.openProgramUnitItem = function (pui, filterName) {
+        this.openProgramUnitItem = function (pui, filterName, pu, replace) {
             /// <summary>Is called when a Program Unit Item is opened and can be used to intercept or change the behavior.</summary>
+
+            if (pu == null)
+                pu = this.programUnits.selectedItem();
 
             var self = this;
             if (pui.query != null) {
@@ -741,16 +920,16 @@ var Vidyano = (function (window, $) {
                     filterName = null;
 
                 this.gateway.getQuery(pui.query.id, filterName, function (result) {
-                    var path = self.getUrlForQuery(result, filterName);
+                    var path = self.getUrlForQuery(result, filterName, pu);
                     result.parent = pui.parent;
 
                     self.pageObjects[path] = result;
-                    self.navigate(path);
+                    self.navigate(path, replace);
                 });
             }
             else {
                 this.gateway.getPersistentObject(null, pui.persistentObject.id, pui.objectId, function (result) {
-                    self.openPersistentObject(result);
+                    self.openPersistentObject(result, false, pu, replace);
                 });
             }
         };
@@ -771,7 +950,85 @@ var Vidyano = (function (window, $) {
                     $("#content").spin(false);
             }
         };
+
+        this.saveUserSettings = function (onCompleted, onError) {
+            if (this.userSettingsId != "00000000-0000-0000-0000-000000000000") {
+                var self = this;
+                var save = function (po) {
+                    userSettingsObj = po;
+
+                    po.setAttributeValue("Settings", JSON.stringify(self.userSettings));
+                    po.save(onCompleted, onError);
+                };
+
+                if (userSettingsObj == null)
+                    this.gateway.getPersistentObject(null, this.userSettingsId, null, save, onError);
+                else
+                    save(userSettingsObj);
+            }
+            else
+                localStorage["UserSettings"] = JSON.stringify(this.userSettings);
+        };
+
+        this._onConstructPersistentObject = function (obj) {
+            if (obj.isSystem)
+                return;
+
+            try {
+                this.onConstructPersistentObject(obj);
+
+                var code = this.code[obj.id];
+                if (code != null && typeof (code.onConstruct) == "function")
+                    code.onConstruct(obj);
+
+                var onPo = this.onPersistentObject[obj.type];
+                if (onPo != null && typeof (onPo.onConstruct) == "function")
+                    onPo.onConstruct(obj);
+            }
+            catch (e) {
+                this.showException("JavaScript: " + (e.message || e));
+            }
+        };
+
+        this.onConstructPersistentObject = function (obj) {
+            /// <summary>Is called when a Persistent Object is constructed.</summary>
+            /// <param name="obj" type="PersistentObject">The persistent object that is constructed.</param>
+        };
+
+        this._onConstructQuery = function (query) {
+            if (query.isSystem)
+                return;
+
+            try {
+                this.onConstructQuery(query);
+
+                var code = this.code[query.persistentObject.id];
+                if (code != null && typeof (code.onConstructQuery) == "function")
+                    code.onConstructQuery(query);
+
+                var onPo = this.onPersistentObject[query.persistentObject.type];
+                if (onPo != null && typeof (onPo.onConstructQuery) == "function")
+                    onPo.onConstructQuery(query);
+            }
+            catch (e) {
+                this.showException("JavaScript: " + (e.message || e));
+            }
+        };
+
+        this.onConstructQuery = function (query) {
+            /// <summary>Is called when a Query is constructed.</summary>
+            /// <param name="query" type="Query">The query that is constructed.</param>
+        };
     }
+
+    window.onbeforeunload = function (e) {
+        if (app.hasUnsavedChanges()) {
+            var confirmationMessage = app.getTranslatedMessage("PagesWithUnsavedChanges");
+
+            (e || window.event).returnValue = confirmationMessage; //Gecko + IE
+            return confirmationMessage; //Webkit, Safari, Chrome etc.
+        }
+    };
 
     return window.app = app;
 })(window, jQuery);

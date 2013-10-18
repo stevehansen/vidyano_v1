@@ -1,32 +1,31 @@
 ﻿(function ($) {
     var openMenus = [];
 
-    $(document).bind("click", function () {
+    $(document).on("click", function () {
         while (openMenus.length > 0) {
             openMenus.pop()();
         }
     });
 
-    $.fn.subMenu = function (menu) {
+    $.fn.subMenu = function (menu, options) {
         var target = $(this);
 
-        menu.hide();
-        menu.removeClass("subMenu");
+        menu.addClass("subMenu");
         menu.appendTo(target);
 
-        menu.css({ position: "fixed" });
-
         var closeSubMenu = function (e) {
-            target.bind("click", openSubMenu);
-
             var index = menu.parents("[data-menu='true']").length;
             var menusToClose = openMenus.splice(index, openMenus.length - index).reverse();
             while (menusToClose.length > 0) {
                 menusToClose.pop()();
             }
 
-            menu.hide();
-            menu.removeClass("subMenu");
+            target.over = null;
+            if (target.leaving) {
+                clearTimeout(target.leaving);
+                target.leaving = null;
+            }
+
             menu.removeAttr("data-menu");
 
             if (e != null) {
@@ -35,17 +34,65 @@
             }
         };
 
+        var subMenuHover = function (e) {
+            if (target.leaving) {
+                clearTimeout(target.leaving);
+                target.leaving = null;
+            }
+
+            if (target.over)
+                return;
+
+            target.over = closeSubMenu;
+            openSubMenu(e);
+        };
+
+        var subMenuLeave = function () {
+            if (target.leaving)
+                return;
+
+            target.leaving = setTimeout(function() {
+                var mnu = openMenus.indexOf(target.over);
+                if (mnu >= 0)
+                    openMenus.slice(mnu, 1);
+
+                if (target.over)
+                    target.over();
+            }, 300);
+        };
+
         var openSubMenu = function (e) {
+            if ($(e.target).closest(menu).length > 0)
+                return;
+            else{
+                var menuAttr = menu.attr('data-menu');
+                if (typeof menuAttr !== 'undefined' && menuAttr !== false) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+            }
+
             var left, top;
 
             var offset = target.offset();
             var height = target.outerHeight(true);
-            var width = target.innerWidth();
+            var width = target.outerWidth(true);
+
+            if (options) {
+                if (options.minWidth)
+                    menu.css("min-width", width + "px");
+
+                if (options.onOpen)
+                    options.onOpen(menu);
+            }
+
             var menuWidth = menu.outerWidth(true);
             var menuHeight = menu.outerHeight(true);
+            var isRootMenu = menu.parents("[data-menu='true']").length == 0;
 
-            if (menu.parents("[data-menu='true']").length == 0) {
-                left = (offset.left + width - menuWidth);
+            if (isRootMenu) {
+                left = offset.left;
                 top = (offset.top + height);
             }
             else {
@@ -53,8 +100,11 @@
                 top = offset.top;
             }
 
-            if (left + menuWidth > $(window).innerWidth() && offset.left - menuWidth > 0) {
-                left = offset.left - menuWidth;
+            if (left + menuWidth > $(window).innerWidth() && offset.left + width - menuWidth > 0) {
+                if (isRootMenu)
+                    left = offset.left - menuWidth + width;
+                else
+                    left = offset.left - menuWidth;
             }
 
             if (left - menuWidth < 0 && left + menuWidth < $(window).innerWidth()) {
@@ -65,7 +115,7 @@
                 top = offset.top - menuHeight;
             }
 
-            menu.css({ left: left + "px", top: top + "px" });
+            menu.css({ left: Math.round(left) + "px", top: Math.round(top) + "px" });
 
             var index = menu.parents("[data-menu='true']").length;
             var menusToClose = openMenus.splice(index, openMenus.length - index).reverse();
@@ -73,19 +123,24 @@
                 menusToClose.pop()();
             }
 
-            openMenus[index] = closeSubMenu;
-
-            target.unbind("click", openSubMenu);
-
             menu.attr("data-menu", true);
-            menu.addClass("subMenu");
-            menu.show();
+            openMenus[index] = closeSubMenu;
 
             e.preventDefault();
             e.stopPropagation();
+
+            return true;
         };
 
-        target.unbind("click");
-        target.bind("click", openSubMenu);
+        target.off("click");
+        target.on("click", openSubMenu);
+
+        if (!app.isTablet && options && options.openOnHover) {
+            target.off("mouseenter", subMenuHover);
+            target.off("mouseleave", subMenuLeave);
+
+            target.on("mouseenter", subMenuHover);
+            target.on("mouseleave", subMenuLeave);
+        }
     };
 })(jQuery);

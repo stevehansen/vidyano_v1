@@ -1,33 +1,75 @@
 ﻿(function ($, undefined) {
     "use strict";
 
-    var ie8 = !$.support.leadingWhitespace; // IE8 and lower
     $.queryGridData = [];
+    $.cleanUpGridData = function () {
+        // Cleanup all orphan styles
+        var dataObjects = $.queryGridData.slice(0);
+        for (var i = 0; i < dataObjects.length; i++) {
+            var obj = dataObjects[i];
+            if ($(obj.id).length == 0) {
+                $.queryGridData.splice(i, 1);
+                obj.rules.forEach(function (r) { r.remove(); });
+                for (var cr in obj.columnRules) {
+                    obj.columnRules[cr].colHeaderDiv = null;
+                    obj.columnRules[cr].rule.remove();
+                }
+            }
+        }
+    };
     $.queryGridHoverStyle = $.rule(".queryGrid tr.hover").text();
+
+    var originalOncontextmenu = window.oncontextmenu;
+    window.oncontextmenu = function (e) {
+        if (originalOncontextmenu)
+            originalOncontextmenu(e);
+
+        var element = $(e.toElement || e.srcElement || e.originalTarget || e.relatedTarget);
+        if (element.hasClass("dataScroller")) {
+            var href = element.data("href");
+            if (href) {
+                element.attr("href", href);
+                setTimeout(function () {
+                    element.removeAttr("href");
+                }, 100);
+            }
+        }
+    };
 
     $(function () {
         var inner = document.createElement('p');
         inner.style.width = "100%";
-        inner.style.height = "200px";
+        inner.style.height = "100px";
 
         var outer = document.createElement('div');
         outer.style.position = "absolute";
         outer.style.top = "0px";
         outer.style.left = "0px";
         outer.style.visibility = "hidden";
-        outer.style.width = "200px";
-        outer.style.height = "150px";
-        outer.style.overflow = "hidden";
+        outer.style.width = "50px";
+        outer.style.height = "50px";
         outer.appendChild(inner);
 
         document.body.appendChild(outer);
+        outer.style.overflow = "hidden";
         var w1 = inner.offsetWidth;
         outer.style.overflow = 'scroll';
         var w2 = inner.offsetWidth;
         if (w1 == w2) w2 = outer.clientWidth;
 
-        document.body.removeChild(outer);
         $.scrollbarWidth = (w1 - w2);
+
+        inner.style.width = "100px";
+        inner.style.height = "100%";
+        outer.style.overflow = "hidden";
+        w1 = inner.offsetHeight;
+        outer.style.overflow = 'scroll';
+        w2 = inner.offsetHeight;
+        if (w1 == w2) w2 = outer.clientHeight;
+
+        $.scrollbarHeight = (w1 - w2);
+
+        document.body.removeChild(outer);
     });
 
     $.fn.queryGrid = function (q, options) {
@@ -37,8 +79,9 @@
         var getItemsThrottled = _.debounce(function (s, length, onComplete, onError) { query.getItems(s, length, onComplete, onError); }, 250);
         var rootContainer = this;
         var container = null;
-        var header, headerSelector, headerColumnsClippingContainer, pinnedHeaderColumnsContainer, headerColumnsContainer, viewport, viewportWidth, scroller, dataTable, dataTableContainer, pinnedDataTableContainer, pinnedDataTable, dataSelector, remainderTable;
+        var header, headerSelector, headerColumnsClippingContainer, pinnedHeaderColumnsContainer, headerColumnsContainer, totalContainer, totalContainerVisible, totalScroller, total, totalSelector, pinnedTotalColumnsContainer, totalColumnsClippingContainer, totalColumnsContainer, viewport, viewportWidth, scroller, dataTable, dataTableContainer, pinnedDataTableContainer, pinnedDataTable, rowHeader, dataContainer;
         var rows = [];
+        var totals = {};
         var rowCount;
         var data = {};
         var start = 0, max = 0;
@@ -47,23 +90,23 @@
         var columnCount;
         var lastSelectedIndex;
         var selectedColumn;
-        var pinnedWidth, dataSelectorWidth, viewportOffset, viewportScrollLeft;
-        
+        var pinnedWidth, dataSelectorWidth, viewportOffset;
+
         var methods = {
             refresh: function (e, q) {
                 if (q != query)
                     return;
 
                 if (container.length == 0 || container.dataContext() != query) {
-                    rootContainer.unbind("itemsChanged");
-                    rootContainer.unbind("selectedItemsChanged");
+                    rootContainer.off("itemsChanged");
+                    rootContainer.off("selectedItemsChanged");
                     return;
                 }
 
-                rootContainer.unbind("itemsChanged");
-                rootContainer.bind("itemsChanged", methods.refresh);
-                rootContainer.unbind("selectedItemsChanged");
-                rootContainer.bind("selectedItemsChanged", methods.updateSelectedRowRules);
+                rootContainer.off("itemsChanged");
+                rootContainer.on("itemsChanged", methods.refresh);
+                rootContainer.off("selectedItemsChanged");
+                rootContainer.on("selectedItemsChanged", methods.updateSelectedRowRules);
 
                 if (columnCount != methods.getColumns().length)
                     methods.create();
@@ -79,23 +122,23 @@
             create: function () {
                 columnCount = methods.getColumns().length;
 
-                rootContainer.unbind("itemsChanged");
-                rootContainer.bind("itemsChanged", methods.refresh);
-                rootContainer.unbind("selectedItemsChanged");
-                rootContainer.bind("selectedItemsChanged", methods.updateSelectedRowRules);
+                rootContainer.off("itemsChanged");
+                rootContainer.on("itemsChanged", methods.refresh);
+                rootContainer.off("selectedItemsChanged");
+                rootContainer.on("selectedItemsChanged", methods.updateSelectedRowRules);
 
                 methods.loadSettingsFromLocalStorage();
 
-                unPinnedColumns = methods.getColumns().where(function (c) { return c.isPinned != true; });
-                pinnedColumns = methods.getColumns().where(function (c) { return c.isPinned == true; });
+                unPinnedColumns = methods.getColumns().filter(function (c) { return c.isPinned != true; });
+                pinnedColumns = methods.getColumns().filter(function (c) { return c.isPinned == true; });
 
-                data = { id: ".queryGrid" + $.queryGridData.length, rules: [], columnRules: null, extraClasses: [] };
+                data = { id: ".queryGrid" + getRandom(), rules: [], columnRules: null, extraClasses: [] };
                 data.rules.push(methods.addCssRule(data.id + " .contentHolder { height: " + options.rowHeight + "px; line-height: " + options.rowHeight + "px; white-space: nowrap; overflow: hidden; }"));
 
                 if (container != null)
                     container.remove();
 
-                container = $("<div>").css({ "width": "100%", "height": "100%", "box-sizing": "border-box", "position": "relative" });
+                container = $("<div>").css({ "width": "100%", "height": "100%", "box-sizing": "border-box", "-moz-box-sizing": "border-box", "position": "relative" });
                 rootContainer.append(container);
 
                 // Remove previously unique querygrid id's
@@ -104,16 +147,7 @@
                     if (item.startsWith("queryGrid"))
                         container.removeClass(item);
                 });
-                // Cleanup all orphan styles
-                var dataObjects = $.queryGridData.slice(0);
-                for (var i = 0; i < dataObjects.length; i++) {
-                    var obj = dataObjects[i];
-                    if ($(obj.id).length == 0) {
-                        $.queryGridData.splice(i, 1);
-                        obj.rules.run(function (r) { r.remove(); });
-                        for (var cr in obj.columnRules) { obj.columnRules[cr].rule.remove(); }
-                    }
-                }
+                $.cleanUpGridData();
                 // Add a unique querygrid id for this container
                 container.addClass(data.id.substring(1) + " queryGrid");
                 $.queryGridData.push(data);
@@ -131,6 +165,17 @@
                 var headerHeight = header.outerHeight(true);
 
                 headerSelector = $("<div>").addClass("headerSelector").append($("<div>"));
+
+                if (options.allowSelectAll) {
+                    headerSelector.addClass("allowSelection");
+                    headerSelector.on("click", function () {
+                        query.selectToggle();
+
+                        methods.updateSelectionIndicator();
+                    });
+
+                }
+                methods.updateSelectionIndicator();
                 header.append(headerSelector);
 
                 pinnedHeaderColumnsContainer = $("<div>").addClass("pinnedHeaderColumnsContainer").css({ display: "inline-block", overflow: "hidden" });
@@ -141,94 +186,88 @@
                 headerColumnsClippingContainer.append(headerColumnsContainer);
                 header.append(headerColumnsClippingContainer);
 
-                var managementButtonContainer = $("<div>").addClass("managementButtonContainer");
-                header.append(managementButtonContainer);
-                var managementButton = $("<div>").addClass("managementButton");
-                if (!query.isSystem && (query.parent == null || query.parent.type != "SemanticZoom")) {
-                    var semanticZoomButton = $("<div>").addClass("semanticZoomButton");
-                    managementButtonContainer.append(semanticZoomButton);
-                    semanticZoomButton.on("click", function () { query.semanticZoom(); });
-                } else
-                    managementButtonContainer.css({ width: "24px" });
-                managementButtonContainer.append(managementButton);
-                managementButton.on("click", methods.toggleManagement);
+                if ((!query.isSystem && query.semanticZoomOwner == null && !options.hideSemanticZoom) || !options.hideManagement) {
+                    var managementButtonContainer = $("<div>").addClass("managementButtonContainer");
+                    header.append(managementButtonContainer);
+
+                    if (!query.isSystem && query.semanticZoomOwner == null && !options.hideSemanticZoom) {
+                        var semanticZoomButton = $("<div>").addClass("semanticZoomButton");
+                        managementButtonContainer.append(semanticZoomButton);
+                        semanticZoomButton.on("click", function () { query.semanticZoom(); });
+                    } else
+                        managementButtonContainer.css({ width: "24px" });
+
+                    if (!options.hideManagement) {
+                        var managementButton = $("<div>").addClass("managementButton");
+                        managementButtonContainer.append(managementButton);
+                        managementButton.on("click", methods.toggleManagement);
+                    }
+                }
 
                 viewport = $("<div>").addClass("viewport").css({
                     overflow: "auto",
                     position: "absolute",
                     top: headerHeight + "px",
                     left: "0",
-                    bottom: "0", //(query.hasTotalItem ? options.rowHeight : 0) + "px",
+                    bottom: "0",
                     right: "0",
                     width: "100%"
                 });
 
-                viewport.bind("resize", function () {
-                    methods.createDataRows();
-
-                    remainderRule.css("width", viewport.outerWidth(true) + "px");
-                    if (ie8)
-                        remainderTable.width(viewport.outerWidth(true));
-                    methods.invalidateDataTablePosition();
-
-                    pinnedWidth = pinnedDataTableContainer.outerWidth(true);
-                    dataSelectorWidth = dataSelector.outerWidth(true);
-                    viewportOffset = viewport.offset();
-                });
-                viewport.bind("scroll", function (e) {
+                viewport.on("scroll", function (e) {
                     if (query.queryGridSettings.scrollLeft != e.currentTarget.scrollLeft) {
                         query.queryGridSettings.scrollLeft = e.currentTarget.scrollLeft;
-                    }
 
-                    dataTable.css("margin-left", -query.queryGridSettings.scrollLeft + "px");
-                    headerColumnsContainer.css("margin-left", -query.queryGridSettings.scrollLeft + "px");
+                        dataTable.css("margin-left", -query.queryGridSettings.scrollLeft + "px");
+                        headerColumnsContainer.css("margin-left", -query.queryGridSettings.scrollLeft + "px");
+                        totalColumnsContainer.css("margin-left", -query.queryGridSettings.scrollLeft + "px");
+                    }
 
                     if (query.queryGridSettings.scrollTop != e.currentTarget.scrollTop) {
                         query.queryGridSettings.scrollTop = e.currentTarget.scrollTop;
                         methods.syncData(query.queryGridSettings.scrollTop);
                     }
 
-                    viewportScrollLeft = viewport.scrollLeft();
+                    methods.updatePendingSetCellContents();
                 });
-                viewport.bind("click", methods.viewportClick);
-                scroller = $(!app.isTablet ? "<a>" : "<div>").addClass("dataScroller").css({
+                viewport.on("click", methods.viewportClick);
+                scroller = $(!app.isTablet && query.canRead ? "<a>" : "<div>").addClass("dataScroller").css({
                     "background-color": "white",
                     opacity: 0,
                     position: "absolute",
-                    top: "0px",
-                    left: "0px",
-                    bottom: "0px",
-                    right: "0px",
+                    top: "0",
+                    left: "0",
+                    bottom: "0",
+                    right: "0",
                 });
                 viewport.append(scroller);
 
-                if(!app.isTablet)
-                    viewport.bind("mousemove", methods.viewportMouseMove);
+                if (!app.isTablet)
+                    viewport.on("mousemove", methods.viewportMouseMove);
 
-                var dataContainer = $("<div>").css({
+                dataContainer = $("<div>").css({
                     overflow: "hidden",
                     position: "absolute",
                     top: headerHeight + "px",
-                    left: "0px",
-                    bottom: "0px", //(query.hasTotalItem ? options.rowHeight : 0) + "px",
-                    right: "0px",
+                    left: "0",
+                    bottom: "0",
+                    right: "0",
                     "white-space": "nowrap"
                 });
                 container.append(dataContainer);
 
-                dataSelector = $("<table>").addClass("dataSelector").css({ display: "inline-block" });
+                rowHeader = $("<table>").addClass("dataSelector").css({ display: "inline-block" });
                 if (options.hideSelector)
-                    dataSelector.addClass("noSelection");
-                dataContainer.append(dataSelector);
+                    rowHeader.addClass("noSelection");
+                dataContainer.append(rowHeader);
+
                 pinnedDataTableContainer = $("<div>").css({
-                    display: "inline-block"
+                    display: "inline-block",
+                    "vertical-align": "top",
                 }).addClass("pinnedDataTableContainer");
                 pinnedDataTable = $("<table>").addClass("pinnedDataTable");
-                if (ie8)
-                    pinnedDataTable.css({ 'table-layout': 'fixed' });
                 pinnedDataTableContainer.append(pinnedDataTable);
                 dataContainer.append(pinnedDataTableContainer);
-                pinnedDataTableContainer.bind("resize", methods.invalidateDataTablePosition);
                 if (pinnedColumns.length == 0)
                     pinnedDataTableContainer.hide();
 
@@ -239,28 +278,65 @@
                     "overflow": "hidden"
                 }).addClass("dataTableContainer");
                 dataTable = $("<table>").addClass("dataTable");
-                if (ie8)
-                    dataTable.css({ 'table-layout': 'fixed' });
                 dataTableContainer.append(dataTable);
                 dataContainer.append(dataTableContainer);
-                dataTable.bind("resize", methods.invalidateDataTablePosition);
 
                 viewportWidth = viewport.outerWidth(true);
-                remainderTable = $("<table>").css({
-                    display: "inline-block",
-                    height: "100%",
-                    width: viewportWidth + "px",
-                    "vertical-align": "top",
-                }).addClass("remainderTable");
-                dataContainer.append(remainderTable);
 
-                remainderRule = methods.addCssRule(data.id + " .remainderTable .contentHolder { width: " + viewportWidth + "px; }");
+                remainderRule = methods.addCssRule(data.id + " .contentHolder.remainder { width: " + viewportWidth + "px; }");
                 data.rules.push(remainderRule);
 
+                totalContainer = $("<div>").addClass("totalContainer").css({
+                    position: "absolute",
+                    bottom: "0",
+                    left: "0",
+                    right: "0",
+                    display: "none"
+                });
+
+                total = $("<div>").addClass("total").css({
+                    height: options.rowHeight + "px",
+                    position: "relative",
+                    "overflow": "hidden",
+                    "white-space": "nowrap"
+                });
+                totalContainer.append(total);
+
+                var totalScrollerContainer = $("<div>").css({
+                    position: "relative",
+                    bottom: "0",
+                    left: "0",
+                    right: "0",
+                    "overflow-x": "auto",
+                    "overflow-y": "hidden",
+                });
+
+                totalScroller = $("<div>").addClass("dataScroller").css({
+                    "background-color": "transparent",
+                    height: "1px"
+                });
+
+                totalScrollerContainer.append(totalScroller);
+                totalContainer.append(totalScrollerContainer);
+
+                container.append(totalContainer);
+
+                totalScrollerContainer.on("scroll", function () {
+                    viewport.scrollLeft(totalScrollerContainer.scrollLeft());
+                });
+
+                totalSelector = $("<div>").addClass("totalSelector").append($("<div>"));
+                total.append(totalSelector);
+
+                pinnedTotalColumnsContainer = $("<div>").addClass("pinnedTotalColumnsContainer").css({ display: "inline-block", overflow: "hidden" });
+                total.append(pinnedTotalColumnsContainer);
+
+                totalColumnsClippingContainer = $("<div>").addClass("totalColumnsClippingContainer").css({ display: "inline-block", overflow: "hidden" });
+                totalColumnsContainer = $("<div>").addClass("totalColumnsContainer").css({ width: "50000px" });
+                totalColumnsClippingContainer.append(totalColumnsContainer);
+                total.append(totalColumnsClippingContainer);
+
                 container.append(viewport);
-
-                methods.createDataRows();
-
                 query.target = container;
 
                 if (query.queryGridSettings == null) {
@@ -269,15 +345,36 @@
                         scrollLeft: 0
                     };
                 }
+
+                methods.invalidateViewPort();
+
+                viewport.on("resize", methods.invalidateViewPort);
+                pinnedDataTableContainer.on("resize", methods.invalidateDataTablePosition);
+                dataTable.on("resize", methods.invalidateDataTablePosition);
+                totalContainer.on("resize", function () {
+                    dataContainer.css("bottom", (totalContainer.is(":visible") ? totalContainer.outerHeight() : 0) + "px");
+                });
+
+                scroller.on("click", function (e) {
+                    if (e.ctrlKey) {
+                        var href = scroller.data("href");
+                        if (href) {
+                            scroller.attr("href", href);
+                            setTimeout(function () {
+                                scroller.removeAttr("href");
+                            }, 100);
+                        }
+                    }
+                });
             },
 
             getColumns: function () {
-                return query.columns.where(function (c) { return c.isHidden != true && (isNullOrEmpty(c.width) || c.width != 0); }).orderBy("offset");
+                return query.columns.filter(function (c) { return c.isHidden != true && (isNullOrEmpty(c.width) || c.width != 0); }).orderBy("offset");
             },
 
             getColumnsWithDivs: function () {
                 if (rows != null && rows.length > 0 && rows[0].contentDivs != null) {
-                    return methods.getColumns().where(function (c) {
+                    return methods.getColumns().filter(function (c) {
                         return rows[0].contentDivs[c.name] != null;
                     });
                 }
@@ -285,12 +382,32 @@
                 return methods.getColumns();
             },
 
+            invalidateViewPort: function () {
+                methods.invalidateTotalRowVisibility();
+
+                viewportWidth = viewport.outerWidth(true);
+                methods.createDataRows();
+
+                remainderRule.css("width", viewportWidth + "px");
+                methods.invalidateDataTablePosition();
+
+                pinnedWidth = pinnedDataTableContainer.outerWidth(true);
+                dataSelectorWidth = rowHeader.outerWidth(true);
+                viewportOffset = viewport.offset();
+
+                for (var name in data.columnRules) {
+                    if (!data.columnRules[name].offsetLeft)
+                        data.columnRules[name].offsetLeft = data.columnRules[name].colHeaderDiv.offset().left - viewportOffset.left;
+                }
+            },
+
             invalidateDataTablePosition: function () {
-                var selectorWidth = dataSelector.outerWidth(true);
+                var selectorWidth = rowHeader.outerWidth(true);
                 var pinnedDataTableWidth = pinnedDataTableContainer.outerWidth(true);
                 var offset = (selectorWidth + pinnedDataTableWidth);
 
                 headerSelector.css("width", selectorWidth);
+                totalSelector.css("width", selectorWidth);
 
                 headerColumnsClippingContainer.css("left", offset + "px");
 
@@ -305,7 +422,32 @@
                 if (scrollerHeight > viewport.innerHeight())
                     vpWidth = vpWidth - $.scrollbarWidth;
 
-                scroller.css("width", (newWidth < vpWidth ? vpWidth : newWidth) + "px");
+                var scrollerWidth = (newWidth < vpWidth ? vpWidth : newWidth) + "px";
+                scroller.css("width", scrollerWidth);
+                totalScroller.css("width", scrollerWidth);
+
+                methods.invalidateTotalRowVisibility();
+            },
+
+            invalidateTotalRowVisibility: function () {
+                dataContainer.css("bottom", query.hasTotalItem ? totalContainer.outerHeight() + "px" : "0");
+
+                if (query.hasTotalItem) {
+                    totalContainer.show();
+                    totalContainerVisible = true;
+                    viewport.css({
+                        "overflow-x": "hidden",
+                        "bottom": totalContainer.height() + "px"
+                    });
+                }
+                else {
+                    totalContainer.hide();
+                    totalContainerVisible = false;
+                    viewport.css({
+                        "overflow-x": "auto",
+                        "bottom": "0"
+                    });
+                }
             },
 
             createDataRows: function () {
@@ -314,23 +456,16 @@
                 scroller.height(options.rowHeight * query.totalItems);
 
                 rows = [];
-                dataSelector.empty();
-                if (ie8) {
-                    pinnedDataTable.find('tr').remove();
-                    dataTable.find('tr').remove();
-                }
-                else {
-                    pinnedDataTable.empty();
-                    dataTable.empty();
-                }
-                remainderTable.empty();
+                rowHeader.empty();
+                pinnedDataTable.empty();
+                dataTable.empty();
 
                 var addColumns = function (columns, targetRow) {
-                    columns.run(function (c) {
+                    columns.forEach(function (c) {
                         var column = $("<td>");
                         targetRow.append(column);
 
-                        var content = $("<div>").addClass("contentHolder " + c.name.replace(/\./g, "_"));
+                        var content = $("<div>").addClass("contentHolder " + c.safeName());
                         column.append(content);
 
                         rows[r].contentDivs[c.name] = content;
@@ -338,166 +473,219 @@
                 };
 
                 for (var r = 0; r < rowCount; r++) {
-                    rows[r] = { idx: null, contentDivs: {}, tr: [], pinnedRow: null, row: null, remainderRow: null, selector: null };
+                    rows[r] = { idx: null, contentDivs: {}, tr: [], pinnedRow: null, row: null, selector: null };
 
                     if (unPinnedColumns.length > 0) {
-                        var pinnedRow = rows[r].pinnedRow = $("<tr>").addClass("idx_" + r);
-                        if (ie8) {
-                            pinnedRow.height(options.rowHeight);
-                            pinnedRow.css("line-height", options.rowHeight + "px");
-                        }
+                        var pinnedRow = rows[r].pinnedRow = $("<tr>").addClass("noData idx_" + r + " " + (r % 2 == 0 ? "even" : "odd"));
                         addColumns(pinnedColumns, pinnedRow);
                         pinnedDataTable.append(pinnedRow);
                         rows[r].tr.push(pinnedRow);
                     }
 
-                    var row = rows[r].row = $("<tr>").addClass("idx_" + r);
-                    if (ie8) {
-                        row.height(options.rowHeight);
-                        row.css("line-height", options.rowHeight + "px");
-                    }
+                    var row = rows[r].row = $("<tr>").addClass("noData idx_" + r + " " + (r % 2 == 0 ? "even" : "odd"));
                     addColumns(unPinnedColumns, row);
+
+                    row.append($("<td>").append($("<div>").addClass("contentHolder remainder")));
+
                     dataTable.append(row);
                     rows[r].tr.push(row);
 
-                    var remainderRow = rows[r].remainderRow = $("<tr>").addClass("idx_" + r).append($("<td>").append($("<div>").addClass("contentHolder")));
-                    if (ie8) {
-                        remainderRow.height(options.rowHeight);
-                        remainderRow.width(viewportWidth);
-                    }
-                    remainderTable.append(remainderRow);
-                    rows[r].tr.push(remainderRow);
-
                     var contentHolder = $("<div>").addClass("contentHolder");
-                    var selectorRow = rows[r].selector = $("<tr>").addClass("noData idx_" + r).append($("<td>").append(contentHolder));
-                    if (ie8)
-                        contentHolder.height(options.rowHeight);
+                    var selectorRow = rows[r].selector = $("<tr>").addClass("noData idx_" + r + " " + (r % 2 == 0 ? "even" : "odd")).append($("<td>").append(contentHolder));
 
-                    dataSelector.append(selectorRow);
+                    if (!options.hideInlineActions) {
+                        query.actions.filter(function (a) { return a.isInline(); }).forEach(function (a) {
+                            var icon = app.icons[a.icon];
+                            if (icon == null || isNullOrWhiteSpace(icon.data))
+                                return;
+
+                            var inlineAction = $.createElement("div", a).addClass('inlineAction').css("height", options.rowHeight + "px");
+                            var height = 20;
+
+                            var inlineActionImage = $("<div>").addClass(a.iconClass).css("margin-top", Math.floor(options.rowHeight / 2 - height / 2));
+                            inlineAction.append(inlineActionImage);
+
+                            var inlineInvertedActionImage = $("<div>").addClass("inverted " + a.reverseIconClass).css("margin-top", Math.floor(options.rowHeight / 2 - height / 2));
+                            inlineAction.append(inlineInvertedActionImage);
+
+                            selectorRow.append($("<td>").append(inlineAction));
+                        });
+                    }
+
+                    rowHeader.append(selectorRow);
                     rows[r].tr.push(selectorRow);
+                }
+
+                if (query.hasTotalItem) {
+                    pinnedTotalColumnsContainer.empty();
+                    totalColumnsContainer.empty();
+
+                    var addTotalColumns = function (columns, target) {
+                        columns.forEach(function (c) {
+                            var colTotalDiv = $("<div>").addClass("columnTotal " + c.safeName()).dataContext({ column: c }).css("line-height", options.rowHeight + "px");
+                            target.append(colTotalDiv);
+
+                            totals[c.name] = { "colTotalDiv": colTotalDiv, col: c };
+                        });
+                    };
+
+                    addTotalColumns(pinnedColumns, pinnedTotalColumnsContainer);
+                    addTotalColumns(unPinnedColumns, totalColumnsContainer);
                 }
 
                 if (query.hasSearched) {
                     var scrollTop = query.queryGridSettings != null ? query.queryGridSettings.scrollTop : 0;
-                    var scrollLeft = query.queryGridSettings != null ? query.queryGridSettings.scrollLeft : 0;
                     methods.syncData(scrollTop);
-                    viewport.scrollTop(scrollTop);
-                    viewport.scrollLeft(scrollLeft);
+
+                    if (scrollTop > 0)
+                        viewport.scrollTop(scrollTop);
+
+                    var scrollLeft = query.queryGridSettings != null ? query.queryGridSettings.scrollLeft : 0;
+                    if (scrollLeft > 0)
+                        viewport.scrollLeft(scrollLeft);
                 }
             },
 
             createColumns: function (widths) {
                 var totalColWidths = 0;
-                var sortOptions = query.sortOptions.split(";").select(function (s) { return s.trim(); });
+                var sortOptions = query.sortOptions.split(";").map(function (s) { return s.trim(); });
 
-                var create = function (columns, targetColumnsHeader, table, isPinned) {
-                    var colgroup = ie8 ? $.createElement("colgroup") : null;
-                    columns.run(function (col) {
-                        var span = $("<span>" + col.label + "</span>");
-                        var colDiv = $("<div>").addClass("columnHeader " + col.name.replace(/\./g, "_")).dataContext({ column: col, span: span }).css({ position: "relative" });
-                        if (ServiceGateway.isNumericType(col.type))
-                            colDiv.css({ 'text-align': 'right' });
+                var multiStageLayout = {};
+                var create = function (columns, targetColumnsHeader) {
+                    columns.forEach(function (col) {
+                        var span = $("<span>");
+                        span.text(col.label);
 
-                        targetColumnsHeader.append(colDiv.append(span));
+                        var colHeaderDiv = $("<div>").addClass("columnHeader " + col.safeName()).dataContext({ column: col, span: span }).css({ position: "relative" });
+                        targetColumnsHeader.append(colHeaderDiv.append(span));
 
-                        methods.addColumnSorting(colDiv, span, sortOptions.contains(col.name));
+                        methods.addColumnSorting(colHeaderDiv, span, sortOptions.firstOrDefault(function (s) { return s == col.name || s == col.name + " ASC" || s == col.name + " DESC"; }));
 
+                        // TODO: Remove css rule in another stage
                         if (data.columnRules[col.name] != null && data.columnRules[col.name].rule != null) { data.columnRules[col.name].rule.remove(); }
+                        multiStageLayout[col.name] = { 'colHeaderDiv': colHeaderDiv, 'col': col }; // Note: this is for minimizing the amount of layout passes
 
-                        if (String.isNullOrEmpty(col.width)) {
-                            var colWidth = colDiv.innerWidth();
-                            if (colWidth > widths[col.name])
-                                widths[col.name] = colWidth;
-                        }
-                        else {
-                            widths[col.name] = parseInt(col.width, 10);
-                        }
+                        // CREATE DRAGGERS ///////////////////////////////////////////
+                        var dragger = $("<div>").css({
+                            position: "absolute",
+                            height: "100%",
+                            width: "12px",
+                            top: "0",
+                            right: "0",
+                            cursor: "col-resize"
+                        }).addClass("dragger").data("colIndex", col.name);
+                        colHeaderDiv.append(dragger);
 
-                        data.columnRules[col.name] = { rule: methods.addCssRule(data.id + " ." + col.name.replace(/\./g, "_") + " { width: " + widths[col.name] + "px; }"), width: widths[col.name], outerWidth: colDiv.outerWidth(true) };
-                        totalColWidths += Math.max(data.columnRules[col.name].outerWidth, widths[col.name]);
+                        dragger.on("mousedown", function (e) {
+                            var draggedElement = $(this);
+                            var cr = data.columnRules[draggedElement.data("colIndex")];
 
-                        if (ie8) {
-                            colDiv.height(24);
-                            colDiv.width(widths[col.name] - (!isPinned && pinnedColumns.length > 0 ? 0 : 12) + 1);
-                            colgroup.append($.createElement("col").attr({ width: widths[col.name] }));
-                            return;
-                        }
+                            var overlay = $("<div>").css({ position: "fixed", top: "0", left: "0", right: "0", bottom: "0", cursor: "col-resize", "background-color": "rgba(255, 255, 255, 0)" });
+                            $(document.documentElement).append(overlay);
 
-                        if (isNullOrEmpty(col.width)) {
-                            // CREATE DRAGGERS ///////////////////////////////////////////
-                            var dragger = $("<div>").css({
-                                position: "absolute",
-                                height: "100%",
-                                width: "12px",
-                                top: "0px",
-                                right: "0px",
-                                cursor: "col-resize"
-                            }).addClass("dragger").data("colIndex", col.name);
-                            colDiv.append(dragger);
+                            document.onselectstart = function () { return false; };
 
-                            dragger.bind("mousedown", function (e) {
-                                var draggedElement = $(this);
-                                var cr = data.columnRules[draggedElement.data("colIndex")];
+                            var x = e.screenX;
+                            var left = draggedElement.css("left");
+                            left = parseInt(left.substring(0, left.length - 2), 10);
 
-                                var overlay = $("<div>").css({ position: "fixed", top: "0px", left: "0px", right: "0px", bottom: "0px", cursor: "col-resize", "background-color": "rgba(255, 255, 255, 0)" });
-                                $(document.documentElement).append(overlay);
+                            var originalWidth = cr.width;
 
-                                document.onselectstart = function () { return false; };
+                            var up = function () {
+                                $(document).off("mouseup", up);
+                                $(document).off("mousemove", move);
 
-                                var x = e.screenX;
-                                var left = draggedElement.css("left");
-                                left = parseInt(left.substring(0, left.length - 2), 10);
+                                overlay.remove();
 
-                                var originalWidth = cr.width;
+                                document.onselectstart = undefined;
 
-                                var up = function () {
-                                    $(document).unbind("mouseup", up);
-                                    $(document).unbind("mousemove", move);
+                                cr.dragWidth = cr.width;
+                                methods.saveSettingsToLocalStorage();
+                            };
 
-                                    overlay.remove();
+                            var move = _.throttle(function (eMove) {
+                                var diff = eMove.screenX - x;
+                                draggedElement.css("left", (left + diff) + "px");
 
-                                    document.onselectstart = undefined;
-                                };
+                                cr.width = originalWidth + diff;
+                                cr.outerWidth = draggedElement.parent().outerWidth(true);
 
-                                var move = _.throttle(function (eMove) {
-                                    var diff = eMove.screenX - x;
-                                    draggedElement.css("left", (left + diff) + "px");
+                                methods.updatePendingSetCellContents(diff);
 
-                                    cr.width = originalWidth + diff;
-                                    cr.outerWidth = draggedElement.parent().outerWidth(true);
-                                    cr.rule.css("width", cr.width + "px");
-                                }, 25);
+                                cr.rule.css("width", cr.width + "px");
+                            }, 25);
 
-                                $(document).bind("mouseup", up);
-                                $(document).bind("mousemove", move);
-                            });
-                            //////////////////////////////////////////////////////////////
-                        }
+                            $(document).on("mouseup", up);
+                            $(document).on("mousemove", move);
+                        });
+                        //////////////////////////////////////////////////////////////
                     });
-
-                    if (ie8) {
-                        table.find('colgroup').remove();
-                        table.prepend(colgroup);
-                        targetColumnsHeader.width(totalColWidths + (isPinned ? 0 : $.scrollbarWidth) + columns.length);
-                        table.width(totalColWidths + $.scrollbarWidth);
-                    }
                 };
 
-                create(pinnedColumns, pinnedHeaderColumnsContainer, pinnedDataTable, true);
-                create(unPinnedColumns, headerColumnsContainer, dataTable, false);
+                create(pinnedColumns, pinnedHeaderColumnsContainer);
+                create(unPinnedColumns, headerColumnsContainer);
+
+                // Note: multiStageLayout is traversed multiple times for minimizing the amount of layout passes
+                for (var name in multiStageLayout) {
+                    var col = multiStageLayout[name].col;
+
+                    if (String.isNullOrEmpty(col.width)) {
+                        var colWidth = multiStageLayout[name].colHeaderDiv.innerWidth();
+                        if (colWidth > widths[col.name])
+                            widths[col.name] = colWidth;
+                    }
+                    else {
+                        widths[col.name] = parseInt(col.width, 10);
+                    }
+                }
+
+                for (var name in multiStageLayout) {
+                    var column = query.getColumn(name);
+                    data.columnRules[name] = { rule: methods.addCssRule(data.id + " ." + column.safeName() + " { width: " + widths[name] + "px; }"), width: widths[name], dragWidth: column.dragWidth, colHeaderDiv: multiStageLayout[column.name].colHeaderDiv };
+                    totalColWidths += Math.max(data.columnRules[name].outerWidth, widths[name]);
+                }
+
+                for (var name in multiStageLayout) {
+                    data.columnRules[name].outerWidth = multiStageLayout[name].colHeaderDiv.outerWidth(true);
+                    data.columnRules[name].offsetLeft = multiStageLayout[name].colHeaderDiv.offset().left - viewport.offset().left;
+                    totalColWidths += Math.max(data.columnRules[name].outerWidth, widths[name]);
+                }
             },
 
-            addColumnSorting: function (columnDiv, columnSpan, addAsc) {
-                if (addAsc)
-                    columnSpan.addClass("sortASC");
+            addColumnSorting: function (columnDiv, columnSpan, isSorting) {
+                if (isSorting != null) {
+                    if (isSorting.endsWith(" DESC"))
+                        columnSpan.addClass("sortDESC");
+                    else
+                        columnSpan.addClass("sortASC");
+                }
 
-                columnDiv.bind("click", function () {
+                columnDiv.on("click", function (e) {
                     var dc = $(this).dataContext();
                     if (dc.column.disableSort == true)
                         return;
 
-                    var appender = (!query.sortOptions.contains(dc.column.name) || query.sortOptions.toLowerCase().endsWith(" desc") ? "ASC" : "DESC");
-                    query.sortOptions = dc.column.name + " " + appender;
+                    var appender = "ASC";
+                    if (e.ctrlKey != true || isNullOrEmpty(query.sortOptions)) {
+                        appender = (!query.sortOptions.contains(dc.column.name) || query.sortOptions.toLowerCase().endsWith(" desc") ? "ASC" : "DESC");
+                        query.sortOptions = dc.column.name + " " + appender;
+                    }
+                    else {
+                        var sortOptions = query.sortOptions.split(";").map(function (s) { return s.trim(); });
+                        var existing = sortOptions.firstOrDefault(function (s) { return s == dc.column.name || s == dc.column.name + " ASC" || s == dc.column.name + " DESC"; });
+                        if (existing != null) {
+                            if (existing.endsWith(" DESC"))
+                                sortOptions[sortOptions.indexOf(existing)] = dc.column.name;
+                            else {
+                                sortOptions[sortOptions.indexOf(existing)] = dc.column.name + " DESC";
+                                appender = "DESC";
+                            }
+                        }
+                        else
+                            sortOptions.push(dc.column.name);
+
+                        query.sortOptions = sortOptions.join(";");
+                    }
 
                     query.top = query.top || query.pageSize;
                     if (query.pageSize > 0) {
@@ -508,16 +696,74 @@
                     query.search(function () {
                         methods.loadSettingsFromLocalStorage();
 
+                        var querySettings = app.userSettings["QuerySettings"];
+                        if (querySettings == null) {
+                            querySettings = {};
+                            app.userSettings["QuerySettings"] = querySettings;
+                        }
+
+                        if (querySettings[query.id] == null)
+                            querySettings[query.id] = {};
+
+                        querySettings[query.id].sortOptions = query.sortOptions;
+                        methods.saveSettingsToLocalStorage();
+
                         if (viewport.scrollTop() == 0)
                             methods.syncData(0);
                         else
                             viewport.scrollTop(0);
 
-                        header.find("span").removeClass("sortASC sortDESC");
+                        if (e.ctrlKey != true)
+                            header.find("span").removeClass("sortASC sortDESC");
+                        else
+                            dc.span.removeClass("sortASC sortDESC");
+                        
                         if (query.sortOptions.contains(dc.column.name))
                             dc.span.addClass("sort" + appender);
                     });
                 });
+            },
+
+            updatePendingSetCellContents: function (draggerOffsetCorrection) {
+                for (var i = 0; i < rowCount; i++) {
+                    for (var div in rows[i].contentDivs) {
+                        if (rows[i].contentDivs[div].pendingSetCellContent != null) {
+                            rows[i].contentDivs[div].pendingSetCellContent(draggerOffsetCorrection);
+                        }
+                    }
+                }
+            },
+
+            setCellContent: function (row, col, item) {
+                if (!col.isPinned && data.columnRules[col.name] != null) {
+                    if (data.columnRules[col.name].offsetLeft > viewportWidth + query.queryGridSettings.scrollLeft ||
+                        data.columnRules[col.name].offsetLeft + data.columnRules[col.name].width < query.queryGridSettings.scrollLeft + pinnedWidth) {
+                        rows[row].contentDivs[col.name].pendingSetCellContent = function (draggerOffsetCorrection) {
+                            if (draggerOffsetCorrection == null || draggerOffsetCorrection > 0)
+                                draggerOffsetCorrection = 0;
+
+                            if (data.columnRules[col.name].offsetLeft <= viewportWidth + query.queryGridSettings.scrollLeft - draggerOffsetCorrection &&
+                                data.columnRules[col.name].offsetLeft + data.columnRules[col.name].width >= query.queryGridSettings.scrollLeft + pinnedWidth - draggerOffsetCorrection) {
+                                col.render(item, rows[row].contentDivs[col.name]);
+                                rows[row].contentDivs[col.name].pendingSetCellContent = null;
+                            }
+                        };
+
+                        return;
+                    }
+                }
+
+                rows[row].contentDivs[col.name].pendingSetCellContent = null;
+                col.render(item, rows[row].contentDivs[col.name]);
+            },
+
+            setRowDataClass: function (tr, idx) {
+                var dataClass = idx == null ? "noData" : "hasData";
+                if (tr.dataClass != dataClass) {
+                    tr.removeClass(idx == null ? "hasData" : "noData");
+                    tr.addClass(dataClass);
+                    tr.dataClass = dataClass;
+                }
             },
 
             syncData: function (top, skipGetItems) {
@@ -529,42 +775,41 @@
                 var visibleRows = Math.floor((dataTableContainer.innerHeight() - (scroller.outerWidth() > viewport.width() ? $.scrollbarWidth : 0)) / options.rowHeight);
                 start = Math.floor((query.totalItems - visibleRows) * position);
 
+                var columnsWithDivs = methods.getColumnsWithDivs();
                 for (var r = 0; r < rowCount; r++) {
                     var idx = query.items[start + r] != null && data.columnRules != null ? start + r : null;
                     rows[r].idx = idx;
 
                     if (data.extraClasses.length > 0)
-                        rows[r].tr.run(function (tr) { tr.removeClass(data.extraClasses.join(" ")); });
+                        rows[r].tr.forEach(function (tr) { tr.removeClass(data.extraClasses.join(" ")); });
 
                     if (idx != null) {
                         var extraClass = query.items[start + r].getTypeHint("ExtraClass");
                         if (!isNullOrEmpty(extraClass)) {
                             data.extraClasses = data.extraClasses.concat(extraClass.split(" ")).distinct();
-                            rows[r].tr.run(function (tr) { tr.addClass(extraClass); });
+                            rows[r].tr.forEach(function (tr) { tr.addClass(extraClass); });
                         }
                     }
-                    methods.getColumnsWithDivs().run(function (col) {
+                    columnsWithDivs.forEach(function (col) {
                         if (idx == null) {
-                            rows[r].contentDivs[col.name][0].innerText = "";
-                            rows[r].selector.addClass("noData");
-                            rows[r].selector.removeClass("hasData");
+                            rows[r].contentDivs[col.name].empty();
+                            col.removeExtraStyles(rows[r].contentDivs[col.name]);
                         }
-                        else {
-                            rows[r].contentDivs[col.name][0].innerHTML = col.render(query.items[idx].values);
-                            rows[r].selector.removeClass("noData");
-                            rows[r].selector.addClass("hasData");
-                        }
+                        else
+                            methods.setCellContent(r, col, query.items[idx]);
+                    });
+
+                    rows[r].tr.forEach(function (tr) {
+                        methods.setRowDataClass(tr, idx);
                     });
                 }
-
-                methods.removeHoverRule();
 
                 if (query.pageSize == 0) {
                     methods.onDataReceived();
                     return;
                 }
 
-                var length = rowCount;
+                var length = rowCount * 2;
                 if (start + length > query.totalItems)
                     length = query.totalItems - start;
 
@@ -581,9 +826,10 @@
             },
 
             onDataReceived: function () {
+
                 if (container.length == 0 || container.dataContext() != query) {
-                    rootContainer.unbind("itemsChanged");
-                    rootContainer.unbind("selectedItemsChanged");
+                    rootContainer.off("itemsChanged");
+                    rootContainer.off("selectedItemsChanged");
                     return;
                 }
 
@@ -592,45 +838,71 @@
                 if (calculateWidths)
                     data.columnRules = {};
 
+                var columnsWithDivs = methods.getColumnsWithDivs();
                 for (var r = 0; r < rowCount; r++) {
                     var idx = start + r;
                     var item = query.items[idx];
                     if (rows[r].idx == null && item != null) {
                         rows[r].idx = idx;
-                        rows[r].selector.removeClass("noData");
-                        rows[r].selector.addClass("hasData");
+                        rows[r].tr.forEach(function (tr) {
+                            methods.setRowDataClass(tr, idx);
+                        });
                         if (data.extraClasses.length > 0)
-                            rows[r].tr.run(function (tr) { tr.removeClass(data.extraClasses.join(" ")); });
+                            rows[r].tr.forEach(function (tr) { tr.removeClass(data.extraClasses.join(" ")); });
 
                         var extraClass = item.getTypeHint("ExtraClass");
                         if (!isNullOrEmpty(extraClass)) {
                             data.extraClasses = data.extraClasses.concat(extraClass.split(" ")).distinct();
-                            rows[r].tr.run(function (tr) { tr.addClass(extraClass); });
+                            rows[r].tr.forEach(function (tr) { tr.addClass(extraClass); });
                         }
 
-                        methods.getColumnsWithDivs().run(function (col) {
-                            rows[r].contentDivs[col.name][0].innerHTML = col.render(item.values);
+                        columnsWithDivs.forEach(function (col) {
+                            methods.setCellContent(r, col, item);
                         });
                     }
                 }
 
+                if (query.hasTotalItem) {
+                    if (totalContainerVisible != true)
+                        methods.invalidateTotalRowVisibility();
+
+                    for (var c in totals) {
+                        var value = query.totalItem.getValue(c);
+                        if (value != null)
+                            totals[c].col.render(query.totalItem, totals[c].colTotalDiv);
+                    }
+                }
+
                 if (calculateWidths) {
-                    methods.getColumnsWithDivs().run(function (col) {
+                    columnsWithDivs.forEach(function (col) {
                         var width = rows[0].contentDivs[col.name].innerWidth();
                         if (widths[col.name] == null || width > widths[col.name])
                             widths[col.name] = Math.round(width * 1.1);
+
+                        if (query.hasTotalItem) {
+                            var totalWidth = totals[col.name].colTotalDiv.innerWidth();
+                            if (totalWidth > widths[col.name])
+                                widths[col.name] = Math.round(totalWidth * 1.1);
+                        }
                     });
 
                     methods.createColumns(widths);
                 }
 
-                methods.hover(currentRowHoverIdx);
+                methods.hover(null);
                 methods.updateSelectedRowRules();
             },
 
             viewportMouseMove: function (e) {
+                if (viewportOffset == null)
+                    return;
+
+                methods.hover(e.clientY - viewportOffset.top);
+            },
+
+            calculateSelectedColumn: function (e) {
                 var clientX = e.clientX - dataSelectorWidth - viewportOffset.left;
-                var x = clientX + (clientX < pinnedWidth ? 0 : viewportScrollLeft);
+                var x = clientX + (clientX < pinnedWidth ? 0 : (query.queryGridSettings != null ? query.queryGridSettings.scrollLeft || 0 : 0));
 
                 var columns = [];
                 if (clientX < pinnedWidth) {
@@ -654,8 +926,6 @@
                         break;
                     }
                 }
-
-                methods.hover(Math.floor((e.clientY - viewportOffset.top) / options.rowHeight));
             },
 
             viewportClick: function (e) {
@@ -666,7 +936,8 @@
                     methods.viewportMouseMove(e);
 
                 if (currentRowHoverIdx >= 0) {
-                    var selectedItems = (query.items.selectedItems() || []).slice();
+                    methods.calculateSelectedColumn(e);
+
                     var index = start + currentRowHoverIdx;
                     var selectedItem = query.items[index];
 
@@ -674,30 +945,68 @@
                         return;
 
                     e = $.fixFireFoxOffset(e);
-
-                    if (options.hideSelector || e.offsetX - $(".viewport").scrollLeft() > dataSelector.width())
+                    var left = e.offsetX - viewport.scrollLeft();
+                    if (left > rowHeader.outerWidth())
                         query.onItemClicked(selectedItem, selectedColumn);
                     else {
-                        if (e.shiftKey && !isNull(lastSelectedIndex)) {
-                            for (var i = Math.min(index, lastSelectedIndex) ; i <= Math.max(index, lastSelectedIndex) ; i++) {
-                                var item = query.items[i];
+                        var actionClicked = null;
+                        var currentRow = rowHeader.find(".idx_" + currentRowHoverIdx);
+                        var inlineActions = $.makeArray(currentRow.find(".inlineAction")).map(function (a) { return $(a).dataContext(); });
+                        var selectorWidth = currentRow.find(".contentHolder").outerWidth();
 
-                                if (item == null || selectedItems.contains(item))
-                                    continue;
+                        if (left < selectorWidth) {
+                            if (!options.hideSelector) {
+                                var shiftKey = e.shiftKey;
+                                var updateSelection = function (selectedItems) {
+                                    if (shiftKey && !isNull(lastSelectedIndex)) {
+                                        for (var i = Math.min(index, lastSelectedIndex) ; i <= Math.max(index, lastSelectedIndex) ; i++) {
+                                            var item = query.items[i];
 
-                                selectedItems.push(item);
+                                            if (item == null || selectedItems.contains(item))
+                                                continue;
+
+                                            selectedItems.push(item);
+                                        }
+                                    } else {
+                                        if (!selectedItems.contains(selectedItem))
+                                            selectedItems.push(selectedItem);
+                                        else {
+                                            selectedItems.remove(selectedItem);
+                                            index = null;
+                                        }
+                                    }
+
+                                    query.updateSelectedItems(selectedItems);
+                                }
+
+                                if (query.allSelected) {
+                                    query.allSelected = false;
+                                    query.getItems(0, query.totalItems, function () {
+                                        updateSelection(query.items.slice());
+                                    })
+                                }
+                                else
+                                    updateSelection((query.items.selectedItems() || []).slice());
+
+                                lastSelectedIndex = index;
                             }
-                        } else {
-                            if (!selectedItems.contains(selectedItem))
-                                selectedItems.push(selectedItem);
                             else {
-                                selectedItems.remove(selectedItem);
-                                index = null;
+                                if (inlineActions.length == 0)
+                                    query.onItemClicked(selectedItem, selectedColumn);
+                                else
+                                    actionClicked = inlineActions[0];
                             }
                         }
+                        else if (inlineActions.length > 0) {
+                            left -= selectorWidth;
+                            var actionWidth = $(currentRow.find(".inlineAction")[0]).outerWidth();
+                            actionClicked = inlineActions[Math.floor(left / actionWidth)];
+                        }
+                        else
+                            query.onItemClicked(selectedItem, selectedColumn);
 
-                        query.updateSelectedItems(selectedItems);
-                        lastSelectedIndex = index;
+                        if (actionClicked != null)
+                            actionClicked.execute(null, null, null, [selectedItem]);
                     }
                 }
                 e.preventDefault();
@@ -705,26 +1014,52 @@
             },
 
             updateSelectedRowRules: function () {
+                methods.updateSelectionIndicator();
+
+                if (query.allSelected) {
+                    // NOTE: Optimized to just select all items
+                    $.each(rows, function (i, rowData) {
+                        if (query.items[start + i] != null) {
+                            if (rowData.row.selected != true) {
+                                rowData.row.selected = true;
+                                rowData.row.addClass("selected");
+                                if (rowData.pinnedRow != null) rowData.pinnedRow.addClass("selected");
+                                rowData.selector.addClass("selected");
+                            }
+                        }
+                        else if (rowData.row.selected == true) {
+                            rowData.row.selected = false;
+                            rowData.row.removeClass("selected");
+                            if (rowData.pinnedRow != null) rowData.pinnedRow.removeClass("selected");
+                            rowData.selector.removeClass("selected");
+                        }
+                    });
+                    return;
+                }
+
                 var selectedItems = query.items.selectedItems() || [];
                 var selectedIndexes = [];
-                selectedItems.run(function (item) {
+                selectedItems.forEach(function (item) {
                     var idx = query.items.indexOf(item) - start;
                     if (idx >= 0 && idx < rowCount)
                         selectedIndexes.push(idx);
                 });
 
-                rows.run(function (row) {
-                    row.row.removeClass("selected");
-                    row.remainderRow.removeClass("selected");
-                    if (row.pinnedRow != null) row.pinnedRow.removeClass("selected");
-                    row.selector.removeClass("selected");
-                });
-
-                selectedIndexes.run(function (idx) {
-                    rows[idx].row.addClass("selected");
-                    rows[idx].remainderRow.addClass("selected");
-                    if (rows[idx].pinnedRow != null) rows[idx].pinnedRow.addClass("selected");
-                    rows[idx].selector.addClass("selected");
+                $.each(rows, function (i, rowData) {
+                    if (selectedIndexes.contains(i)) {
+                        if (rowData.row.selected != true) {
+                            rowData.row.selected = true;
+                            rowData.row.addClass("selected");
+                            if (rowData.pinnedRow != null) rowData.pinnedRow.addClass("selected");
+                            rowData.selector.addClass("selected");
+                        }
+                    }
+                    else if (rowData.row.selected == true) {
+                        rowData.row.selected = false;
+                        rowData.row.removeClass("selected");
+                        if (rowData.pinnedRow != null) rowData.pinnedRow.removeClass("selected");
+                        rowData.selector.removeClass("selected");
+                    }
                 });
             },
 
@@ -732,23 +1067,32 @@
                 return $.rule(css).appendTo("style");
             },
 
-            hover: function (index) {
-                if (index != currentRowHoverIdx || scroller.css("cursor") != "pointer") {
+            hover: function (y) {
+                var index = y != null ? Math.floor(y / options.rowHeight) : currentRowHoverIdx;
+
+                if (y != null && query.hasTotalItem && dataContainer.innerHeight() < y) {
+                    methods.removeHoverRule();
+                    currentRowHoverIdx = -1;
+                    return;
+                }
+
+                if (index != currentRowHoverIdx || scroller.hasCursor != true || y == null) /* Check via data instead of css to skip layout pass */ {
                     currentRowHoverIdx = index;
 
                     methods.removeHoverRule();
 
                     if (rows[index] != null && rows[index].idx != null) {
+                        rows[index].row.hasHover = true;
                         rows[index].row.addClass("hover");
-                        rows[index].remainderRow.addClass("hover");
-
-                        if (!app.isTablet)
-                            scroller.attr("href", "#!/" + app.getUrlForPersistentObject({ id: q.persistentObject.id, objectId: query.items[start + currentRowHoverIdx].id }));
 
                         if (rows[index].pinnedRow != null) rows[index].pinnedRow.addClass("hover");
                         rows[index].selector.addClass("hover");
 
                         scroller.css("cursor", "pointer");
+                        scroller.hasCursor = true;
+
+                        if (!app.isTablet && query.canRead)
+                            scroller.data("href", "#!/" + app.getUrlForPersistentObject({ id: q.persistentObject.id, objectId: query.items[start + currentRowHoverIdx].id }));
                     }
                 }
                 else if (rows[index] != null && rows[index].idx == null)
@@ -756,24 +1100,41 @@
             },
 
             removeHoverRule: function () {
-                rows.run(function (row) {
-                    row.row.removeClass("hover");
-                    row.remainderRow.removeClass("hover");
-                    if (row.pinnedRow != null) row.pinnedRow.removeClass("hover");
-                    row.selector.removeClass("hover");
+                rows.forEach(function (row) {
+                    if (row.row.hasHover == true) {
+                        row.row.hasHover = false;
+
+                        row.row.removeClass("hover");
+                        if (row.pinnedRow != null) row.pinnedRow.removeClass("hover");
+                        row.selector.removeClass("hover");
+                    }
                 });
 
-                if (!app.isTablet)
-                    scroller.removeAttr("href");
+                if (!app.isTablet && query.canRead)
+                    scroller.data("href", null);
 
                 scroller.css("cursor", "default");
+                scroller.hasCursor = false;
+            },
+
+            getColumnsData: function () {
+                var columnsData = [];
+                query.columns.filter(function (c) { return c.isPinned == true && c.width != 0; }).orderBy("offset").forEach(function (c) {
+                    columnsData.push({ name: c.name, label: c.label, isHidden: c.isHidden, offset: c.offset, isPinned: true });
+                });
+
+                query.columns.filter(function (c) { return c.isPinned != true && c.width != 0; }).orderBy("offset").forEach(function (c) {
+                    columnsData.push({ name: c.name, label: c.label, isHidden: c.isHidden, offset: c.offset, isPinned: false });
+                });
+
+                return columnsData;
             },
 
             toggleManagement: function () {
-                var overlay = $("<div>").addClass("managementDialogOverlay").css({ position: "absolute", top: "0px", left: "0px", right: "0px", bottom: "0px" });
+                var overlay = $("<div>").addClass("managementDialogOverlay").css({ position: "absolute", top: "0", left: "0", right: "0", bottom: "0" });
                 container.append(overlay);
 
-                var mgmtContainer = $("<div>").addClass("managementDialogContainer").css({ position: "absolute", top: "0px", left: "0px", right: "0px", bottom: "0px" });
+                var mgmtContainer = $("<div>").addClass("managementDialogContainer").css({ position: "absolute", top: "0", left: "0", right: "0", bottom: "0" });
                 container.append(mgmtContainer);
 
                 var managementDialog = $("<div>").addClass("managementDialog").css({ position: "relative" });
@@ -782,18 +1143,18 @@
                 managementDialog.height(dialogHeight);
                 managementDialog.css({ "margin-top": (mgmtContainer.innerHeight() / 2 - dialogHeight / 2) + "px" });
 
-                mgmtContainer.bind("resize", function () {
+                mgmtContainer.on("resize", function () {
                     managementDialog.height(Math.min(mgmtContainer.innerHeight(), 300));
                     managementDialog.css({ "margin-top": (mgmtContainer.innerHeight() / 2 - managementDialog.height() / 2) + "px" });
                 });
 
                 var dialogHeader = $("<div>").addClass("managementHeader").text(query.label);
                 managementDialog.append(dialogHeader);
-                var footer = $("<div>").addClass("managementFooter").css({ bottom: "0px", left: "0px", right: "0px", position: "absolute" });
+                var footer = $("<div>").addClass("managementFooter").css({ bottom: "0", left: "0", right: "0", position: "absolute" });
                 managementDialog.append(footer);
 
                 var cancel = $("<div>").text(app.getTranslatedMessage("Cancel")).css({ 'float': "right" });
-                cancel.bind("click", function () {
+                cancel.on("click", function () {
                     mgmtContainer.remove();
                     overlay.remove();
                 });
@@ -804,7 +1165,7 @@
 
                 var reset = $("<div>").text(app.getTranslatedMessage("Reset")).css({ 'float': "left" });
                 footer.append(reset);
-                reset.bind("click", function () {
+                reset.on("click", function () {
                     methods.resetSettingsInLocalStorage();
 
                     query.search(function () {
@@ -821,7 +1182,7 @@
 
                 mgmtContainer.append(managementDialog);
 
-                var mgmtTableContainer = $.createElement("div").css({ overflow: "auto", top: dialogHeader.outerHeight(true) + "px", left: "0px", right: "0px", bottom: footer.outerHeight(true) + "px", position: "absolute" });
+                var mgmtTableContainer = $.createElement("div").css({ overflow: "auto", top: dialogHeader.outerHeight(true) + "px", left: "0", right: "0", bottom: footer.outerHeight(true) + "px", position: "absolute" });
                 var mgmtTable = $.createElement("table");
                 mgmtTableContainer.append(mgmtTable);
 
@@ -844,18 +1205,10 @@
                 var mgmtTableBody = $.createElement("tbody");
                 mgmtTable.append(mgmtTableBody);
 
-                var columnsData = [];
-                query.columns.where(function (c) { return c.isPinned == true && c.width != 0; }).orderBy("offset").run(function (c) {
-                    columnsData.push({ name: c.name, label: c.label, isHidden: c.isHidden, offset: c.offset, isPinned: true });
-                });
-
-                query.columns.where(function (c) { return c.isPinned != true && c.width != 0; }).orderBy("offset").run(function (c) {
-                    columnsData.push({ name: c.name, label: c.label, isHidden: c.isHidden, offset: c.offset, isPinned: false });
-                });
-
+                var columnsData = methods.getColumnsData();
                 methods.updateManagementRows(columnsData, mgmtTableBody);
 
-                save.bind("click", function () {
+                save.on("click", function () {
                     methods.saveSettingsToLocalStorage(columnsData);
 
                     mgmtContainer.remove();
@@ -869,14 +1222,14 @@
                 target.empty();
 
                 var newColumnsData = [];
-                columnsData.where(function (c) { return c.isPinned; }).orderBy("offset").run(function (c) {
+                columnsData.filter(function (c) { return c.isPinned; }).orderBy("offset").forEach(function (c) {
                     newColumnsData.push(c);
                 });
-                columnsData.where(function (c) { return !c.isPinned; }).orderBy("offset").run(function (c) {
+                columnsData.filter(function (c) { return !c.isPinned; }).orderBy("offset").forEach(function (c) {
                     newColumnsData.push(c);
                 });
                 columnsData.splice(0, columnsData.length);
-                newColumnsData.run(function (c) { columnsData.push(c); });
+                newColumnsData.forEach(function (c) { columnsData.push(c); });
 
                 for (var i = 0; i < columnsData.length; i++) {
                     var col = columnsData[i];
@@ -890,7 +1243,7 @@
                 var moveUp = $("<div>").addClass("iconColumn");
                 if (previousCol != null && previousCol.isPinned == col.isPinned) {
                     moveUp.addClass("moveUp");
-                    moveUp.bind("click", function () {
+                    moveUp.on("click", function () {
                         var temp = previousCol.offset;
                         previousCol.offset = col.offset;
                         col.offset = temp;
@@ -902,7 +1255,7 @@
                 var moveDown = $("<div>").addClass("iconColumn");
                 if (nextCol != null && nextCol.isPinned == col.isPinned) {
                     moveDown.addClass("moveDown");
-                    moveDown.bind("click", function () {
+                    moveDown.on("click", function () {
                         var temp = nextCol.offset;
                         nextCol.offset = col.offset;
                         col.offset = temp;
@@ -915,7 +1268,7 @@
                 if (col.isPinned)
                     isPinned.addClass("checked");
 
-                isPinned.bind("click", function () {
+                isPinned.on("click", function () {
                     col.isPinned = !col.isPinned;
                     $(this).toggleClass("checked");
                     methods.updateManagementRows(columnsData, target);
@@ -925,7 +1278,7 @@
                 if (col.isHidden != true)
                     isVisible.addClass("checked");
 
-                isVisible.bind("click", function () {
+                isVisible.on("click", function () {
                     col.isHidden = !col.isHidden;
 
                     $(this).toggleClass("checked");
@@ -947,65 +1300,105 @@
             },
 
             resetSettingsInLocalStorage: function () {
-                var settings = localStorage.getItem("QueryGridSettings");
+                var settings = app.userSettings["QueryGridSettings"];
+                if (settings != null) {
+                    if (settings[query.id] != null) {
+                        delete settings[query.id];
 
-                if (settings == null)
-                    settings = new Object();
-                else
-                    settings = JSON.parse(settings);
+                        query.columns.filter(function (c) { return c._backup != null; }).forEach(function (c) {
+                            copyProperties(c._backup, ["offset", "isPinned", "isHidden", "dragWidth", "width"], true, c);
+                            delete c._backup;
+                        });
 
-                if (settings[query.id] != null)
-                    delete settings[query.id];
-
-                localStorage.setItem("QueryGridSettings", JSON.stringify(settings));
+                        app.saveUserSettings();
+                    }
+                }
             },
 
             loadSettingsFromLocalStorage: function () {
-                var settings = localStorage.getItem("QueryGridSettings");
+                var settings = app.userSettings["QueryGridSettings"];
+                if (settings == null) {
+                    settings = {};
+                    app.userSettings["QueryGridSettings"] = settings;
+                }
+                else if (typeof (settings) == "string") {
+                    settings = JSON.parse(settings);
+                    app.userSettings["QueryGridSettings"] = settings;
+                }
 
-                if (settings == null)
-                    return;
+                if (settings[query.id] == null)
+                    settings[query.id] = {};
 
-                settings = JSON.parse(settings)[query.id];
-
-                if (settings == null)
-                    return;
-
-                query.columns.where(function (c) { return c.width != 0; }).orderBy("offset").run(function (c) {
-                    var setting = settings[c.name];
-
+                query.columns.filter(function (c) { return c.width != 0; }).orderBy("offset").forEach(function (c) {
+                    var setting = settings[query.id][c.name];
                     if (setting == null)
                         return;
 
-                    c.offset = setting.offset || setting.Offset;
-                    c.isPinned = setting.isPinned || setting.IsPinned;
-                    c.isHidden = setting.isHidden || setting.IsHidden;
+                    c._backup = copyProperties(c, ["offset", "isPinned", "isHidden", "dragWidth", "width"], true);
+
+                    c.offset = setting.offset;
+                    c.isPinned = setting.isPinned;
+                    c.isHidden = setting.isHidden;
+                    c.dragWidth = setting.dragWidth;
+                    if (!isNullOrEmpty(setting.dragWidth))
+                        c.width = setting.dragWidth;
                 });
+
+                return settings[query.id];
             },
 
             saveSettingsToLocalStorage: function (columnsData) {
-                var settings = localStorage.getItem("QueryGridSettings");
-
-                if (settings == null)
-                    settings = new Object();
-                else
+                var settings = app.userSettings["QueryGridSettings"];
+                if (settings == null) {
+                    settings = {};
+                    app.userSettings["QueryGridSettings"] = settings;
+                }
+                else if (typeof (settings) == "string") {
                     settings = JSON.parse(settings);
+                    app.userSettings["QueryGridSettings"] = settings;
+                }
 
                 if (settings[query.id] == null)
-                    settings[query.id] = new Object();
+                    settings[query.id] = {};
 
-                columnsData.run(function (column) {
-                    settings[query.id][column.name] = { offset: column.offset, isPinned: column.isPinned, isHidden: column.isHidden };
+                columnsData = columnsData || methods.getColumnsData();
+                columnsData.forEach(function (column) {
+                    var cr = data.columnRules[column.name];
+                    settings[query.id][column.name] = { offset: column.offset, isPinned: column.isPinned, isHidden: column.isHidden, dragWidth: cr != null ? cr.dragWidth : null };
                 });
 
-                localStorage.setItem("QueryGridSettings", JSON.stringify(settings));
+                app.saveUserSettings();
+            },
+
+            updateSelectionIndicator: function () {
+                if (headerSelector == null)
+                    return;
+
+                if (query.allSelected) {
+                    headerSelector.removeClass("semiselected");
+                    headerSelector.addClass("selected");
+                }
+                else {
+                    var selectedCount = (query.items.selectedItems() || []).length;
+                    if (selectedCount == 0) {
+                        headerSelector.removeClass("semiselected selected");
+                    }
+                    else if (selectedCount == query.totalItems) {
+                        headerSelector.removeClass("semiselected");
+                        headerSelector.addClass("selected");
+                    }
+                    else {
+                        headerSelector.removeClass("selected");
+                        headerSelector.addClass("semiselected");
+                    }
+                }
             }
         };
 
         options = options || {};
         if (options.rowHeight == null) {
             options.rowHeight = 30;
-            methods.getColumnsWithDivs().run(function (c) {
+            methods.getColumnsWithDivs().forEach(function (c) {
                 options.rowHeight = Math.max(options.rowHeight, parseInt(c.getTypeHint("RowHeight", "0").replace("px", ""), 10));
             });
         }

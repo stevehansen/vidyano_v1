@@ -1,4 +1,4 @@
-﻿/// <reference path="/Scripts/jquery-1.9.1.min.js" />
+﻿/// <reference path="/Scripts/jquery-2.0.0.min.js" />
 /// <reference path="Common.js" />
 /// <reference path="jQuery.js" />
 /// <reference path="ExpressionParser.js" />
@@ -13,35 +13,86 @@
 function ActionDefinition(item) {
     /// <summary>Creates a new instance of ActionDefinition.</summary>
     /// <param name="item" type="QueryResultItem">The query result item containing the information about the action.</param>
-    
+
     this.id = item.id;
     this.name = item.getValue("Name");
     this.displayName = item.getValue("DisplayName");
     this.isPinned = item.getValue("IsPinned") == "True";
+    this.isInline = false;
+    this.inlineOnly = false;
     this.selectionRule = ExpressionParser.get(item.getValue("SelectionRule"));
-    this.refreshQueryOnCompleted = item.getValue("RefreshQueryOnCompleted") || false;
+    this.refreshQueryOnCompleted = item.getValue("RefreshQueryOnCompleted") == "True";
 
     var icon = item.getFullValue("Icon");
     this.icon = icon != null ? icon.objectId : null;
 
     var options = item.getValue("Options");
     this.options = !isNullOrWhiteSpace(options) ? options.split(";") : [];
+
+    if (icon != null) {
+        var appIcon = app.icons[this.icon];
+        if (appIcon == null || isNullOrWhiteSpace(appIcon.data))
+            return;
+
+        var iconWidth = 20, iconHeight = 20;
+        var img = new Image();
+        img.width = iconWidth;
+        img.height = iconHeight;
+        var self = this;
+        img.onload = function () {
+            var canvas = $("<canvas>").attr({
+                "height": iconHeight,
+                "width": iconWidth
+            });
+            var canvasContext = canvas[0].getContext("2d");
+            canvasContext.drawImage(img, 0, 0, iconWidth, iconHeight);
+
+            var imgd = canvasContext.getImageData(0, 0, iconWidth, iconHeight);
+            var pix = imgd.data;
+
+            for (var i = 0, n = pix.length; i < n; i += 4) {
+                pix[i] = 255 - pix[i];
+                pix[i + 1] = 255 - pix[i + 1];
+                pix[i + 2] = 255 - pix[i + 2];
+            }
+
+            canvasContext.putImageData(imgd, 0, 0);
+
+            self.reverseIconData = canvas[0].toDataURL("image/png");
+            self.reverseIconClass = self.name + "ReversedActionIcon";
+            self.reverseIconClassRule = $.rule("." + self.reverseIconClass + " { background-image: url(" + self.reverseIconData + "); width: " + img.width + "px; height: " + img.height + "px; }").appendTo("style");
+
+            self.iconClass = self.name + "ActionIcon";
+            self.iconClassRule = $.rule("." + self.iconClass + " { background-image: url(" + img.src + "); width: " + img.width + "px; height: " + img.height + "px; }").appendTo("style");
+
+            canvas.remove();
+        };
+        img.src = appIcon.data.asDataUri();
+    }
+    else
+        this.reverseIconData = null;
 }
 
 function ActionBase(definition) {
     /// <summary>Creates a new instance of ActionBase.</summary>
     /// <param name="definition" type="ActionDefinition">The definition that is used to base this Action on.</param>
-    
+
     this._canExecute = definition.selectionRule(0);
     this._isVisible = true;
+    this._isInline = definition.isInline;
 
     this.id = definition.id;
     this.name = definition.name;
     this.displayName = definition.displayName;
     this.isPinned = definition.isPinned;
+    this.inlineOnly = definition.inlineOnly;
     this.selectionRule = definition.selectionRule;
+    this.hasSelectionRule = this.selectionRule != ExpressionParser.alwaysTrue;
     this.refreshQueryOnCompleted = definition.refreshQueryOnCompleted;
+    this.iconClass = definition.iconClass;
     this.icon = definition.icon;
+    this.reverseIconClass = definition.reverseIconClass;
+    this.reverseIconData = definition.reverseIconData;
     this.options = definition.options;
     this.parameters = {};
     this.dependentActions = [];
@@ -58,71 +109,100 @@ ActionBase.prototype.canExecute = function (value) {
     if (this._canExecute != value) {
         this._canExecute = value;
 
-        var element = $("#Action_" + this.name);
-        if (element.length > 0 && element.dataContext() == this)
-            element.css({ opacity: value ? 1 : 0.5 });
+        if (this.content != null && this.content.dataContext() == this)
+            this.content.css({ opacity: value ? 1 : 0.5, cursor: value ? "" : "default" });
     }
 
     return this;
 };
 
-ActionBase.prototype.execute = function (option, continueWith, parameters) {
-    if (this.canExecute()) {
+ActionBase.prototype.execute = function (option, continueWith, parameters, selectedItems) {
+    if (this.canExecute() || (selectedItems != null && this.selectionRule(selectedItems.length))) {
         app.trackEvent(this.name, option, this.query || this.parent);
 
         try {
-            this.onExecute(option, continueWith, parameters);
+            this.onExecute(option, continueWith, parameters, selectedItems);
         } catch (e) {
-            this.showNotification(e.message || e, "Error");
+            this.showNotification("JavaScript: " + (e.message || e), "Error");
         }
     }
 };
 
 ActionBase.prototype.isVisible = function (value) {
     if (typeof (value) == "undefined")
-        return this._isVisible;
+        return this._isVisible && !this.inlineOnly;
 
     if (this._isVisible != value) {
         this._isVisible = value;
 
-        var element = $("#Action_" + this.name);
-        if (element.length > 0 && element.dataContext() == this) {
-            if (value)
-                element.show();
+        if (this.content != null && this.content.dataContext() == this) {
+            if (value && !this.inlineOnly)
+                this.content.show();
             else
-                element.hide();
+                this.content.hide();
         }
     }
 
     return this;
 };
 
-ActionBase.prototype.onExecute = function (option, continueWith, parameters) {
+ActionBase.prototype.isInline = function (value) {
+    if (typeof (value) == "undefined")
+        return this._isInline;
+
+    if (this._isInline != value)
+        this._isInline = value;
+
+    return this;
+};
+
+ActionBase.prototype.onExecute = function (option, continueWith, parameters, selectedItems) {
     parameters = this._getParameters(parameters, option);
 
     var self = this;
-    var selectedItems = this.query != null && this.query.items != null ? this.query.items.selectedItems() : null;
+    if (typeof (selectedItems) == "undefined")
+        selectedItems = this.query != null && this.query.items != null ? this.query.items.selectedItems() : null;
+
     var onCompleted = function (po) {
         if (po != null) {
             if (po.fullTypeName == "Vidyano.Notification") {
-                self.showNotification(po.notification, po.notificationType);
-            } else if (!isNullOrWhiteSpace(po.notification) && po.notificationType == "Error") {
-                self.showNotification(po.notification, "Error");
+                if (po.objectId != null && JSON.parse(po.objectId).dialog) {
+                    self.showNotification();
 
-                if (self.parent != null && (po.fullTypeName == self.parent.fullTypeName || po.isNew == self.parent.isNew) && po.id == self.parent.id && po.objectId == self.parent.objectId)
-                    self.parent.refreshFromResult(po);
+                    $.messageBox({
+                        message: po.notification,
+                        title: po.notificationType,
+                        html: true
+                    });
+                }
+                else
+                    self.showNotification(po.notification, po.notificationType);
             } else if (po.fullTypeName == "Vidyano.RegisteredStream") {
                 app.gateway.getStream(po);
-            } else if (self.parent == null || ((po.fullTypeName != self.parent.fullTypeName && po.isNew != self.parent.isNew) || po.id != self.parent.id || po.objectId != self.parent.objectId)) {
-                po.ownerQuery = self.query;
-                app.openPersistentObject(po, true);
-            } else {
+            } else if (self.parent != null && (po.fullTypeName == self.parent.fullTypeName || po.isNew == self.parent.isNew) && po.id == self.parent.id && po.objectId == self.parent.objectId) {
+                // Refresh existing
                 self.parent.refreshFromResult(po);
                 self.parent.showNotification(po.notification, po.notificationType);
+            } else {
+                // Open new result
+                po.ownerQuery = self.query;
+                po.ownerPersistentObject = self.parent;
+                app.openPersistentObject(po, true);
             }
         }
-        else if (self.query != null && self.refreshQueryOnCompleted) {
-            self.query.search();
+
+        if (self.query != null && self.refreshQueryOnCompleted) {
+            var notification = self.query.notification;
+            if (!String.isNullOrEmpty(notification)) {
+                var notificationType = self.query.notificationType;
+                
+                self.query.search(function() {
+                    if (String.isNullOrEmpty(self.query.notification))
+                        self.query.showNotification(notification, notificationType);
+                });
+            }
+            else
+                self.query.search();
 
             if (self.query.semanticZoomOwner != null)
                 self.query.semanticZoomOwner.search();
@@ -210,31 +290,34 @@ ActionBase.prototype.onExecute = function (option, continueWith, parameters) {
         executeAction();
 };
 
-ActionBase.prototype.onInitialize = function () {};
+ActionBase.prototype.onInitialize = function () { };
 
 ActionBase.prototype.render = function () {
     var content = $.createElement("li", this);
-    content.attr({ id: "Action_" + this.name, title: this.label });
+    content.attr({ title: this.label });
     var label = $.createElement("span");
     label.text(this.displayName);
 
     if (this.icon != null) {
         var icon = app.icons[this.icon];
         if (icon != null && !isNullOrWhiteSpace(icon.data)) {
-            var img = $.createElement("img");
-            img.attr({ src: icon.data.asDataUri(), alt: "Icon", title: this.displayName });
+            var border = $.createElement("div").addClass("icon");
+            border.css("background-image", "url(" + icon.data.asDataUri() + ")");
 
-            content.append(img);
+            //var img = $.createElement("img");
+            //img.attr({ src: icon.data.asDataUri(), alt: "Icon", title: this.displayName });
+
+            content.append(border);
         }
     }
     else {
-        content.append($.createElement("div").addClass("defaultActionButton"));
+        content.append($.createElement("div").addClass("icon"));
     }
 
     content.append(label);
 
     if (!this.canExecute())
-        content.css({ opacity: 0.5 });
+        content.css({ opacity: 0.5, cursor: "default" });
 
     if (this.options.length == 0)
         content.click(function (e) {
@@ -244,12 +327,11 @@ ActionBase.prototype.render = function () {
     else {
         var optionsList = $.createElement("ul", this).addClass("actionOptions");
 
-        this.options.run(function (option, idx) {
+        this.options.forEach(function (option, idx) {
             var optionSelector = $.createElement("li");
             optionSelector.text(option);
-            optionSelector.click(function (e) {
+            optionSelector.click(function () {
                 $(this).dataContext().execute(idx.toString());
-                e.stopPropagation();
             });
 
             optionsList.append(optionSelector);
@@ -258,6 +340,7 @@ ActionBase.prototype.render = function () {
         content.subMenu(optionsList);
     }
 
+    this.content = content;
     return content;
 };
 
@@ -290,7 +373,7 @@ var Actions = (function (window) {
         actionTypes: {},
 
         initializeActions: function (actionsQuery) {
-            actionsQuery.items.run(function (a) {
+            actionsQuery.items.forEach(function (a) {
                 var definition = new ActionDefinition(a);
                 actions.actionDefinitions[definition.name] = definition;
             });
@@ -301,7 +384,7 @@ var Actions = (function (window) {
             /// <param name="actionName" type="String">The name of the action.</param>
             /// <returns type="ActionBase" />
 
-            if (actionName == "Edit" && owner != null && owner.constructor == PersistentObject && owner.isNew)
+            if (actionName == "Edit" && owner != null && owner instanceof PersistentObject && owner.isNew)
                 actionName = "Save";
 
             var definition = actions.actionDefinitions[actionName];
@@ -312,14 +395,14 @@ var Actions = (function (window) {
             var result = actionType != null ? actionType(definition) : new ActionBase(definition);
 
             if (owner != null) {
-                if (owner.constructor == Query) {
+                if (owner instanceof Query) {
                     result.target = "Query";
                     result.query = owner;
                     result.parent = owner.parent;
-                    if (actionName == "New" && owner.persistentObject != null && !isNullOrWhiteSpace(owner.persistentObject.newOptions))
+                    if (actionName == "New" && owner.persistentObject != null && !String.isNullOrEmpty(owner.persistentObject.newOptions))
                         result.options = owner.persistentObject.newOptions.split(";");
                 }
-                else if (owner.constructor == PersistentObject) {
+                else if (owner instanceof PersistentObject) {
                     result.target = "PersistentObject";
                     result.parent = owner;
                     result.canExecute(true);
@@ -344,7 +427,7 @@ var Actions = (function (window) {
             if (actionNames == null || actionNames.length == 0)
                 return;
 
-            actionNames.run(function (actionName) {
+            actionNames.forEach(function (actionName) {
                 var action = actions.getAction(actionName, owner);
                 if (action != null) {
                     result.push(action);
@@ -360,6 +443,13 @@ var Actions = (function (window) {
             if (target == null)
                 return;
 
+            if ($.mobile) {
+                target.on("resize", function () {
+                    var actionBarHeight = target.outerHeight(true);
+                    $("#content").css("padding-bottom", actionBarHeight + "px");
+                });
+            }
+
             var normalActions = target.find('.normalActions');
             var pinnedActions = target.find('.pinnedActions');
 
@@ -367,11 +457,10 @@ var Actions = (function (window) {
                 target.empty();
 
                 normalActions = $.createElement("ul").addClass("normalActions");
-                var normalActionsContainer = $("<div>").append(normalActions);
-                normalActionsContainer.overflow($("<li class='overflowActionsButton'><div></div><span>&nbsp;&nbsp;&nbsp;</span></li>"), "overflowActions");
-
                 pinnedActions = $.createElement("ul").addClass("pinnedActions");
 
+                var normalActionsContainer = $("<div>").append(normalActions);
+                normalActionsContainer.overflow($("<li class='overflowActionsButton'><div></div><span>&nbsp;&nbsp;&nbsp;</span></li>"), "overflowActions");
                 target.autoSizePanel([normalActionsContainer, pinnedActions], 0);
             }
             else {
@@ -380,7 +469,7 @@ var Actions = (function (window) {
             }
 
             if (allActions != null) {
-                allActions.run(function (a) {
+                allActions.forEach(function (a) {
                     var element = a.render();
                     if (!a.isPinned)
                         normalActions.append(element);
@@ -417,22 +506,22 @@ var Actions = (function (window) {
         result.onExecute = function () {
             var owner = result.query != null ? result.query.persistentObject : result.parent;
 
+            var helpWindow = window.open();
             app.gateway.executeAction("PersistentObject.ShowHelp", owner, null, null, null, function (po) {
                 if (po != null) {
-                    if (po.getAttributeValue("Type") == "0")
+                    if (po.fullTypeName == "Vidyano.RegisteredStream" || po.getAttributeValue("Type") == "0") {
                         app.gateway.getStream(po);
+                        helpWindow.close();
+                    }
                     else {
-                        var helpWindow = window.open(po.getAttributeValue("Document"));
-                        if (helpWindow && helpWindow.top) {
-                            // Success
-                        }
-                        else {
-                            // Popup blocked
-                            result.showNotification("Your browser blocked the window for showing the documentation.", "Notice");
-                        }
+                        helpWindow.location = po.getAttributeValue("Document");
+                        helpWindow.focus();
                     }
                 }
+                else
+                    helpWindow.close();
             }, function (error) {
+                helpWindow.close();
                 action.showNotification(error);
             });
         };
@@ -444,7 +533,7 @@ var Actions = (function (window) {
         var result = new ActionBase(definition);
 
         result.baseOnExecute = result.onExecute;
-        result.onExecute = function (option) {
+        result.onExecute = function (option, continueWith, parameters, selectedItems) {
             var d = $.createElement("div");
             d.html(app.getTranslatedMessage("AskForDeleteItems"));
 
@@ -452,7 +541,7 @@ var Actions = (function (window) {
             buttons[app.getTranslatedMessage("Delete")] = function () {
                 $(this).dialog("close");
                 d.remove();
-                result.baseOnExecute(option);
+                result.baseOnExecute(option, continueWith, parameters, selectedItems);
             };
 
             buttons[app.getTranslatedMessage("Cancel")] = function () {
@@ -477,7 +566,7 @@ var Actions = (function (window) {
         result.dependentActions = ["EndEdit", "CancelEdit"];
 
         result.onExecute = function () {
-            result.parent.editMode(true);
+            result.parent.beginEdit();
         };
 
         return result;
@@ -522,12 +611,14 @@ var Actions = (function (window) {
             result.parent.save(function () {
                 if (isNullOrWhiteSpace(result.parent.notification) || result.parent.notificationType != "Error") {
                     delete app.pageObjects[result.parent.getPath()];
-                    window.history.back();
-                    if (wasNew && result.parent.stateBehavior != null && result.parent.stateBehavior.contains("OpenAfterNew")) {
+
+                    if (wasNew && result.parent.ownerAttributeWithReference == null && result.parent.stateBehavior != null && result.parent.stateBehavior.contains("OpenAfterNew")) {
                         app.gateway.getPersistentObject(result.parent.parent, result.parent.id, result.parent.objectId, function (r) {
-                            app.openPersistentObject(r);
+                            app.openPersistentObject(r, false, null, true);
                         });
                     }
+                    else
+                        window.history.back();
                 }
             });
         };
@@ -618,8 +709,7 @@ var Actions = (function (window) {
 
         result.onExecute = function (option) {
             var parameters = result._getParameters(option);
-            var selectedItems = this.query != null && this.query.items != null ? this.query.items.selectedItems() : null;
-            app.gateway.getStream(null, this.target + "." + this.name, this.parent, this.query, selectedItems, parameters);
+            app.gateway.getStream(null, this.target + "." + this.name, this.parent, this.query, null, parameters);
         };
 
         return result;

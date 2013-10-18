@@ -1,0 +1,21 @@
+﻿<vi:LayoutAwarePage
+    x:Class="Vidyano.View.Pages.QueryItemSelectPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:Vidyano.View"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vi="using:Vidyano.View"
+    mc:Ignorable="d">
+
+    <Grid>
+        <ProgressBar VerticalAlignment="Top"
+                     HorizontalAlignment="Stretch"
+                     Foreground="{StaticResource ProgressBarIndeterminateForegroundThemeBrush}"
+                     IsIndeterminate="True"
+                     Visibility="{Binding IsBusy,
+                                    Source={StaticResource ☁},
+                                    Converter={StaticResource booleanToVisibilityConverter}}" />
+        <ContentControl Content="{Binding}" ContentTemplate="{Binding Template}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+    </Grid>
+</vi:LayoutAwarePage>

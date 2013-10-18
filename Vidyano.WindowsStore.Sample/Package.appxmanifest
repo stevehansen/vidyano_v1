@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/2010/manifest">
+  <Identity Name="409SteveHansen.MyDashboard" Publisher="CN=3C34DC24-2998-47C3-9D39-EF04480B4801" Version="1.0.0.7" />
+  <Properties>
+    <DisplayName>MyDashboard</DisplayName>
+    <PublisherDisplayName>SteveHansen</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+  <Prerequisites>
+    <OSMinVersion>6.2.1</OSMinVersion>
+    <OSMaxVersionTested>6.2.1</OSMaxVersionTested>
+  </Prerequisites>
+  <Resources>
+    <Resource Language="x-generate" />
+  </Resources>
+  <Applications>
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="Vidyano.WindowsStore.Sample.App">
+      <VisualElements DisplayName="MyDashboard" Logo="Assets\Logo.png" SmallLogo="Assets\SmallLogo.png" Description="This is a sample application for the Vidyano client for Windows Store Apps. It is designed for building data-centric Windows Store applications for both tablets and large screens. In this application you can discover first-hand all the out of the box functionalities that will help you to drastically cut the time to market of your next Windows Store application." ForegroundText="light" BackgroundColor="#008042" ToastCapable="true">
+        <LockScreen Notification="badgeAndTileText" BadgeLogo="Assets\BadgeLogo.png" />
+        <DefaultTile ShortName="Vidyano" ShowName="allLogos" WideLogo="Assets\WideLogo.png" />
+        <SplashScreen Image="Assets\SplashScreen.png" />
+      </VisualElements>
+      <Extensions>
+        <Extension Category="windows.search" />
+        <Extension Category="windows.fileOpenPicker">
+          <FileOpenPicker>
+            <SupportedFileTypes>
+              <SupportsAnyFileType />
+            </SupportedFileTypes>
+          </FileOpenPicker>
+        </Extension>
+        <Extension Category="windows.backgroundTasks" EntryPoint="Vidyano.WindowsStore.Sample.Background.BackgroundTask">
+          <BackgroundTasks>
+            <Task Type="timer" />
+          </BackgroundTasks>
+        </Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <Capability Name="internetClient" />
+  </Capabilities>
+</Package>

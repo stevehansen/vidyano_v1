@@ -5,7 +5,15 @@
 /// Array Extensions //////////////////////////////////////////
 ///////////////////////////////////////////////////////////////
 
-Array.prototype.remove = function Aray$remove(s) {
+if (!Array.prototype.clear) {
+    Array.prototype.clear = function Array$clear() {
+        /// <summary>Clears this instance.</summary>
+
+        this.splice(0, this.length);
+    };
+}
+
+Array.prototype.remove = function Array$remove(s) {
     /// <summary>Removes all instances of s from this instance.</summary>
 
     for (var i = 0; i < this.length; i++) {
@@ -14,15 +22,26 @@ Array.prototype.remove = function Aray$remove(s) {
     }
 };
 
-Array.prototype.firstOrDefault = function Array$firstOrDefault(f) {
+Array.prototype.removeAll = function Array$removeAll(f, thisObject) {
+    /// <summary>Removes all instances that match function f from this instance.</summary>
+
+    if (this.length > 0) {
+        for (var index = this.length - 1; index--;) {
+            if (f.call(thisObject, this[index], index, this))
+                this.splice(index, 1);
+        }
+    }
+};
+
+Array.prototype.firstOrDefault = function Array$firstOrDefault(f, thisObject) {
     /// <summary>Finds the first instance that matches the predicate, or the first instance if no predicate is specified. Returns null if nothing is found.</summary>
     /// <param name="f" type="Function" optional="true">An optional predicate.</param>
 
     if (f != null) {
         for (var index = 0; index < this.length; index++) {
-            if (f(this[index])) {
-                return this[index];
-            }
+            var element = this[index];
+            if (f.call(thisObject, element, index, this))
+                return element;
         }
     }
     else if (this.length > 0)
@@ -38,7 +57,7 @@ Array.prototype.last = function Array$last() {
 };
 
 Array.prototype.orderBy = function Array$orderBy(f) {
-    /// <summary>Orders this instance in ascending order by the specified condition, can be a Function or String indiciating a property.</summary>
+    /// <summary>Orders this instance in ascending order by the specified condition, can be a Function or String indicating a property.</summary>
 
     if (f == null)
         f = function (self) { return self; };
@@ -59,7 +78,7 @@ Array.prototype.orderBy = function Array$orderBy(f) {
 };
 
 Array.prototype.orderByDescending = function Array$orderBy(f) {
-    /// <summary>Orders this instance in descending order by the specified condition, can be a Function or String indiciating a property.</summary>
+    /// <summary>Orders this instance in descending order by the specified condition, can be a Function or String indicating a property.</summary>
 
     if (f == null)
         f = function (self) { return self; };
@@ -79,47 +98,28 @@ Array.prototype.orderByDescending = function Array$orderBy(f) {
     });
 };
 
-Array.prototype.run = function Array$run(f) {
-    /// <summary>Runs through this instance invoking the specified Function on each element.</summary>
-    /// <param name="f" type="Function">The function that should be invoked on all elements.</param>
+Array.prototype.run = Array.prototype.forEach;
 
-    for (var index = 0; index < this.length; index++) {
-        f(this[index], index);
-    }
-};
-
-Array.prototype.select = function Array$select(f) {
-    /// <summary>Creates a new array consisting of the result of f on each element, can be a Function or String indiciating a property.</summary>
+Array.prototype.select = function Array$select(f, thisObject) {
+    /// <summary>Creates a new array consisting of the result of f on each element, can be a Function or String indicating a property.</summary>
 
     if (typeof (f) == "string") {
         var property = f;
         f = function (i) { return i[property]; };
     }
 
-    var result = [];
-    for (var index = 0; index < this.length; index++) {
-        result.push(f(this[index]));
-    }
-
-    return result;
+    return this.map(f, thisObject);
 };
 
-Array.prototype.where = function Array$where(f) {
-    /// <summary>Creates a new array consisting of the elements that matched the specified predicate, can be a Function or String indiciating a property.</summary>
+Array.prototype.where = function Array$where(f, thisObject) {
+    /// <summary>Creates a new array consisting of the elements that matched the specified predicate, can be a Function or String indicating a property.</summary>
 
     if (typeof (f) == "string") {
         var property = f;
         f = function (i) { return i[property]; };
     }
 
-    var result = [];
-    for (var index = 0; index < this.length; index++) {
-        var element = this[index];
-        if (f(element))
-            result.push(element);
-    }
-
-    return result;
+    return this.filter(f, thisObject);
 };
 
 Array.prototype.toSelector = function () {
@@ -144,22 +144,19 @@ Array.prototype.toSelector = function () {
     };
 
     this.selectFirst = function () {
-        if (this.length > 0 && _selectedItem != this[0]) {
+        if (this.length > 0 && _selectedItem != this[0])
             this.selectedItem(this[0]);
-        }
     };
 
     this.selectedItem = function (item) {
         if (typeof (item) == "undefined")
             return _selectedItem;
 
-        if (item == null && !this.allowNulls) {
+        if (item == null && !this.allowNulls)
             throw "Item is null and array has AllowNulls set to false.";
-        }
 
-        if (item != null && this.firstOrDefault(function (i) { return i == item; }) == null) {
+        if (item != null && this.firstOrDefault(function (i) { return i == item; }) == null)
             throw "Item is not in this array.";
-        }
 
         if (_selectedItem != item) {
             _selectedItem = item;
@@ -193,9 +190,8 @@ Array.prototype.toSelector = function () {
         if (typeof chain == 'undefined' || chain == null)
             return this; // no callbacks for this event
 
-        for (var i = 0; i < chain.length; i++) {
+        for (var i = 0; i < chain.length; i++)
             chain[i](data);
-        }
 
         return this;
     };
@@ -209,36 +205,6 @@ Array.prototype.contains = function Array$contains(value) {
 
     return this.indexOf(value) != -1;
 };
-
-if (!Array.prototype.indexOf) {
-    Array.prototype.indexOf = function (searchElement /*, fromIndex */) {
-        "use strict";
-        var t = Object(this);
-        var len = t.length >>> 0;
-        if (len === 0) {
-            return -1;
-        }
-        var n = 0;
-        if (arguments.length > 0) {
-            n = Number(arguments[1]);
-            if (n != n) { // shortcut for verifying if it's NaN
-                n = 0;
-            } else if (n != 0 && n != Infinity && n != -Infinity) {
-                n = (n > 0 || -1) * Math.floor(Math.abs(n));
-            }
-        }
-        if (n >= len) {
-            return -1;
-        }
-        var k = n >= 0 ? n : Math.max(len - Math.abs(n), 0);
-        for (; k < len; k++) {
-            if (k in t && t[k] === searchElement) {
-                return k;
-            }
-        }
-        return -1;
-    };
-}
 
 Array.prototype.distinct = function Array$distinct(selector) {
     /// <summary>Creates a new array consisting of only the distinct values, selector can be a Function, String or null.</summary>
@@ -263,11 +229,11 @@ Array.prototype.distinct = function Array$distinct(selector) {
 /// Object Extensions /////////////////////////////////////////
 ///////////////////////////////////////////////////////////////
 
-copyProperties = function (obj, propertyNames, includeNullValues) {
+copyProperties = function (obj, propertyNames, includeNullValues, result) {
     /// <summary>Copy the speficied properties.</summary>
 
-    var result = {};
-    propertyNames.run(function (p) {
+    result = result || {};
+    propertyNames.forEach(function (p) {
         var value = obj[p];
         if (includeNullValues || (value != null && value !== false && (value !== 0 || p == "pageSize") && (!$.isArray(value) || value.length > 0)))
             result[p] = value;
@@ -305,10 +271,10 @@ isNull = function (obj) {
 };
 
 isNullOrEmpty = function (obj) {
-    /// <summary>Checks if the object is null, undefined or an empty string.</summary>
+    /// <summary>Checks if the object is null, undefined, an empty string or an empty array.</summary>
     /// <returns type="Boolean" />
 
-    return obj == null || obj === "";
+    return obj == null || obj.length == 0;
 };
 
 isNullOrWhiteSpace = function (str) {
@@ -375,11 +341,8 @@ String.prototype.contains = function (it) {
     return this.indexOf(it) != -1;
 };
 
+String._formatRE = /(\{[^\}^\{]+\})/g;
 String._format = function String$_format(format, values, useLocale) {
-    if (!String._formatRE) {
-        String._formatRE = /(\{[^\}^\{]+\})/g;
-    }
-
     return format.replace(String._formatRE,
         function (str, m) {
             var index = parseInt(m.substr(1), 10);
@@ -416,16 +379,14 @@ String.isNullOrWhiteSpace = isNullOrWhiteSpace;
 
 String.prototype.padLeft = function String$padLeft(totalWidth, ch) {
     if (this.length < totalWidth) {
-        ch = ch || ' ';
-        return String.fromChar(ch, totalWidth - this.length) + this;
+        return String.fromChar(ch || ' ', totalWidth - this.length) + this;
     }
     return this;
 };
 
 String.prototype.padRight = function String$padRight(totalWidth, ch) {
     if (this.length < totalWidth) {
-        ch = ch || ' ';
-        return this + String.fromChar(ch, totalWidth - this.length);
+        return this + String.fromChar(ch || ' ', totalWidth - this.length);
     }
     return this;
 };
@@ -463,7 +424,7 @@ String.prototype.trimStart = function String$trimStart(c) {
     if (this.length == 0)
         return this;
 
-    c = c ? c : ' ';
+    c = c || ' ';
     var i = 0;
     for (; this.charAt(i) == c && i < this.length; i++);
     return this.substring(i);
@@ -516,7 +477,7 @@ Number.prototype.format = function Number$format(format) {
     return this._netFormat(format, false);
 };
 
-Number.prototype.localeFormat = function Number$format(format) {
+Number.prototype.localeFormat = function Number$localeFormat(format) {
     if (format == null || (format.length == 0) || (format == 'i')) {
         format = 'G';
     }
@@ -700,14 +661,16 @@ Number.prototype._netFormat = function Number$_netFormat(format, useLocale) {
 /// Date Extensions ///////////////////////////////////////////
 ///////////////////////////////////////////////////////////////
 
+Date._formatRE = /'.*?[^\\]'|dddd|ddd|dd|d|MMMM|MMM|MM|M|yyyy|yy|y|hh|h|HH|H|mm|m|ss|s|tt|t|fff|ff|f|zzz|zz|z/g;
+
 Date.prototype.format = function Date$format(format) {
     if (format == null || (format.length == 0) || (format == 'i')) {
         format = 'G';
     }
-    if (format == 'id') {
+    else if (format == 'id') {
         return this.toDateString();
     }
-    if (format == 'it') {
+    else if (format == 'it') {
         return this.toTimeString();
     }
 
@@ -718,10 +681,10 @@ Date.prototype.localeFormat = function Date$localeFormat(format) {
     if (format == null || (format.length == 0) || (format == 'i')) {
         format = 'G';
     }
-    if (format == 'id') {
+    else if (format == 'id') {
         return this.toLocaleDateString();
     }
-    if (format == 'it') {
+    else if (format == 'it') {
         return this.toLocaleTimeString();
     }
 
@@ -781,19 +744,15 @@ Date.prototype._netFormat = function Date$_netFormat(format, useLocale) {
         format = format.substr(1);
     }
 
-    if (!Date._formatRE) {
-        Date._formatRE = /'.*?[^\\]'|dddd|ddd|dd|d|MMMM|MMM|MM|M|yyyy|yy|y|hh|h|HH|H|mm|m|ss|s|tt|t|fff|ff|f|zzz|zz|z/g;
-    }
-
     var re = Date._formatRE;
-    var sb = new StringBuilder();
+    var sb = '';
 
     re.lastIndex = 0;
     while (true) {
         var index = re.lastIndex;
         var match = re.exec(format);
 
-        sb.append(format.slice(index, match ? match.index : format.length));
+        sb += format.slice(index, match ? match.index : format.length);
         if (!match) {
             break;
         }
@@ -808,7 +767,7 @@ Date.prototype._netFormat = function Date$_netFormat(format, useLocale) {
                 part = dtf.shortDayNames[dt.getDay()];
                 break;
             case 'dd':
-                part = dt.getDate().toString().padLeft(2, '0');
+                part = ("00" + dt.getDate()).substr(-2);
                 break;
             case 'd':
                 part = dt.getDate();
@@ -820,7 +779,7 @@ Date.prototype._netFormat = function Date$_netFormat(format, useLocale) {
                 part = dtf.shortMonthNames[dt.getMonth()];
                 break;
             case 'MM':
-                part = (dt.getMonth() + 1).toString().padLeft(2, '0');
+                part = ("00" + (dt.getMonth() + 1)).substr(-2);
                 break;
             case 'M':
                 part = (dt.getMonth() + 1);
@@ -829,7 +788,7 @@ Date.prototype._netFormat = function Date$_netFormat(format, useLocale) {
                 part = dt.getFullYear();
                 break;
             case 'yy':
-                part = (dt.getFullYear() % 100).toString().padLeft(2, '0');
+                part = ("00" + (dt.getFullYear() % 100)).substr(-2);
                 break;
             case 'y':
                 part = (dt.getFullYear() % 100);
@@ -841,23 +800,23 @@ Date.prototype._netFormat = function Date$_netFormat(format, useLocale) {
                     part = '12';
                 }
                 else if (fs == 'hh') {
-                    part = part.toString().padLeft(2, '0');
+                    part = ("00" + part).substr(-2);
                 }
                 break;
             case 'HH':
-                part = dt.getHours().toString().padLeft(2, '0');
+                part = ("00" + dt.getHours()).substr(-2);
                 break;
             case 'H':
                 part = dt.getHours();
                 break;
             case 'mm':
-                part = dt.getMinutes().toString().padLeft(2, '0');
+                part = ("00" + dt.getMinutes()).substr(-2);
                 break;
             case 'm':
                 part = dt.getMinutes();
                 break;
             case 'ss':
-                part = dt.getSeconds().toString().padLeft(2, '0');
+                part = ("00" + dt.getSeconds()).substr(-2);
                 break;
             case 's':
                 part = dt.getSeconds();
@@ -870,13 +829,13 @@ Date.prototype._netFormat = function Date$_netFormat(format, useLocale) {
                 }
                 break;
             case 'fff':
-                part = dt.getMilliseconds().toString().padLeft(3, '0');
+                part = ("000" + dt.getMilliseconds()).substr(-3);
                 break;
             case 'ff':
-                part = dt.getMilliseconds().toString().padLeft(3, '0').substr(0, 2);
+                part = ("000" + dt.getMilliseconds()).substr(-3).substr(0, 2);
                 break;
             case 'f':
-                part = dt.getMilliseconds().toString().padLeft(3, '0').charAt(0);
+                part = ("000" + dt.getMilliseconds()).substr(-3).charAt(0);
                 break;
             case 'z':
                 part = dt.getTimezoneOffset() / 60;
@@ -885,9 +844,9 @@ Date.prototype._netFormat = function Date$_netFormat(format, useLocale) {
             case 'zz':
             case 'zzz':
                 part = dt.getTimezoneOffset() / 60;
-                part = ((part >= 0) ? '-' : '+') + Math.floor(Math.abs(part)).toString().padLeft(2, '0');
+                part = ((part >= 0) ? '-' : '+') + ("00" + Math.floor(Math.abs(part))).substr(-2);
                 if (fs == 'zzz') {
-                    part += dtf.timeSeparator + Math.abs(dt.getTimezoneOffset() % 60).toString().padLeft(2, '0');
+                    part += dtf.timeSeparator + ("00" + Math.abs(dt.getTimezoneOffset() % 60)).substr(-2);
                 }
                 break;
             default:
@@ -896,10 +855,10 @@ Date.prototype._netFormat = function Date$_netFormat(format, useLocale) {
                 }
                 break;
         }
-        sb.append(part);
+        sb += part;
     }
 
-    return sb.toString();
+    return sb;
 };
 
 Date.prototype.toLocaleString = function () {

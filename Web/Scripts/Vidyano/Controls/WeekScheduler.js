@@ -36,7 +36,7 @@
                     var tbody = $.createElement("tbody");
                     var days = functions.getDaysSorted();
 
-                    days.run(function (day) {
+                    days.forEach(function (day) {
                         var tr = $.createElement("tr");
                         var dayTd = $.createElement("td");
 
@@ -45,7 +45,7 @@
                         tr.attr("id", day)
                             .append(dayTd);
 
-                        hours.run(function (hour) {
+                        hours.forEach(function (hour) {
                             var td = $.createElement("td");
                             var div = $.createElement("div");
 
@@ -109,7 +109,7 @@
                         return;
 
                     var temp = data;
-                    minDaysOfWeek.run(function (day) {
+                    minDaysOfWeek.forEach(function (day) {
                         var cells = table.find("tr[id='" + day + "'] td");
 
                         cells.each(function () {
@@ -146,7 +146,7 @@
                 updateData: function () {
                     data = new Array();
 
-                    minDaysOfWeek.run(function (day) {
+                    minDaysOfWeek.forEach(function (day) {
                         var cells = table.find("tr[id='" + day + "'] td");
 
                         cells.each(function () {

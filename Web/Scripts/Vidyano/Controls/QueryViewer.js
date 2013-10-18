@@ -1,5 +1,8 @@
 ﻿(function ($) {
     $.fn.queryViewer = function (query, options) {
+        if (typeof (options) === "undefined")
+            options = query.options;
+
         var container = $(this);
 
         query.filterTarget = $("<div>").addClass("queryFilter");
@@ -9,7 +12,7 @@
         container.append(query.notificationTarget);
 
         query.spinnerTarget = container;
-        
+
         if (!isNullOrWhiteSpace(query.itemPanelTemplateKey) && app.templates[query.itemPanelTemplateKey] != null && typeof (app.templates[query.itemPanelTemplateKey].data) == "function") {
             query.target = container;
 
@@ -17,16 +20,16 @@
             var render = function (postQueryRender) {
                 if (lastRenderedItemPanel != null)
                     lastRenderedItemPanel.remove();
-                
-                query.target = lastRenderedItemPanel = $("<div>" + app.templates[query.itemPanelTemplateKey].data(query) + "</div>").css({"overflow": "auto"});
+
+                query.target = lastRenderedItemPanel = $("<div>" + app.templates[query.itemPanelTemplateKey].data(query) + "</div>").css({ "overflow": "auto" });
                 container.append(lastRenderedItemPanel);
-                
+
                 if (postQueryRender)
                     query.postRender();
             };
 
-            container.unbind("itemsChanged");
-            container.bind("itemsChanged", function() { render(true); });
+            container.off("itemsChanged");
+            container.on("itemsChanged", function () { render(true); });
 
             render();
         }
@@ -42,9 +45,9 @@
                 query.target.outerHeight(query.target.parent().height() - (query.filterTarget.is(":visible") ? query.filterTarget.outerHeight(true) : 0) - (query.notificationTarget.is(":visible") ? query.notificationTarget.outerHeight(true) : 0));
             };
 
-            query.filterTarget.bind("resize", reCalculatetargetSize);
-            query.notificationTarget.bind("resize", reCalculatetargetSize);
-            container.bind("resize", reCalculatetargetSize);
+            query.filterTarget.on("resize", reCalculatetargetSize);
+            query.notificationTarget.on("resize", reCalculatetargetSize);
+            container.on("resize", reCalculatetargetSize);
         }
     };
 })(jQuery);

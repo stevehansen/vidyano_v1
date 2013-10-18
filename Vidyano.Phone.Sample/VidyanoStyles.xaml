@@ -1,0 +1,1468 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:phone="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone"
+                    xmlns:phoneControls="clr-namespace:Microsoft.Phone.Controls;assembly=Microsoft.Phone.Controls.Toolkit"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib"
+                    xmlns:vi="clr-namespace:Vidyano.View;assembly=Vidyano.Phone"
+                    xmlns:viCommands="clr-namespace:Vidyano.Commands;assembly=Vidyano.Core"
+                    xmlns:viControls="clr-namespace:Vidyano.View.Controls;assembly=Vidyano.Phone"
+                    xmlns:viConverters="clr-namespace:Vidyano.View.Converters;assembly=Vidyano.Phone"
+                    xmlns:viTs="clr-namespace:Vidyano.View.TemplateSelectors;assembly=Vidyano.Phone">
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="AppColors.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+    <FontFamily x:Key="SymbolThemeFontFamily">Segoe UI Symbol</FontFamily>
+
+    <!--  Vidyano Specific Colors  -->
+
+    <SolidColorBrush x:Key="ApplicationAccentExtraLightBrush" Color="{StaticResource ApplicationAccentColorExtraLight}" />
+    <SolidColorBrush x:Key="ApplicationAccentLightBrush" Color="{StaticResource ApplicationAccentColorLight}" />
+    <SolidColorBrush x:Key="ApplicationAccentSemiLightBrush" Color="{StaticResource ApplicationAccentColorSemiLight}" />
+    <SolidColorBrush x:Key="ApplicationAccentBrush" Color="{StaticResource ApplicationAccentColor}" />
+    <SolidColorBrush x:Key="ApplicationAccentSemiDarkBrush" Color="{StaticResource ApplicationAccentColorSemiDark}" />
+    <SolidColorBrush x:Key="ApplicationAccentDarkBrush" Color="{StaticResource ApplicationAccentColorDark}" />
+    <SolidColorBrush x:Key="ApplicationAccentExtraDarkBrush" Color="{StaticResource ApplicationAccentColorExtraDark}" />
+    <SolidColorBrush x:Key="ApplicationContrastBrush" Color="{StaticResource ApplicationContrastColor}" />
+    <SolidColorBrush x:Key="ApplicationForegroundToBackgroundBrush" Color="#FFFFFFFF" />
+
+    <SolidColorBrush x:Key="ProgramUnitItemBackgroundBrush" Color="{StaticResource ApplicationAccentColor}" />
+    <SolidColorBrush x:Key="ProgramUnitItemLabelBackgroundBrush" Color="{StaticResource ApplicationAccentColorSemiDark}" />
+    <SolidColorBrush x:Key="ProgramUnitItemCountBackgroundBrush" Color="{StaticResource ApplicationAccentColorDark}" />
+    <SolidColorBrush x:Key="ProgramUnitItemForegroundBrush" Color="#FFFFFFFF" />
+
+    <SolidColorBrush x:Key="PersistentObjectAttributeGroupForegroundBrush" Color="{StaticResource ApplicationContrastColor}" />
+    <SolidColorBrush x:Key="PersistenObjectAttributePointerOverForegroundBrush" Color="{StaticResource ApplicationAccentColor}" />
+
+    <SolidColorBrush x:Key="PersistentObjectAttributeStringDataValidationErrorBorderBrush" Color="#FFFF0000" />
+    <SolidColorBrush x:Key="PersistentObjectAttributePasswordDataValidationErrorBorderBrush" Color="#FFFF0000" />
+    <SolidColorBrush x:Key="PersistentObjectAttributeNumericDataValidationErrorBorderBrush" Color="#FFFF0000" />
+    <SolidColorBrush x:Key="PersistentObjectAttributeDateTimeOffsetDataValidationErrorBorderBrush" Color="#FFFF0000" />
+    <SolidColorBrush x:Key="PersistentObjectAttributeImageDataValidationErrorBorderBrush" Color="#FFFF0000" />
+    <SolidColorBrush x:Key="PersistentObjectAttributeReferenceDataValidationErrorBorderBrush" Color="#FFFF0000" />
+    <SolidColorBrush x:Key="PersistentObjectAttributeBinaryDataValidationErrorBorderBrush" Color="#FFFF0000" />
+    <SolidColorBrush x:Key="PersistentObjectAttributeComboBoxDataValidationErrorBorderBrush" Color="#FFFF0000" />
+    <SolidColorBrush x:Key="PersistentObjectAttributeEditableComboBoxDataValidationErrorBorderBrush" Color="#FFFF0000" />
+    <SolidColorBrush x:Key="PersistentObjectAttributeToggleSwitchDataValidationErrorForegroundBrush" Color="#FFFF0000" />
+
+    <!--  Commands  -->
+
+    <viCommands:ShowNotificationCommand x:Key="showNotificationCommand" />
+    <viCommands:RemoveTextSearchCommand x:Key="removeTextSearchCommand" />
+
+    <!--  Converters  -->
+
+    <viConverters:BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
+    <viConverters:BooleanToVisibilityConverter x:Key="negatedBooleanToVisibilityConverter" IsNegated="True" />
+    <viConverters:BooleanNegateConverter x:Key="booleanNegateConverter" />
+    <viConverters:StringFormatConverter x:Key="stringFormatConverter" />
+    <viConverters:CharacterCasingConverter x:Key="characterCasingConverter" />
+    <viConverters:EnumToVisibilityConverter x:Key="enumToVisibilityConverter" />
+    <viConverters:TranslatableBooleanConverter x:Key="translatableBooleanConverter" />
+    <viConverters:NullOrEmptyConverter x:Key="nullOrEmptyConverter" />
+    <viConverters:ResourceLocatorConverter x:Key="resourceLocatorConverter" />
+
+    <!--  DataTemplate Selectors  -->
+
+    <viTs:ProgramUnitItemTemplateSelector x:Key="programUnitItemTemplateSelector" />
+    <viTs:QueryItemTemplateSelector x:Key="queryItemTemplateSelector" />
+    <viTs:ProgramUnitItemContainerTemplateSelector x:Key="programUnitItemContainerTemplateSelector" />
+    <viTs:PersistentObjectPageTabTemplateSelector x:Key="persistentObjectPageTabTemplateSelector" />
+
+    <!--  Page Content Templates  -->
+
+    <DataTemplate x:Key="SignInPage">
+        <phone:Pivot Title="{Binding AppName, Source={StaticResource ⚙}}">
+            <phone:Pivot.HeaderTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Messages[SignInUsing]}" Visibility="{Binding State,
+                                                                     Converter={StaticResource enumToVisibilityConverter},
+                                                                     ConverterParameter='SelectServiceProvider'}" />
+                </DataTemplate>
+            </phone:Pivot.HeaderTemplate>
+            <phone:PivotItem Header="{Binding}">
+                <Grid x:Name="LayoutRoot" Background="Transparent">
+                    <Grid Margin="12,0,12,0">
+                        <StackPanel HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Center"
+                                    Visibility="{Binding State,
+                                                         Converter={StaticResource enumToVisibilityConverter},
+                                                         ConverterParameter='Connecting'}">
+                            <ProgressBar HorizontalAlignment="Stretch"
+                                         VerticalAlignment="Center"
+                                         IsIndeterminate="True" />
+                            <TextBlock HorizontalAlignment="Center" Text="{Binding Messages[SigningIn]}" />
+                        </StackPanel>
+
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Visibility="{Binding State,
+                                                         Converter={StaticResource enumToVisibilityConverter},
+                                                         ConverterParameter='NoInternet'}">
+                            <TextBlock Margin="6"
+                                       HorizontalAlignment="Center"
+                                       FontSize="24"
+                                       Foreground="{StaticResource ApplicationAccentBrush}"
+                                       Text="{Binding NoInternetMessageTitle}"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Margin="6"
+                                       HorizontalAlignment="Center"
+                                       FontSize="18"
+                                       Foreground="{StaticResource ApplicationAccentBrush}"
+                                       Text="{Binding NoInternetMessageMessage}"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap" />
+                            <Button Margin="24"
+                                    HorizontalAlignment="Center"
+                                    Command="{Binding RetryConnect}"
+                                    Content="{Binding NoInternetTryAgain}"
+                                    Foreground="{StaticResource ApplicationAccentBrush}" />
+                        </StackPanel>
+
+                        <StackPanel HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Top"
+                                    Visibility="{Binding State,
+                                                         Converter={StaticResource enumToVisibilityConverter},
+                                                         ConverterParameter='SelectServiceProvider'}">
+                            <StackPanel Visibility="{Binding ClientData.HasVidyanoProvider, Converter={StaticResource booleanToVisibilityConverter}}">
+                                <TextBlock Margin="12, 0, 0, 0"
+                                           FontFamily="{StaticResource PhoneFontFamilyNormal}"
+                                           FontSize="{StaticResource PhoneFontSizeNormal}"
+                                           Foreground="{StaticResource PhoneSubtleBrush}"
+                                           Text="{Binding Messages[UserName]}" />
+                                <TextBox Text="{Binding UserName, Mode=TwoWay}" />
+                                <TextBlock Margin="12, 0, 0, 0"
+                                           FontFamily="{StaticResource PhoneFontFamilyNormal}"
+                                           FontSize="{StaticResource PhoneFontSizeNormal}"
+                                           Foreground="{StaticResource PhoneSubtleBrush}"
+                                           Text="{Binding Messages[Password]}" />
+                                <PasswordBox Password="{Binding Password, Mode=TwoWay}" />
+                                <Button HorizontalAlignment="Stretch"
+                                        Command="{Binding SignIn}"
+                                        Content="{Binding Messages[SignIn]}" />
+                            </StackPanel>
+
+                            <Grid Margin="0, 12"
+                                  HorizontalAlignment="Stretch"
+                                  Visibility="{Binding ClientData.HasMixedServiceProviders,
+                                                       Converter={StaticResource booleanToVisibilityConverter}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Center"
+                                        BorderBrush="{StaticResource ApplicationContrastBrush}"
+                                        BorderThickness="0, 1, 0, 0" />
+                                <TextBlock Grid.Column="1"
+                                           Margin="12, 0"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontSize="18"
+                                           Foreground="{StaticResource ApplicationContrastBrush}"
+                                           Text="{Binding Messages[Or]}" />
+                                <Border Grid.Column="2"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Center"
+                                        BorderBrush="{StaticResource ApplicationContrastBrush}"
+                                        BorderThickness="0, 1, 0, 0" />
+                            </Grid>
+
+                            <ItemsControl ItemsSource="{Binding ClientData.OAuthServiceProviders}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Button Margin="0, 0, 0, 12"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Center"
+                                                Command="{Binding Select}"
+                                                CommandParameter="{Binding}">
+                                            <Button.Content>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <Path Width="20"
+                                                          Height="20"
+                                                          Margin="0, 0, 12, 0"
+                                                          Data="{Binding Name,
+                                                                         Converter={StaticResource resourceLocatorConverter}}"
+                                                          Fill="#FFFFFFFF"
+                                                          RenderTransformOrigin="0.5,0.5"
+                                                          Stretch="Uniform" />
+                                                    <TextBlock Grid.Column="1"
+                                                               VerticalAlignment="Center"
+                                                               Text="{Binding Label}" />
+                                                </Grid>
+                                            </Button.Content>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </phone:PivotItem>
+        </phone:Pivot>
+    </DataTemplate>
+
+    <DataTemplate x:Key="HomePage.Panorama">
+        <phone:Panorama Title="{Binding AppName, Source={StaticResource ⚙}, Converter={StaticResource characterCasingConverter}, ConverterParameter=Upper}" ItemsSource="{Binding Groups}">
+            <phone:Panorama.ItemTemplate>
+                <DataTemplate>
+                    <ListBox ItemsSource="{Binding}">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <phoneControls:WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Margin" Value="12, 12, 0, 0" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <viControls:DynamicContentControl Content="{Binding}" ContentTemplateSelector="{StaticResource programUnitItemContainerTemplateSelector}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DataTemplate>
+            </phone:Panorama.ItemTemplate>
+        </phone:Panorama>
+    </DataTemplate>
+
+    <DataTemplate x:Key="HomePage.Pivot">
+        <phone:Pivot Title="{Binding AppName, Source={StaticResource ⚙}, Converter={StaticResource characterCasingConverter}, ConverterParameter=Upper}" ItemsSource="{Binding Groups}">
+            <phone:Pivot.ItemTemplate>
+                <DataTemplate>
+                    <ListBox ItemsSource="{Binding}">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <phoneControls:WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Margin" Value="12, 12, 0, 0" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <viControls:DynamicContentControl Content="{Binding}" ContentTemplateSelector="{StaticResource programUnitItemContainerTemplateSelector}" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DataTemplate>
+            </phone:Pivot.ItemTemplate>
+        </phone:Pivot>
+    </DataTemplate>
+
+    <DataTemplate x:Key="QueryPage">
+        <Grid>
+            <phone:Pivot Title="{Binding AppName, Source={StaticResource ⚙}, Converter={StaticResource characterCasingConverter}, ConverterParameter=Upper}" Visibility="{Binding Query.HasTextSearch, Converter={StaticResource negatedBooleanToVisibilityConverter}}">
+                <phone:PivotItem Header="{Binding Query.Label, Converter={StaticResource characterCasingConverter}, ConverterParameter=Lower}">
+                    <viControls:QueryItemsListBox Query="{Binding Query}" />
+                </phone:PivotItem>
+            </phone:Pivot>
+            <phone:Pivot Title="{Binding Query.Label, Converter={StaticResource characterCasingConverter}, ConverterParameter=Upper}" Visibility="{Binding Query.HasTextSearch, Converter={StaticResource booleanToVisibilityConverter}}">
+                <phone:PivotItem>
+                    <phone:PivotItem.Header>
+                        <Button Command="{StaticResource removeTextSearchCommand}"
+                                CommandParameter="{Binding Query}"
+                                FontFamily="Segoe WP SemiLight"
+                                FontSize="72">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <StackPanel Background="Transparent" Orientation="Horizontal">
+                                        <TextBlock x:Name="textSearch"
+                                                   Margin="0, 0, 12, 0"
+                                                   Text="{Binding Query.TextSearch,
+                                                                  Converter={StaticResource stringFormatConverter},
+                                                                  ConverterParameter='&quot;{0}&quot;'}" />
+                                        <Path x:Name="icon"
+                                              Width="40"
+                                              Height="40"
+                                              Margin="0,0,0,0"
+                                              Data="m 178.20883 158.49733 c -1.52735 -10.38032 1.25865 -21.39705 7.78524 -29.64898 6.54781 -8.57014 16.82207 -14.19164 27.59838 -14.95531 10.93187 -1.06066 21.99809 3.0052 30.08739 10.35911 l 1.492 1.492 c 11.21471 11.65312 14.07849 30.37023 6.54781 44.71743 -4.85783 9.73686 -14.01486 17.21098 -24.52954 20.01819 -10.13284 2.79308 -21.44655 1.35058 -30.4268 -4.16486 -9.95607 -5.85484 -16.95642 -16.39073 -18.55448 -27.81758 m 12.04202 -21.91324 c 5.21138 5.21138 10.42983 10.42983 15.64121 15.64121 -5.21138 5.21137 -10.41569 10.42982 -15.63413 15.63413 3.57089 3.61331 7.1842 7.1842 10.76923 10.79752 5.18309 -5.21138 10.44397 -10.34497 15.54928 -15.61999 5.37401 5.07703 10.47932 10.4369 15.74727 15.61999 3.59917 -3.59918 7.19127 -7.19128 10.77631 -10.79045 -5.21138 -5.21138 -10.42276 -10.42276 -15.63414 -15.63413 5.21138 -5.22552 10.42983 -10.42983 15.63414 -15.64828 -3.59211 -3.5921 -7.18421 -7.1842 -10.78338 -10.78337 -5.21845 5.2043 -10.42276 10.43689 -15.64828 15.63413 -5.2043 -5.21845 -10.42982 -10.40154 -15.61998 -15.63413 -3.61332 3.58503 -7.19128 7.19127 -10.79753 10.78337 z M 104.7 27.73 c 17.52 -15.29 41.19 -23.17 64.37 -21.67 28.1 1.47 54.95 17.14 70.11 40.84 13.11 19.64 17.44 44.55 12.9 67.64 -9.56 -8.63 -22.29 -13.82 -35.23 -13.71 1.12 -13.81 -3.2 -27.98 -12.08 -38.65 C 194.7 49.9 178.89 42.48 162.99 42.85 149.56 42.84 136.27 48.3 126.65 57.65 115.99 67.68 109.84 82.36 110.23 97 c 0.03 14.5 6.51 28.77 17.24 38.48 10.02 9.4 23.81 14.42 37.51 14.17 -0.5 12.9 3.54 25.82 11.56 35.98 -20.85 2.82 -42.61 -1.52 -60.49 -12.7 C 88.5 198.74 60.94 224.54 33.35 250.3 22.28 238.42 11.13 226.61 0.07 214.72 27.76 188.87 55.42 162.98 83.08 137.1 73.94 119.08 70.98 97.99 75.07 78.18 78.94 58.69 89.49 40.55 104.7 27.73 z"
+                                              Fill="{StaticResource PhoneForegroundBrush}"
+                                              RenderTransformOrigin="0.5,0.5"
+                                              Stretch="Uniform">
+                                            <Path.RenderTransform>
+                                                <TranslateTransform Y="10" />
+                                            </Path.RenderTransform>
+                                        </Path>
+                                    </StackPanel>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </phone:PivotItem.Header>
+                    <viControls:QueryItemsListBox Query="{Binding Query}" />
+                </phone:PivotItem>
+            </phone:Pivot>
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectPage.Pivot">
+        <phone:Pivot Title="{Binding PersistentObject.Breadcrumb,
+                                     Converter={StaticResource characterCasingConverter},
+                                     ConverterParameter=Upper}"
+                     ItemsSource="{Binding PersistentObject.Tabs}"
+                     SelectedItem="{Binding CurrentTab,
+                                            Mode=TwoWay}">
+            <phone:Pivot.HeaderTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Title, Converter={StaticResource characterCasingConverter}, ConverterParameter=Lower}" />
+                </DataTemplate>
+            </phone:Pivot.HeaderTemplate>
+            <phone:Pivot.ItemTemplate>
+                <DataTemplate>
+                    <viControls:DynamicContentControl HorizontalContentAlignment="Stretch"
+                                                      VerticalContentAlignment="Stretch"
+                                                      Content="{Binding}"
+                                                      ContentTemplateSelector="{StaticResource persistentObjectPageTabTemplateSelector}" />
+                </DataTemplate>
+            </phone:Pivot.ItemTemplate>
+        </phone:Pivot>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectPage.Panorama">
+        <phone:Panorama Title="{Binding PersistentObject.Breadcrumb, Converter={StaticResource characterCasingConverter}, ConverterParameter=Lower}" ItemsSource="{Binding PersistentObject.PanoramaTabs}" DefaultItem="{Binding CurrentTab}">
+            <phone:Panorama.HeaderTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Title, Converter={StaticResource characterCasingConverter}, ConverterParameter=Lower}" />
+                </DataTemplate>
+            </phone:Panorama.HeaderTemplate>
+            <phone:Panorama.ItemTemplate>
+                <DataTemplate>
+                    <viControls:DynamicContentControl HorizontalContentAlignment="Stretch"
+                                                      VerticalContentAlignment="Stretch"
+                                                      Content="{Binding}"
+                                                      ContentTemplateSelector="{StaticResource persistentObjectPageTabTemplateSelector}" />
+                </DataTemplate>
+            </phone:Panorama.ItemTemplate>
+        </phone:Panorama>
+    </DataTemplate>
+
+    <DataTemplate x:Key="QueryItemSelectPage">
+        <Grid>
+            <phone:Pivot Title="{Binding AppName, Source={StaticResource ⚙}, Converter={StaticResource characterCasingConverter}, ConverterParameter=Upper}" Visibility="{Binding Lookup.HasTextSearch, Converter={StaticResource negatedBooleanToVisibilityConverter}}">
+                <phone:PivotItem Header="{Binding Lookup.Label, Converter={StaticResource characterCasingConverter}, ConverterParameter=Lower}">
+                    <viControls:QueryItemsListBox Query="{Binding Lookup}" />
+                </phone:PivotItem>
+            </phone:Pivot>
+            <phone:Pivot Title="{Binding Lookup.Label, Converter={StaticResource characterCasingConverter}, ConverterParameter=Upper}" Visibility="{Binding Lookup.HasTextSearch, Converter={StaticResource booleanToVisibilityConverter}}">
+                <phone:PivotItem>
+                    <phone:PivotItem.Header>
+                        <Button Command="{StaticResource removeTextSearchCommand}"
+                                CommandParameter="{Binding Lookup}"
+                                FontFamily="Segoe WP SemiLight"
+                                FontSize="72">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <StackPanel Background="Transparent" Orientation="Horizontal">
+                                        <TextBlock x:Name="textSearch"
+                                                   Margin="0, 0, 12, 0"
+                                                   Text="{Binding Lookup.TextSearch,
+                                                                  Converter={StaticResource stringFormatConverter},
+                                                                  ConverterParameter='&quot;{0}&quot;'}" />
+                                        <Path x:Name="icon"
+                                              Width="40"
+                                              Height="40"
+                                              Margin="0,0,0,0"
+                                              Data="m 178.20883 158.49733 c -1.52735 -10.38032 1.25865 -21.39705 7.78524 -29.64898 6.54781 -8.57014 16.82207 -14.19164 27.59838 -14.95531 10.93187 -1.06066 21.99809 3.0052 30.08739 10.35911 l 1.492 1.492 c 11.21471 11.65312 14.07849 30.37023 6.54781 44.71743 -4.85783 9.73686 -14.01486 17.21098 -24.52954 20.01819 -10.13284 2.79308 -21.44655 1.35058 -30.4268 -4.16486 -9.95607 -5.85484 -16.95642 -16.39073 -18.55448 -27.81758 m 12.04202 -21.91324 c 5.21138 5.21138 10.42983 10.42983 15.64121 15.64121 -5.21138 5.21137 -10.41569 10.42982 -15.63413 15.63413 3.57089 3.61331 7.1842 7.1842 10.76923 10.79752 5.18309 -5.21138 10.44397 -10.34497 15.54928 -15.61999 5.37401 5.07703 10.47932 10.4369 15.74727 15.61999 3.59917 -3.59918 7.19127 -7.19128 10.77631 -10.79045 -5.21138 -5.21138 -10.42276 -10.42276 -15.63414 -15.63413 5.21138 -5.22552 10.42983 -10.42983 15.63414 -15.64828 -3.59211 -3.5921 -7.18421 -7.1842 -10.78338 -10.78337 -5.21845 5.2043 -10.42276 10.43689 -15.64828 15.63413 -5.2043 -5.21845 -10.42982 -10.40154 -15.61998 -15.63413 -3.61332 3.58503 -7.19128 7.19127 -10.79753 10.78337 z M 104.7 27.73 c 17.52 -15.29 41.19 -23.17 64.37 -21.67 28.1 1.47 54.95 17.14 70.11 40.84 13.11 19.64 17.44 44.55 12.9 67.64 -9.56 -8.63 -22.29 -13.82 -35.23 -13.71 1.12 -13.81 -3.2 -27.98 -12.08 -38.65 C 194.7 49.9 178.89 42.48 162.99 42.85 149.56 42.84 136.27 48.3 126.65 57.65 115.99 67.68 109.84 82.36 110.23 97 c 0.03 14.5 6.51 28.77 17.24 38.48 10.02 9.4 23.81 14.42 37.51 14.17 -0.5 12.9 3.54 25.82 11.56 35.98 -20.85 2.82 -42.61 -1.52 -60.49 -12.7 C 88.5 198.74 60.94 224.54 33.35 250.3 22.28 238.42 11.13 226.61 0.07 214.72 27.76 188.87 55.42 162.98 83.08 137.1 73.94 119.08 70.98 97.99 75.07 78.18 78.94 58.69 89.49 40.55 104.7 27.73 z"
+                                              Fill="{StaticResource PhoneForegroundBrush}"
+                                              RenderTransformOrigin="0.5,0.5"
+                                              Stretch="Uniform">
+                                            <Path.RenderTransform>
+                                                <TranslateTransform Y="10" />
+                                            </Path.RenderTransform>
+                                        </Path>
+                                    </StackPanel>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </phone:PivotItem.Header>
+                    <viControls:QueryItemsListBox Query="{Binding Lookup}" />
+                </phone:PivotItem>
+            </phone:Pivot>
+        </Grid>
+    </DataTemplate>
+
+    <!--  ProgramUnitItem Container Templates  -->
+
+    <DataTemplate x:Key="ProgramUnitItemTemplate.Query">
+        <phoneControls:HubTile Background="{StaticResource ApplicationAccentBrush}"
+                               Size="Medium"
+                               phoneControls:TiltEffect.IsTiltEnabled="True">
+            <phoneControls:HubTile.Template>
+                <ControlTemplate TargetType="phoneControls:HubTile">
+                    <Grid Background="{StaticResource ProgramUnitItemBackgroundBrush}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <viControls:DynamicContentControl HorizontalContentAlignment="Center"
+                                                          VerticalContentAlignment="Center"
+                                                          Content="{Binding}"
+                                                          ContentTemplateSelector="{StaticResource programUnitItemTemplateSelector}"
+                                                          FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                                          FontSize="128"
+                                                          Foreground="{StaticResource ProgramUnitItemForegroundBrush}" />
+
+                        <Grid Grid.Row="1" Margin="7, 0, 0, 12">
+                            <Grid.RenderTransform>
+                                <TransformGroup>
+                                    <TranslateTransform X="5" />
+                                </TransformGroup>
+                            </Grid.RenderTransform>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Margin="0, 0, 1, 0"
+                                    Background="{StaticResource ProgramUnitItemLabelBackgroundBrush}"
+                                    Padding="6, 3">
+                                <TextBlock FontSize="20"
+                                           FontWeight="Light"
+                                           Foreground="{StaticResource ProgramUnitItemForegroundBrush}"
+                                           Text="{Binding Title}"
+                                           TextWrapping="Wrap" />
+                            </Border>
+
+                            <Border Grid.Column="1"
+                                    Background="{StaticResource ProgramUnitItemCountBackgroundBrush}"
+                                    Padding="6, 3, 6, 4">
+                                <TextBlock VerticalAlignment="Bottom"
+                                           FontSize="17"
+                                           FontWeight="ExtraLight"
+                                           Foreground="{StaticResource ProgramUnitItemForegroundBrush}"
+                                           Text="{Binding Count}" />
+                            </Border>
+
+                            <Path Grid.Column="1"
+                                  Width="5"
+                                  Height="5"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Top"
+                                  Data="M0,0 L5,5 L0,5 z"
+                                  Fill="{StaticResource ApplicationAccentExtraDarkBrush}">
+                                <Path.RenderTransform>
+                                    <TransformGroup>
+                                        <TranslateTransform Y="-5" />
+                                    </TransformGroup>
+                                </Path.RenderTransform>
+                            </Path>
+                        </Grid>
+                    </Grid>
+
+                </ControlTemplate>
+            </phoneControls:HubTile.Template>
+        </phoneControls:HubTile>
+    </DataTemplate>
+
+    <DataTemplate x:Key="ProgramUnitItemTemplate.PersistentObject">
+        <phoneControls:HubTile Background="{StaticResource ApplicationAccentBrush}"
+                               Size="Medium"
+                               phoneControls:TiltEffect.IsTiltEnabled="True">
+            <phoneControls:HubTile.Template>
+                <ControlTemplate TargetType="phoneControls:HubTile">
+                    <Grid Background="{StaticResource ProgramUnitItemBackgroundBrush}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <viControls:DynamicContentControl HorizontalContentAlignment="Center"
+                                                          VerticalContentAlignment="Center"
+                                                          Content="{Binding}"
+                                                          ContentTemplateSelector="{StaticResource programUnitItemTemplateSelector}"
+                                                          FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                                          FontSize="128"
+                                                          Foreground="{StaticResource ProgramUnitItemForegroundBrush}" />
+
+                        <Grid Grid.Row="1" Margin="7, 0, 0, 12">
+                            <Grid.RenderTransform>
+                                <TransformGroup>
+                                    <TranslateTransform X="5" />
+                                </TransformGroup>
+                            </Grid.RenderTransform>
+
+                            <Border Background="{StaticResource ProgramUnitItemLabelBackgroundBrush}" Padding="6, 3">
+                                <TextBlock FontSize="22"
+                                           FontWeight="Light"
+                                           Foreground="{StaticResource ProgramUnitItemForegroundBrush}"
+                                           Text="{Binding Title}"
+                                           TextWrapping="Wrap" />
+                            </Border>
+
+                            <Path Width="5"
+                                  Height="5"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Top"
+                                  Data="M0,0 L5,5 L0,5 z"
+                                  Fill="{StaticResource ApplicationAccentExtraDarkBrush}">
+                                <Path.RenderTransform>
+                                    <TransformGroup>
+                                        <TranslateTransform Y="-5" />
+                                    </TransformGroup>
+                                </Path.RenderTransform>
+                            </Path>
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </phoneControls:HubTile.Template>
+        </phoneControls:HubTile>
+    </DataTemplate>
+
+    <!--  QueryItem Templates  -->
+
+    <DataTemplate x:Key="QueryItemTemplate.Default">
+        <Border>
+            <TextBlock HorizontalAlignment="Left"
+                       FontFamily="{StaticResource SymbolThemeFontFamily}"
+                       FontSize="25"
+                       Text="{Binding Breadcrumb}" />
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="LoadingMoreQueryItems">
+        <Border />
+    </DataTemplate>
+
+    <!--  PersistentObjectTab Templates  -->
+
+    <Style x:Key="PersistentObjectAttributeValidationError" TargetType="Button">
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="FontSize" Value="10" />
+        <Setter Property="Width" Value="28" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="Transparent" IsHitTestVisible="True">
+                        <TextBlock Margin="-4, 0, 0, 0"
+                                   VerticalAlignment="Center"
+                                   FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                   FontSize="18"
+                                   Foreground="#FFFF0000"
+                                   Text="" />
+                        <TextBlock Margin="-4, 0, 0, 0"
+                                   VerticalAlignment="Center"
+                                   FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                   FontSize="18"
+                                   Foreground="White"
+                                   Text="" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="viControls:PersistentObjectAttributePresenter">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="viControls:PersistentObjectAttributePresenter">
+                    <Border>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="content" Storyboard.TargetProperty="Foreground">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PersistenObjectAttributePointerOverForegroundBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+
+                        <Grid Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.ColumnSpan="2" Visibility="{TemplateBinding LabelVisibility}">
+                                <TextBlock Margin="12, 0, 0, 0"
+                                           CharacterSpacing="20"
+                                           Text="{Binding Label,
+                                                          Converter={StaticResource characterCasingConverter},
+                                                          ConverterParameter=Upper}"
+                                           Visibility="{Binding Parent.IsInEdit,
+                                                                Converter={StaticResource booleanToVisibilityConverter}}" />
+
+                                <TextBlock Margin="12, 0, 0, 0"
+                                           CharacterSpacing="-5"
+                                           FontSize="36"
+                                           Text="{Binding Label,
+                                                          Converter={StaticResource characterCasingConverter},
+                                                          ConverterParameter=Lower}"
+                                           Visibility="{Binding Parent.IsInEdit,
+                                                                Converter={StaticResource negatedBooleanToVisibilityConverter}}" />
+
+                            </Grid>
+
+                            <ContentControl x:Name="content"
+                                            Grid.Row="1"
+                                            HorizontalContentAlignment="Stretch"
+                                            VerticalContentAlignment="Stretch"
+                                            Content="{TemplateBinding Content}"
+                                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                                            IsTabStop="False" />
+                            <Button Grid.Row="1"
+                                    Grid.Column="1"
+                                    Margin="12, 0, 0, 0"
+                                    Command="{StaticResource showNotificationCommand}"
+                                    CommandParameter="{Binding ValidationError}"
+                                    Style="{StaticResource PersistentObjectAttributeValidationError}"
+                                    ToolTipService.ToolTip="{Binding ValidationError}"
+                                    Visibility="{Binding HasValidationError,
+                                                         Converter={StaticResource booleanToVisibilityConverter}}" />
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <DataTemplate x:Key="PersistentObjectTemplate.AttributeTab">
+        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Groups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Margin="0, 0, 0, 12">
+                            <TextBlock Margin="12, 0, 0, 12"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PersistentObjectAttributeGroupForegroundBrush}"
+                                       Text="{Binding Name,
+                                                      Converter={StaticResource characterCasingConverter},
+                                                      ConverterParameter=Upper}"
+                                       Visibility="{Binding IsNameVisible,
+                                                            Converter={StaticResource booleanToVisibilityConverter}}" />
+                            <ItemsControl ItemsSource="{Binding Attributes}" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <viControls:PersistentObjectAttributePresenter Margin="0, -4, 0, 24"
+                                                                                                   Content="{Binding}"
+                                                                                                   Visibility="{Binding IsVisible,
+                                                                                                                        Converter={StaticResource booleanToVisibilityConverter}}"
+                                                                                                   phoneControls:TiltEffect.IsTiltEnabled="{Binding Parent.IsInEdit,
+                                                                                                                                                    Converter={StaticResource booleanNegateConverter}}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectTemplate.QueryTab">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Button Margin="12, 0, 0, 24"
+                    Command="{StaticResource removeTextSearchCommand}"
+                    CommandParameter="{Binding}"
+                    DataContext="{Binding Query}"
+                    Visibility="{Binding HasTextSearch,
+                                         Converter={StaticResource booleanToVisibilityConverter}}">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <StackPanel Background="Transparent" Orientation="Horizontal">
+                            <TextBlock x:Name="textSearch"
+                                       Margin="0, 0, 12, 0"
+                                       FontSize="32"
+                                       Text="{Binding TextSearch,
+                                                      Converter={StaticResource stringFormatConverter},
+                                                      ConverterParameter='&quot;{0}&quot;'}" />
+                            <Path x:Name="icon"
+                                  Width="28"
+                                  Height="28"
+                                  Margin="0,0,0,0"
+                                  Data="m 178.20883 158.49733 c -1.52735 -10.38032 1.25865 -21.39705 7.78524 -29.64898 6.54781 -8.57014 16.82207 -14.19164 27.59838 -14.95531 10.93187 -1.06066 21.99809 3.0052 30.08739 10.35911 l 1.492 1.492 c 11.21471 11.65312 14.07849 30.37023 6.54781 44.71743 -4.85783 9.73686 -14.01486 17.21098 -24.52954 20.01819 -10.13284 2.79308 -21.44655 1.35058 -30.4268 -4.16486 -9.95607 -5.85484 -16.95642 -16.39073 -18.55448 -27.81758 m 12.04202 -21.91324 c 5.21138 5.21138 10.42983 10.42983 15.64121 15.64121 -5.21138 5.21137 -10.41569 10.42982 -15.63413 15.63413 3.57089 3.61331 7.1842 7.1842 10.76923 10.79752 5.18309 -5.21138 10.44397 -10.34497 15.54928 -15.61999 5.37401 5.07703 10.47932 10.4369 15.74727 15.61999 3.59917 -3.59918 7.19127 -7.19128 10.77631 -10.79045 -5.21138 -5.21138 -10.42276 -10.42276 -15.63414 -15.63413 5.21138 -5.22552 10.42983 -10.42983 15.63414 -15.64828 -3.59211 -3.5921 -7.18421 -7.1842 -10.78338 -10.78337 -5.21845 5.2043 -10.42276 10.43689 -15.64828 15.63413 -5.2043 -5.21845 -10.42982 -10.40154 -15.61998 -15.63413 -3.61332 3.58503 -7.19128 7.19127 -10.79753 10.78337 z M 104.7 27.73 c 17.52 -15.29 41.19 -23.17 64.37 -21.67 28.1 1.47 54.95 17.14 70.11 40.84 13.11 19.64 17.44 44.55 12.9 67.64 -9.56 -8.63 -22.29 -13.82 -35.23 -13.71 1.12 -13.81 -3.2 -27.98 -12.08 -38.65 C 194.7 49.9 178.89 42.48 162.99 42.85 149.56 42.84 136.27 48.3 126.65 57.65 115.99 67.68 109.84 82.36 110.23 97 c 0.03 14.5 6.51 28.77 17.24 38.48 10.02 9.4 23.81 14.42 37.51 14.17 -0.5 12.9 3.54 25.82 11.56 35.98 -20.85 2.82 -42.61 -1.52 -60.49 -12.7 C 88.5 198.74 60.94 224.54 33.35 250.3 22.28 238.42 11.13 226.61 0.07 214.72 27.76 188.87 55.42 162.98 83.08 137.1 73.94 119.08 70.98 97.99 75.07 78.18 78.94 58.69 89.49 40.55 104.7 27.73 z"
+                                  Fill="{StaticResource PhoneForegroundBrush}"
+                                  RenderTransformOrigin="0.5,0.5"
+                                  Stretch="Uniform">
+                                <Path.RenderTransform>
+                                    <TranslateTransform Y="4" />
+                                </Path.RenderTransform>
+                            </Path>
+                        </StackPanel>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+            <viControls:QueryItemsListBox Grid.Row="1" Query="{Binding Query}" />
+        </Grid>
+    </DataTemplate>
+
+    <!--  Persistent Object Attribute Templates  -->
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Default">
+        <Border Background="Transparent">
+            <TextBlock Margin="12, 0, 0, 0"
+                       VerticalAlignment="Center"
+                       Foreground="{StaticResource PhoneAccentBrush}"
+                       Text="{Binding DisplayValue,
+                                      Converter={StaticResource nullOrEmptyConverter},
+                                      ConverterParameter='-'}"
+                       TextTrimming="WordEllipsis" />
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Default">
+        <TextBox vi:AutoUpdateBindingEx.AutoUpdateBinding="{Binding Value, Mode=TwoWay}" vi:AutoUpdateBindingEx.IsAutoUpdate="True" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.ReadOnly.Default">
+        <Grid>
+            <TextBox Text="{Binding DisplayValue}" />
+            <Border HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.String">
+        <TextBox vi:AutoUpdateBindingEx.AutoUpdateBinding="{Binding Value, Mode=TwoWay}" vi:AutoUpdateBindingEx.IsAutoUpdate="True" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.MultiLineString">
+        <TextBlock MinHeight="108" Text="{Binding DisplayValue}" TextWrapping="Wrap" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.MultiLineString">
+        <TextBox MinHeight="108"
+                 AcceptsReturn="True"
+                 vi:AutoUpdateBindingEx.AutoUpdateBinding="{Binding Value,
+                                                                    Mode=TwoWay}"
+                 vi:AutoUpdateBindingEx.IsAutoUpdate="True"
+                 TextWrapping="Wrap" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Password">
+        <TextBlock Text="••••••" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Password">
+        <PasswordBox vi:AutoUpdateBindingEx.AutoUpdateBinding="{Binding Value, Mode=TwoWay}" vi:AutoUpdateBindingEx.IsAutoUpdate="True" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Int32">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableInt32">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.UInt32">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableUInt32">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Byte">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableByte">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.SByte">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableSByte">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Int16">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableInt16">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.UInt16">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableUInt16">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Int64">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableInt64">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.UInt64">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableUInt64">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Decimal">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableDecimal">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Double">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableDouble">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Single">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableSingle">
+        <viControls:PersistentObjectAttributeNumeric />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Boolean">
+        <phoneControls:ToggleSwitch IsChecked="{Binding Value, Mode=TwoWay}">
+            <phoneControls:ToggleSwitch.ContentTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Converter={StaticResource translatableBooleanConverter}}" />
+                </DataTemplate>
+            </phoneControls:ToggleSwitch.ContentTemplate>
+        </phoneControls:ToggleSwitch>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableBoolean">
+        <phoneControls:ListPicker Background="{StaticResource PhoneTextBoxBrush}"
+                                  BorderBrush="{StaticResource PhoneTextBoxBrush}"
+                                  DisplayMemberPath="DisplayValue"
+                                  Foreground="{StaticResource PhoneTextBoxForegroundBrush}"
+                                  ItemsSource="{Binding Options}"
+                                  SelectedItem="{Binding SelectedOption,
+                                                         Mode=TwoWay}" />
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.YesNo">
+        <phoneControls:ToggleSwitch IsChecked="{Binding Value, Mode=TwoWay}">
+            <phoneControls:ToggleSwitch.ContentTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Converter={StaticResource translatableBooleanConverter}, ConverterParameter='YesNo'}" />
+                </DataTemplate>
+            </phoneControls:ToggleSwitch.ContentTemplate>
+        </phoneControls:ToggleSwitch>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Date">
+        <Grid>
+            <TextBox Text="{Binding DisplayValue}" />
+            <Border HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableDate">
+        <Grid>
+            <TextBox Text="{Binding DisplayValue}" />
+            <Border HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.DateTime">
+        <Grid>
+            <TextBox Text="{Binding DisplayValue}" />
+            <Border HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableDateTime">
+        <Grid>
+            <TextBox Text="{Binding DisplayValue}" />
+            <Border HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.DateTimeOffset">
+        <Grid>
+            <TextBox Text="{Binding DisplayValue}" />
+            <Border HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableDateTimeOffset">
+        <Grid>
+            <TextBox Text="{Binding DisplayValue}" />
+            <Border HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Time">
+        <Grid>
+            <TextBox Text="{Binding DisplayValue}" />
+            <Border HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.NullableTime">
+        <Grid>
+            <TextBox Text="{Binding DisplayValue}" />
+            <Border HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.ComboBox">
+        <phoneControls:AutoCompleteBox Background="{StaticResource PhoneTextBoxBrush}"
+                                       BorderBrush="{StaticResource PhoneTextBoxBrush}"
+                                       Foreground="{StaticResource PhoneTextBoxForegroundBrush}"
+                                       ItemsSource="{Binding Options}"
+                                       Text="{Binding Value,
+                                                      Mode=TwoWay}"
+                                       ValueMemberBinding="{Binding DisplayValue}">
+
+            <phoneControls:AutoCompleteBox.ItemTemplate>
+                <DataTemplate>
+                    <Border Background="Transparent" Padding="6, 12">
+                        <TextBlock Text="{Binding DisplayValue}" />
+                    </Border>
+                </DataTemplate>
+            </phoneControls:AutoCompleteBox.ItemTemplate>
+        </phoneControls:AutoCompleteBox>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.DropDown">
+        <phoneControls:ListPicker Background="{StaticResource PhoneTextBoxBrush}"
+                                  BorderBrush="{StaticResource PhoneTextBoxBrush}"
+                                  DisplayMemberPath="DisplayValue"
+                                  Foreground="{StaticResource PhoneTextBoxForegroundBrush}"
+                                  FullModeHeader="{Binding Label}"
+                                  ItemsSource="{Binding Options}"
+                                  SelectedItem="{Binding SelectedOption,
+                                                         Mode=TwoWay}">
+            <phoneControls:ListPicker.FullModeItemTemplate>
+                <DataTemplate>
+                    <Border Background="Transparent" Padding="6, 12">
+                        <TextBlock FontSize="32" Text="{Binding DisplayValue}" />
+                    </Border>
+                </DataTemplate>
+            </phoneControls:ListPicker.FullModeItemTemplate>
+        </phoneControls:ListPicker>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Enum">
+        <phoneControls:ListPicker Background="{StaticResource PhoneTextBoxBrush}"
+                                  BorderBrush="{StaticResource PhoneTextBoxBrush}"
+                                  DisplayMemberPath="DisplayValue"
+                                  Foreground="{StaticResource PhoneTextBoxForegroundBrush}"
+                                  FullModeHeader="{Binding Label}"
+                                  ItemsSource="{Binding Options}"
+                                  SelectedItem="{Binding SelectedOption,
+                                                         Mode=TwoWay}">
+            <phoneControls:ListPicker.FullModeItemTemplate>
+                <DataTemplate>
+                    <Border Background="Transparent" Padding="6, 12">
+                        <TextBlock FontSize="32" Text="{Binding DisplayValue}" />
+                    </Border>
+                </DataTemplate>
+            </phoneControls:ListPicker.FullModeItemTemplate>
+        </phoneControls:ListPicker>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.KeyValueList">
+        <phoneControls:ListPicker Background="{StaticResource PhoneTextBoxBrush}"
+                                  BorderBrush="{StaticResource PhoneTextBoxBrush}"
+                                  DisplayMemberPath="DisplayValue"
+                                  Foreground="{StaticResource PhoneTextBoxForegroundBrush}"
+                                  FullModeHeader="{Binding Label}"
+                                  ItemsSource="{Binding Options}"
+                                  SelectedItem="{Binding SelectedOption,
+                                                         Mode=TwoWay}">
+            <phoneControls:ListPicker.FullModeItemTemplate>
+                <DataTemplate>
+                    <Border Background="Transparent" Padding="6, 12">
+                        <TextBlock FontSize="32" Text="{Binding DisplayValue}" />
+                    </Border>
+                </DataTemplate>
+            </phoneControls:ListPicker.FullModeItemTemplate>
+        </phoneControls:ListPicker>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Image">
+        <Grid>
+            <Image Height="108"
+                   Margin="12, 12, 0, 0"
+                   HorizontalAlignment="Left"
+                   Source="{Binding Value}"
+                   Visibility="{Binding HasValue,
+                                        Converter={StaticResource booleanToVisibilityConverter}}" />
+            <Border Width="108"
+                    Height="108"
+                    Margin="12, 12, 0, 0"
+                    HorizontalAlignment="Left"
+                    Background="{StaticResource PhoneAccentBrush}"
+                    Visibility="{Binding HasValue,
+                                         Converter={StaticResource negatedBooleanToVisibilityConverter}}" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Image">
+        <Grid>
+            <Image Height="108"
+                   Margin="12, 12, 0, 0"
+                   HorizontalAlignment="Left"
+                   Source="{Binding Value}"
+                   Visibility="{Binding HasValue,
+                                        Converter={StaticResource booleanToVisibilityConverter}}" />
+            <Border Width="108"
+                    Height="108"
+                    Margin="12, 12, 0, 0"
+                    HorizontalAlignment="Left"
+                    Background="{StaticResource PhoneAccentBrush}"
+                    Visibility="{Binding HasValue,
+                                         Converter={StaticResource negatedBooleanToVisibilityConverter}}" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.ReadOnly.Image">
+        <Grid>
+            <Image Height="108"
+                   Margin="12, 12, 0, 0"
+                   HorizontalAlignment="Left"
+                   Source="{Binding Value}"
+                   Visibility="{Binding HasValue,
+                                        Converter={StaticResource booleanToVisibilityConverter}}" />
+            <Border Width="108"
+                    Height="108"
+                    Margin="12, 12, 0, 0"
+                    HorizontalAlignment="Left"
+                    Background="{StaticResource PhoneAccentBrush}"
+                    Visibility="{Binding HasValue,
+                                         Converter={StaticResource negatedBooleanToVisibilityConverter}}" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.BinaryFile">
+        <Grid>
+            <TextBox Text="{Binding DisplayValue}" />
+            <Border HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent" />
+        </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Reference">
+        <Border Background="Transparent">
+            <Grid MinHeight="32" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Margin="12, 0, 0, 0"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource PhoneAccentBrush}"
+                           Text="{Binding DisplayValue,
+                                          Converter={StaticResource nullOrEmptyConverter},
+                                          ConverterParameter='-'}"
+                           TextTrimming="WordEllipsis" />
+
+                <TextBlock Grid.Column="1"
+                           Margin="12, 0, 0, 0"
+                           VerticalAlignment="Center"
+                           FontFamily="{StaticResource SymbolThemeFontFamily}"
+                           Foreground="{StaticResource PhoneAccentBrush}"
+                           Text=""
+                           Visibility="{Binding CanOpen,
+                                                Converter={StaticResource booleanToVisibilityConverter}}" />
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.ReadOnly.Reference">
+        <Border Background="Transparent">
+            <Grid MinHeight="32" HorizontalAlignment="Left">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Margin="12, 0, 0, 0"
+                           VerticalAlignment="Center"
+                           Foreground="{StaticResource PhoneAccentBrush}"
+                           Text="{Binding DisplayValue,
+                                          Converter={StaticResource nullOrEmptyConverter},
+                                          ConverterParameter='-'}"
+                           TextTrimming="WordEllipsis" />
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <DataTemplate x:Key="PersistentObjectAttributeTemplate.Edit.Reference">
+        <Grid>
+            <TextBox Text="{Binding DisplayValue}" />
+            <Border HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent" />
+        </Grid>
+    </DataTemplate>
+
+    <!--  Default Control Styles  -->
+
+    <Style TargetType="viControls:Search">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="viControls:Search">
+                    <Grid>
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="SearchStates">
+                                <VisualState x:Name="Closed">
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="background" Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="Collapsed" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <DoubleAnimation Duration="0:0:0.25"
+                                                         Storyboard.TargetName="searchContent"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="0" />
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="searchContent" Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0:0:0.25" Value="Collapsed" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="Open">
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="background" Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="Visible" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="searchContent" Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="Visible" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <DoubleAnimation Duration="0:0:0.25"
+                                                         From="0"
+                                                         Storyboard.TargetName="searchContent"
+                                                         Storyboard.TargetProperty="Opacity"
+                                                         To="1.0" />
+                                    </Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+
+                        <Border x:Name="background"
+                                Background="{StaticResource PhoneBackgroundBrush}"
+                                Opacity="0.3"
+                                Visibility="Collapsed" />
+
+                        <Grid x:Name="searchContent"
+                              VerticalAlignment="Bottom"
+                              Opacity="0"
+                              Visibility="Collapsed">
+                            <Border HorizontalAlignment="Stretch" Background="{StaticResource PhoneBackgroundBrush}">
+                                <TextBox x:Name="searchBox"
+                                         HorizontalAlignment="Stretch"
+                                         Padding="0, 0, 52, 0" />
+                            </Border>
+                            <Button HorizontalAlignment="Right"
+                                    Command="{Binding Search}"
+                                    CommandParameter="{Binding Text,
+                                                               ElementName=searchBox,
+                                                               Mode=TwoWay}"
+                                    Padding="0, 0, 24, 0">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                                            <Path Width="24"
+                                                  Height="24"
+                                                  Fill="{StaticResource PhoneTextBoxForegroundBrush}"
+                                                  RenderTransformOrigin="0.5,0.5"
+                                                  Stretch="Uniform">
+                                                <Path.RenderTransform>
+                                                    <ScaleTransform ScaleX="-1" />
+                                                </Path.RenderTransform>
+                                                <Path.Data>F1M54.8672,51.2266L42.1145,36.0703C44.2473,33.3333 45.6692,29.9946 46.0469,26.2942 47.1016,15.8333 39.4948,6.49219 29.0313,5.43213 18.5729,4.37231 9.2395,11.9868 8.17188,22.4453 7.10938,32.9036 14.7291,42.2446 25.1875,43.3098 28.6692,43.6563 32.0416,43.0469 35.0051,41.6797L47.9244,57.0547C49.5416,58.9634 52.401,59.2134 54.3125,57.6094 56.2266,55.9973 56.4766,53.1348 54.8672,51.2266 M15.9219,23.1614C16.5547,16.9399 22.1094,12.4087 28.3333,13.0391 34.5573,13.6719 39.0781,19.2266 38.4453,25.4426 37.8098,31.6692 32.2708,36.1953 26.0416,35.5703 19.8203,34.9399 15.2891,29.3828 15.9219,23.1614</Path.Data>
+                                            </Path>
+                                        </Border>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PhoneButtonBase" TargetType="ButtonBase">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{StaticResource PhoneForegroundBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource PhoneForegroundBrush}" />
+        <Setter Property="BorderThickness" Value="{StaticResource PhoneBorderThickness}" />
+        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilySemiBold}" />
+        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeMedium}" />
+        <Setter Property="Padding" Value="10,5,10,6" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ButtonBase">
+                    <Grid Background="Transparent">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="MouseOver" />
+                                <VisualState x:Name="Pressed">
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentContainer" Storyboard.TargetProperty="Foreground">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PhoneButtonBasePressedForegroundBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ButtonBackground" Storyboard.TargetProperty="Background">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PhoneAccentBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ContentContainer" Storyboard.TargetProperty="Foreground">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PhoneDisabledBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ButtonBackground" Storyboard.TargetProperty="BorderBrush">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PhoneDisabledBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="ButtonBackground" Storyboard.TargetProperty="Background">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="Transparent" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <Border x:Name="ButtonBackground"
+                                Margin="{StaticResource PhoneTouchTargetOverhang}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="0">
+                            <ContentControl x:Name="ContentContainer"
+                                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                            Content="{TemplateBinding Content}"
+                                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                                            Foreground="{TemplateBinding Foreground}"
+                                            Padding="{TemplateBinding Padding}" />
+                        </Border>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PhoneRadioButtonCheckBoxBase"
+           BasedOn="{StaticResource PhoneButtonBase}"
+           TargetType="ToggleButton">
+        <Setter Property="Background" Value="{StaticResource PhoneRadioCheckBoxBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource PhoneRadioCheckBoxBorderBrush}" />
+        <Setter Property="FontSize" Value="{StaticResource PhoneFontSizeMedium}" />
+        <Setter Property="FontFamily" Value="{StaticResource PhoneFontFamilyNormal}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Padding" Value="0" />
+    </Style>
+
+    <Style x:Key="QueryListViewItemSelector"
+           BasedOn="{StaticResource PhoneRadioButtonCheckBoxBase}"
+           TargetType="CheckBox">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid HorizontalAlignment="Left" Background="Transparent">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="MouseOver" />
+                                <VisualState x:Name="Pressed">
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CheckBackground" Storyboard.TargetProperty="Background">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PhoneRadioCheckBoxPressedBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CheckMark" Storyboard.TargetProperty="Fill">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PhoneButtonBasePressedForegroundBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="IndeterminateMark" Storyboard.TargetProperty="Fill">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PhoneButtonBasePressedForegroundBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CheckBackground" Storyboard.TargetProperty="BorderBrush">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PhoneDisabledBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CheckMark" Storyboard.TargetProperty="Fill">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PhoneDisabledBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="IndeterminateMark" Storyboard.TargetProperty="Fill">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{StaticResource PhoneDisabledBrush}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                            <VisualStateGroup x:Name="CheckStates">
+                                <VisualState x:Name="Checked">
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="CheckMark" Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0">
+                                                <DiscreteObjectKeyFrame.Value>
+                                                    <Visibility>Visible</Visibility>
+                                                </DiscreteObjectKeyFrame.Value>
+                                            </DiscreteObjectKeyFrame>
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="Unchecked" />
+                                <VisualState x:Name="Indeterminate">
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="IndeterminateMark" Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0">
+                                                <DiscreteObjectKeyFrame.Value>
+                                                    <Visibility>Visible</Visibility>
+                                                </DiscreteObjectKeyFrame.Value>
+                                            </DiscreteObjectKeyFrame>
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <Grid Margin="18, 0, 0, 0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid Grid.Column="0" VerticalAlignment="Top">
+                                <Border x:Name="CheckBackground"
+                                        Width="32"
+                                        Height="32"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{StaticResource PhoneBorderThickness}"
+                                        IsHitTestVisible="False" />
+                                <Rectangle x:Name="IndeterminateMark"
+                                           Width="16"
+                                           Height="16"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Fill="{StaticResource PhoneRadioCheckBoxCheckBrush}"
+                                           IsHitTestVisible="False"
+                                           Visibility="Collapsed" />
+                                <Path x:Name="CheckMark"
+                                      Width="23"
+                                      Height="21"
+                                      HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"
+                                      Data="M0,123 L39,93 L124,164 L256,18 L295,49 L124,240 z"
+                                      Fill="{StaticResource PhoneRadioCheckBoxCheckBrush}"
+                                      FlowDirection="LeftToRight"
+                                      IsHitTestVisible="False"
+                                      Stretch="Fill"
+                                      StrokeLineJoin="Round"
+                                      StrokeThickness="3"
+                                      Visibility="Collapsed" />
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="viControls:QueryItemsListBox">
+        <Style.Setters>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="viControls:QueryItemsListBoxItem">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="viControls:QueryItemsListBoxItem">
+                                    <Border Background="Transparent"
+                                            Padding="6, 0, 0, 0"
+                                            phoneControls:TiltEffect.IsTiltEnabled="True">
+
+                                        <Grid Margin="0, 14">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <Border Visibility="{Binding Query.HasSelectedItems, Converter={StaticResource booleanToVisibilityConverter}}">
+                                                <CheckBox VerticalAlignment="Center"
+                                                          IsChecked="{Binding IsSelected,
+                                                                              Mode=TwoWay,
+                                                                              RelativeSource={RelativeSource TemplatedParent}}"
+                                                          Style="{StaticResource QueryListViewItemSelector}"
+                                                          Visibility="{TemplateBinding SelectorVisibility}" />
+                                            </Border>
+
+                                            <Border Grid.Column="1"
+                                                    Margin="18, 0, 0, 0"
+                                                    VerticalAlignment="Center">
+                                                <viControls:DynamicContentControl HorizontalContentAlignment="Stretch"
+                                                                                  VerticalContentAlignment="Stretch"
+                                                                                  Content="{Binding}"
+                                                                                  ContentTemplateSelector="{StaticResource queryItemTemplateSelector}" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style.Setters>
+    </Style>
+
+    <!--  Service Provider Icons  -->
+    <sys:String x:Key="Microsoft">F1M181.003,-1898.78L207.077,-1902.33 207.089,-1877.18 181.027,-1877.03 181.003,-1898.78z M207.065,-1874.28L207.085,-1849.1 181.023,-1852.69 181.022,-1874.45 207.065,-1874.28z M210.226,-1902.79L244.798,-1907.84 244.798,-1877.5 210.226,-1877.22 210.226,-1902.79z M244.807,-1874.04L244.798,-1843.84 210.226,-1848.72 210.177,-1874.1 244.807,-1874.04z</sys:String>
+    <sys:String x:Key="Google">M32.335703,36.110165C36.96868,36.132984 40.761462,38.731339 40.995764,42.182522 41.245688,45.873787 37.346884,49.134907 32.308432,49.475021 27.259982,49.81514 22.961302,47.114212 22.711378,43.422947 22.461455,39.741684 26.35026,36.480564 31.398711,36.14045 31.71424,36.118568 32.026839,36.108643 32.335703,36.110165z M30.550867,10.890403C33.225726,10.924993 35.923548,13.490879 36.929625,17.174557 38.079432,21.394474 36.569685,25.464394 33.560198,26.284376 30.550711,27.104361 27.191283,24.354414 26.041478,20.144497 24.901673,15.934581 26.401417,11.854661 29.410904,11.034678 29.787091,10.93218 30.168744,10.885462 30.550867,10.890403z M32.703711,8.7392378C32.703711,8.7392378 20.312317,9.0392609 20.312317,19.528347 20.312317,30.007425 31.143479,28.797569 31.143479,28.797569L31.143479,31.457373C31.143479,32.527229 32.593714,32.167275 32.773665,34.337132 32.043604,34.337132 17.732075,33.967167 17.732075,43.456341 17.732075,52.955521 30.343462,52.49548 30.343462,52.49548 30.343462,52.49548 44.935049,53.165466 44.935049,41.366432 44.935049,34.307102 36.61418,32.027271 36.61418,29.17754 36.61418,26.32781 42.884776,25.497805 42.884776,18.808439 42.884776,14.788765 42.514738,12.36893 39.344462,10.939121 39.344462,9.9492169 44.935049,10.599185 44.935049,8.7392378z M7.0808653,0L55.57625,0C59.496607,2.0224979E-07,62.667002,3.169771,62.667002,7.0894771L62.667002,52.135525C62.667002,56.055229,59.496607,59.225002,55.57625,59.225002L7.0808653,59.225002C3.1703965,59.225002,0,56.055229,0,52.135525L0,7.0894771C0,3.169771,3.1703965,2.0224979E-07,7.0808653,0z</sys:String>
+    <sys:String x:Key="Facebook">F1M-1775.32,-68.9708L-1831.47,-68.9708C-1833.27,-68.9708,-1834.73,-67.3745,-1834.73,-65.4058L-1834.73,-10.1649C-1834.73,-8.19482,-1833.27,-6.59973,-1831.47,-6.59973L-1802.47,-6.59973 -1802.47,-32.2261 -1809.5,-32.2261 -1809.5,-40.5503 -1802.47,-40.5503 -1802.47,-45.5282C-1802.47,-50.9435,-1798.08,-55.3315,-1792.66,-55.3315L-1783.74,-55.3315 -1783.74,-47.0099 -1787.86,-47.0099C-1789.89,-47.0099,-1791.53,-45.3667,-1791.53,-43.3407L-1791.53,-40.5503 -1783.74,-40.5503 -1783.74,-32.2261 -1791.53,-32.2261 -1791.53,-6.59973 -1775.32,-6.59973C-1773.52,-6.59973,-1772.06,-8.19482,-1772.06,-10.1649L-1772.06,-65.4058C-1772.06,-67.3745,-1773.52,-68.9708,-1775.32,-68.9708</sys:String>
+    <sys:String x:Key="Twitter">M-1777.84,-735.739C-1779.26,-736.059 -1779.02,-735.992 -1777.83,-736.24 -1774.63,-736.906 -1772.58,-737.916 -1772.35,-739.471 -1774.46,-738.8 -1776.62,-738.775 -1778.92,-739.183 -1779.98,-739.371 -1779.7,-739.271 -1779.93,-740.311 -1781.63,-747.819 -1787.53,-751.349 -1793.08,-751.454 -1786.29,-752.91 -1786.07,-755.831 -1792.48,-753.538 -1790.13,-754.984 -1789.89,-756.332 -1793.3,-754.722 -1793.91,-754.412 -1794.7,-753.83 -1795.24,-753.394 -1794.01,-755.809 -1795.09,-755.113 -1797.2,-752.919 -1800.02,-749.981 -1802.47,-745.925 -1804.47,-739.667 -1808.83,-744.16 -1816.2,-747.195 -1823.59,-750.022 -1825.24,-750.655 -1825.66,-751.22 -1825.25,-749.015 -1824.82,-746.675 -1823.12,-744.559 -1820.27,-742.834 -1821.23,-742.786 -1822.31,-742.674 -1823.15,-742.462 -1824,-742.244 -1823.96,-742.287 -1823.71,-741.447 -1822.94,-738.91 -1820.73,-737.018 -1817.1,-735.981 -1818.35,-735.883 -1819.57,-735.599 -1820.45,-734.955 -1821.26,-734.37 -1821.26,-734.311 -1820.76,-733.551 -1819.46,-731.546 -1817.23,-730.438 -1813.73,-730.403 -1817.43,-728.518 -1816.22,-725.026 -1811.56,-725.026 -1818.67,-717.951 -1828.26,-719.07 -1834.73,-724.146 -1824.87,-710.215 -1805.21,-709.103 -1791.71,-716.767 -1785.95,-720.032 -1781.41,-725.233 -1779.42,-732.494 -1776.24,-732.533 -1773.67,-733.483 -1772.06,-735.339 -1774.13,-735.243 -1776.09,-735.345 -1777.84,-735.739</sys:String>
+    <sys:String x:Key="Yammer">m 293.22 307.72 c 3.72 -1.52 7.78 -1.48 11.66 -0.64 11.44 2.26 22.34 6.6 33.13 10.93 21.22 8.83 41.9 18.93 62.09 29.89 8.89 5.14 11 18.15 5.23 26.37 -5.15 7.99 -17.17 11.1 -25.11 5.5 -17.79 -11.27 -34.81 -23.71 -51.57 -36.45 -10.76 -8.45 -21.69 -16.86 -31.01 -26.93 -2.31 -2.39 -4.11 -5.3 -4.42 -8.67 z M 419.6 240.8 c 5.79 -0.44 11.61 -1.22 17.41 -0.65 7.37 1.65 13.1 8.37 14.01 15.8 1.5 9.18 -4.86 18.84 -13.91 21 -4.01 0.61 -8.08 0.22 -12.11 0.3 -17.33 -0.33 -34.67 -1.14 -51.93 -2.75 -13.72 -1.4 -27.54 -2.87 -40.84 -6.65 -3.56 -1.2 -7.48 -2.31 -10.07 -5.19 -2.1 -2.33 1.13 -4.51 3.06 -5.41 8.82 -3.87 18.39 -5.54 27.77 -7.46 22.04 -4.06 44.31 -6.86 66.61 -8.99 z M 383.49 137.56 c 8.74 -3.4 19.34 1.33 23.25 9.72 4.18 8.49 1.05 20.4 -7.77 24.58 -24.84 13.23 -50.19 25.72 -76.7 35.26 -8.45 2.64 -17.16 6.25 -26.18 5.22 -2.86 -0.09 -3.29 -3.08 -1.83 -5.04 4.33 -6.85 10.8 -11.96 16.78 -17.3 18.77 -15.83 38.72 -30.22 59.01 -44.04 4.43 -2.88 8.71 -6.02 13.44 -8.4 z M 80.85 109.8 c 2.83 -6.39 9.13 -11.04 16.08 -11.85 8.92 -1.33 18.34 3.99 21.6 12.44 18.91 47.74 37.76 95.51 56.64 143.27 3.42 8.23 6.25 16.72 10.07 24.78 20.05 -51.89 39.84 -103.89 59.42 -155.96 2.21 -5.3 3.17 -11.34 7.12 -15.75 5.21 -6.01 14.29 -8.14 21.66 -5.2 7.42 2.8 12.65 10.52 12.35 18.47 0.06 5.72 -3.11 10.7 -5.03 15.9 -29.58 73.16 -58.84 146.44 -88.21 219.68 -5.93 14.12 -12.57 28.42 -23.44 39.48 -8.53 8.85 -20.02 14.61 -32.06 16.81 -12.02 2.26 -24.43 2.09 -36.49 0.3 -9.14 -1.34 -15.73 -11.08 -13.96 -20.07 1.14 -8.7 9.6 -15.4 18.31 -14.76 9.82 0.62 20.26 1.42 29.37 -3.08 10.77 -5.03 17.13 -15.86 21.55 -26.41 2.46 -6.31 5.14 -12.54 7.97 -18.7 C 136.09 261.81 108.33 194.5 80.9 127.05 78.46 121.64 78.28 115.2 80.85 109.8 z</sys:String>
+</ResourceDictionary>

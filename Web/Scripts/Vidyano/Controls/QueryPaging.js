@@ -18,7 +18,7 @@
         var last = $("<button>").addClass("last").button();
         target.append(last);
 
-        first.bind("click", function () {
+        first.on("click", function () {
             if ($(this).hasClass("disabled"))
                 return;
 
@@ -26,7 +26,7 @@
             query.search(function () { update(); });
         });
 
-        previous.bind("click", function () {
+        previous.on("click", function () {
             if ($(this).hasClass("disabled"))
                 return;
 
@@ -34,7 +34,7 @@
             query.search(function () { update(); });
         });
 
-        next.bind("click", function () {
+        next.on("click", function () {
             if ($(this).hasClass("disabled"))
                 return;
 
@@ -42,7 +42,7 @@
             query.search(function () { update(); });
         });
 
-        last.bind("click", function () {
+        last.on("click", function () {
             if ($(this).hasClass("disabled"))
                 return;
 
