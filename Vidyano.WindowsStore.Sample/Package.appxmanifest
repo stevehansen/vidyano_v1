@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/2010/manifest">
-  <Identity Name="409SteveHansen.MyDashboard" Publisher="CN=3C34DC24-2998-47C3-9D39-EF04480B4801" Version="1.0.0.7" />
+  <Identity Name="409SteveHansen.MyDashboard" Publisher="CN=Steve" Version="1.0.0.7" />
   <Properties>
     <DisplayName>MyDashboard</DisplayName>
     <PublisherDisplayName>SteveHansen</PublisherDisplayName>

@@ -101,7 +101,7 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\VersionInfo.cs">
+    <Compile Include="..\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
     <Compile Include="ApplicationColors.cs" />
@@ -230,17 +230,23 @@
   <ItemGroup>
     <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\packages\Newtonsoft.Json.5.0.6\lib\netcore45\Newtonsoft.Json.dll</HintPath>
+      <HintPath>..\packages\Newtonsoft.Json.5.0.8\lib\netcore45\Newtonsoft.Json.dll</HintPath>
       <Private>False</Private>
     </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+    <Reference Include="System.Net.Http.Extensions">
+      <HintPath>..\packages\Microsoft.Net.Http.2.2.18\lib\win8\System.Net.Http.Extensions.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http.Primitives">
+      <HintPath>..\packages\Microsoft.Net.Http.2.2.18\lib\win8\System.Net.Http.Primitives.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <SDKReference Include="LiveSDKXAML, Version=5.4">
       <Name>Live SDK</Name>
     </SDKReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '11.0' ">
     <VisualStudioVersion>11.0</VisualStudioVersion>
@@ -248,15 +254,14 @@
   <Import Project="$(MSBuildExtensionsPath)\Microsoft\WindowsXaml\v$(VisualStudioVersion)\Microsoft.Windows.UI.Xaml.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <PropertyGroup>
-    <PostBuildEvent>echo f | xcopy $(ProjectDir)bin\Release\Vidyano.WindowsStore.dll $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Vidyano.WindowsStore.WindowsStore.dll /Y
-echo f | xcopy $(ProjectDir)bin\Release\Vidyano.WindowsStore.pri $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Vidyano.WindowsStore.pri /Y
-echo f | xcopy $(ProjectDir)bin\Release\Vidyano.Core.dll $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Vidyano.Core.WindowsStore.dll /Y
-echo f | xcopy $(ProjectDir)bin\Release\Newtonsoft.Json.dll $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Newtonsoft.Json.WindowsStore.dll /Y
-echo f | xcopy $(ProjectDir)bin\Release\Microsoft.Live.dll $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Microsoft.Live.WindowsStore.dll /Y
-echo f | xcopy $(ProjectDir)Themes\Generic.xaml $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Vidyano.WindowsStore\Themes\Generic.xaml /Y
-xcopy $(ProjectDir)View\Pages\*.xaml $(SolutionDir)Builder\Vidyano.VisualStudio\WindowsStore\Vidyano.WindowsStore\View\Pages\ /Y
-</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
+  <Import Project="..\packages\Microsoft.Bcl.Build.1.0.13\tools\Microsoft.Bcl.Build.targets" Condition="Exists('..\packages\Microsoft.Bcl.Build.1.0.13\tools\Microsoft.Bcl.Build.targets')" />
+  <Target Name="EnsureBclBuildImported" BeforeTargets="BeforeBuild" Condition="'$(BclBuildImported)' == ''">
+    <Error Condition="!Exists('..\packages\Microsoft.Bcl.Build.1.0.13\tools\Microsoft.Bcl.Build.targets')" Text="This project references NuGet package(s) that are missing on this computer. Enable NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=317567." HelpKeyword="BCLBUILD2001" />
+    <Error Condition="Exists('..\packages\Microsoft.Bcl.Build.1.0.13\tools\Microsoft.Bcl.Build.targets')" Text="The build restored NuGet packages. Build the project again to include these packages in the build. For more information, see http://go.microsoft.com/fwlink/?LinkID=317568." HelpKeyword="BCLBUILD2002" />
+  </Target>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
